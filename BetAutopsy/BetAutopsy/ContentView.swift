@@ -1,3 +1,8 @@
+//
+//  ContentView.swift
+//  BetAutopsy
+//
+
 import SwiftUI
 
 struct ContentView: View {
@@ -5,31 +10,56 @@ struct ContentView: View {
         ZStack {
             BAColor.surface0.ignoresSafeArea()
 
-            VStack(spacing: BASpacing.l) {
-                // Forensic chrome label
-                Text("CASE #001")
-                    .font(BAFont.chrome)
-                    .foregroundStyle(BAColor.textTertiary)
-                    .tracking(1.2)
+            ScrollView {
+                VStack(spacing: BASpacing.l) {
+                    // Hero section
+                    VStack(spacing: BASpacing.s) {
+                        BAChromeLabel("Case #001")
 
-                // Hero number — the dollar impact pattern
-                Text("$1,847")
-                    .font(BAFont.heroNumber)
-                    .foregroundStyle(BAColor.textPrimary)
-                    .monospacedDigit()
+                        Text("$1,847")
+                            .font(BAFont.heroNumber)
+                            .foregroundStyle(BAColor.textPrimary)
+                            .monospacedDigit()
 
-                // Subtitle
-                Text("lost to heated sessions")
-                    .font(BAFont.bodyDefault)
-                    .foregroundStyle(BAColor.textSecondary)
+                        Text("lost to heated sessions")
+                            .font(BAFont.bodyDefault)
+                            .foregroundStyle(BAColor.textSecondary)
+                    }
+                    .padding(.top, BASpacing.xxl)
 
-                // Color swatch row
-                HStack(spacing: BASpacing.s) {
-                    Circle().fill(BAColor.scalpelTeal).frame(width: 20, height: 20)
-                    Circle().fill(BAColor.bleedRed).frame(width: 20, height: 20)
-                    Circle().fill(BAColor.midnight).frame(width: 20, height: 20)
+                    // Sample card
+                    BACard {
+                        VStack(alignment: .leading, spacing: BASpacing.s) {
+                            BAChromeLabel("Exhibit A")
+                            Text("Recency bias detected")
+                                .font(BAFont.bodyLarge)
+                                .foregroundStyle(BAColor.textPrimary)
+                            Text("5 of your last 7 bets followed a win. Win rate dropped to 31%.")
+                                .font(BAFont.bodyDefault)
+                                .foregroundStyle(BAColor.textSecondary)
+                        }
+                    }
+
+                    // Sample card
+                    BACard {
+                        VStack(alignment: .leading, spacing: BASpacing.s) {
+                            BAChromeLabel("Exhibit B")
+                            Text("Heated session pattern")
+                                .font(BAFont.bodyLarge)
+                                .foregroundStyle(BAColor.textPrimary)
+                            Text("8 bets between 11pm and 1am Sunday. 2.4× normal sizing.")
+                                .font(BAFont.bodyDefault)
+                                .foregroundStyle(BAColor.textSecondary)
+                        }
+                    }
+
+                    // Sample button
+                    BAButton("View full autopsy", style: .primary) {
+                        print("Tapped autopsy")
+                    }
+                    .padding(.top, BASpacing.m)
                 }
-                .padding(.top, BASpacing.l)
+                .padding(BASpacing.m)
             }
         }
     }
@@ -37,4 +67,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .preferredColorScheme(.dark)
 }

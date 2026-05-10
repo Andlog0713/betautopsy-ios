@@ -53,7 +53,7 @@ struct AuthView: View {
                         }
                     )
                     .signInWithAppleButtonStyle(.white)
-                    .frame(height: 52)
+                    .frame(maxWidth: 375, maxHeight: 52)
                     .cornerRadius(BARadius.small)
                     .padding(.horizontal, BASpacing.l)
 

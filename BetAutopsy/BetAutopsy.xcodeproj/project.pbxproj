@@ -10,9 +10,22 @@
 		4935F8B82FB00EE600842F9F /* BetAutopsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetAutopsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4935F8DC2FB016F900842F9F /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4935F8B72FB00EE600842F9F /* BetAutopsy */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4935F8BA2FB00EE600842F9F /* BetAutopsy */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4935F8DC2FB016F900842F9F /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */,
+			);
 			path = BetAutopsy;
 			sourceTree = "<group>";
 		};
@@ -32,8 +45,8 @@
 		4935F8AF2FB00EE600842F9F = {
 			isa = PBXGroup;
 			children = (
-				4935F8BA2FB00EE600842F9F /* BetAutopsy */,
 				4935F8B92FB00EE600842F9F /* Products */,
+				4935F8BA2FB00EE600842F9F /* BetAutopsy */,
 			);
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,7 @@
 				DEVELOPMENT_TEAM = PAU6GLBN86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BetAutopsy/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -293,6 +307,7 @@
 				DEVELOPMENT_TEAM = PAU6GLBN86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BetAutopsy/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

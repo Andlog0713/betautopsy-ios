@@ -35,13 +35,36 @@ enum BAColor {
 
 enum BAFont {
     // Numbers, IDs, timestamps — JetBrains Mono
-    static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+    static func mono(_ size: CGFloat, weight: MonoWeight = .regular) -> Font {
+        .custom(weight.fontName, size: size)
     }
 
-    // Body, narrative — Inter (using SF for now, swap to Inter on Day 3)
-    static func body(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight)
+    // Body, narrative — Inter
+    static func body(_ size: CGFloat, weight: InterWeight = .regular) -> Font {
+        .custom(weight.fontName, size: size)
+    }
+
+    enum MonoWeight {
+        case regular, medium, bold
+        var fontName: String {
+            switch self {
+            case .regular: return "JetBrainsMono-Regular"
+            case .medium:  return "JetBrainsMono-Medium"
+            case .bold:    return "JetBrainsMono-Bold"
+            }
+        }
+    }
+
+    enum InterWeight {
+        case regular, medium, semibold, bold
+        var fontName: String {
+            switch self {
+            case .regular:  return "Inter-Regular"
+            case .medium:   return "Inter-Medium"
+            case .semibold: return "Inter-SemiBold"
+            case .bold:     return "Inter-Bold"
+            }
+        }
     }
 
     // Hero number (dollar impact on dashboard)
@@ -55,7 +78,7 @@ enum BAFont {
     static let bodyDefault = body(15, weight: .regular)
     static let bodySmall = body(13, weight: .regular)
 
-    // Forensic chrome (uppercase metadata stamps: "CASE #", "EXHIBIT A")
+    // Forensic chrome (uppercase metadata: "CASE #", "EXHIBIT A")
     static let chrome = body(11, weight: .medium)
 }
 

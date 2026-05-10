@@ -325,12 +325,12 @@ These have wait times. Do them the weekend before Day 1.
 **Days 15–17: RevenueCat**
 - [ ] RevenueCat SDK integrated
 - [ ] Three products configured in App Store Connect:
-  - Single report consumable: $9.99
-  - Pro monthly: $39.99/mo with 7-day free trial
-  - Pro annual: $299.99/yr (no trial)
+  - Single report consumable: $4.99
+  - Pro monthly: $14.99/mo (no trial)
+  - Pro annual: $99.99/yr (no trial)
 - [ ] All three in same subscription group
 - [ ] Webhook from RevenueCat → Supabase `subscriptions` table
-- [ ] Paywall view: monthly with trial as default, annual as "save 4.5 months" upgrade
+- [ ] Paywall view: monthly as default, annual as "get 5+ months free" upgrade
 - [ ] Restore Purchases button mandatory
 - [ ] T&Cs and Privacy Policy links mandatory
 - [ ] Verify entitlements via webhook, never trust client
@@ -441,7 +441,7 @@ These have wait times. Do them the weekend before Day 1.
 - [ ] Critical bug fixes only — resist scope creep
 - [ ] Minimum bar before App Store submit:
   - Zero crashes during test sessions
-  - At least one tester completed: upload → report → $9.99 purchase
+  - At least one tester completed: upload → report → $4.99 purchase
   - At least one tester received Weekly Autopsy notification
   - At least one tester saw archetype reveal moment
 
@@ -561,7 +561,6 @@ SwiftData stores last 50 reports as a read-only cache. Refetch strategy:
 | Weekly Autopsy (low-leak week) | `28 days of disciplined sizing` | `No heated sessions detected since Apr 11. Stake variance down 41%.` |
 | Heated Session Alert | `Sunday session flagged` | `8 bets between 11pm and 1am. 2.4× your normal sizing.` |
 | First report ready (one-shot) | `Your first case file is ready` | `132 bets analyzed. We found 2 recurring patterns.` |
-| Trial closing | `Your trial closes in 2 days` | `Three weekly reports remaining. Continue Pro to keep your case files.` |
 
 **Banned patterns:** first-name in title, exclamation marks, emoji, imperative voice, moral language, urgency cues.
 
@@ -613,9 +612,9 @@ If first review still rejects on 4.2 (rare with this baseline), add Face ID gate
 - **Detailed App Review notes citing Pikkit precedent** (Tier 1 polish #D)
 
 ### Guideline 3.1.1 — IAP
-- Single report: consumable, $9.99
-- Pro monthly: auto-renewable, $39.99/mo, 7-day trial
-- Pro annual: auto-renewable, $299.99/yr, no trial
+- Single report: consumable, $4.99
+- Pro monthly: auto-renewable, $14.99/mo, no trial
+- Pro annual: auto-renewable, $99.99/yr, no trial
 - All in same subscription group
 - Apple Small Business Program: 15% commission
 

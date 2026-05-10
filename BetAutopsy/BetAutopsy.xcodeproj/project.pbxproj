@@ -7,24 +7,24 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		4935F8B82FB00EE600842F9F /* BetAutopsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetAutopsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		492C26072FB03309001826C5 /* BetAutopsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetAutopsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		4935F8DC2FB016F900842F9F /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */ = {
+		492C26292FB03419001826C5 /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 4935F8B72FB00EE600842F9F /* BetAutopsy */;
+			target = 492C26062FB03309001826C5 /* BetAutopsy */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		4935F8BA2FB00EE600842F9F /* BetAutopsy */ = {
+		492C26092FB03309001826C5 /* BetAutopsy */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				4935F8DC2FB016F900842F9F /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */,
+				492C26292FB03419001826C5 /* Exceptions for "BetAutopsy" folder in "BetAutopsy" target */,
 			);
 			path = BetAutopsy;
 			sourceTree = "<group>";
@@ -32,7 +32,7 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		4935F8B52FB00EE600842F9F /* Frameworks */ = {
+		492C26042FB03309001826C5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -42,18 +42,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		4935F8AF2FB00EE600842F9F = {
+		492C25FE2FB03309001826C5 = {
 			isa = PBXGroup;
 			children = (
-				4935F8B92FB00EE600842F9F /* Products */,
-				4935F8BA2FB00EE600842F9F /* BetAutopsy */,
+				492C26092FB03309001826C5 /* BetAutopsy */,
+				492C26082FB03309001826C5 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		4935F8B92FB00EE600842F9F /* Products */ = {
+		492C26082FB03309001826C5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4935F8B82FB00EE600842F9F /* BetAutopsy.app */,
+				492C26072FB03309001826C5 /* BetAutopsy.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,64 +61,67 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4935F8B72FB00EE600842F9F /* BetAutopsy */ = {
+		492C26062FB03309001826C5 /* BetAutopsy */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4935F8C32FB00EEF00842F9F /* Build configuration list for PBXNativeTarget "BetAutopsy" */;
+			buildConfigurationList = 492C26122FB0330C001826C5 /* Build configuration list for PBXNativeTarget "BetAutopsy" */;
 			buildPhases = (
-				4935F8B42FB00EE600842F9F /* Sources */,
-				4935F8B52FB00EE600842F9F /* Frameworks */,
-				4935F8B62FB00EE600842F9F /* Resources */,
+				492C26032FB03309001826C5 /* Sources */,
+				492C26042FB03309001826C5 /* Frameworks */,
+				492C26052FB03309001826C5 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4935F8BA2FB00EE600842F9F /* BetAutopsy */,
+				492C26092FB03309001826C5 /* BetAutopsy */,
 			);
 			name = BetAutopsy;
 			packageProductDependencies = (
 			);
 			productName = BetAutopsy;
-			productReference = 4935F8B82FB00EE600842F9F /* BetAutopsy.app */;
+			productReference = 492C26072FB03309001826C5 /* BetAutopsy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		4935F8B02FB00EE600842F9F /* Project object */ = {
+		492C25FF2FB03309001826C5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
-					4935F8B72FB00EE600842F9F = {
+					492C26062FB03309001826C5 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
 				};
 			};
-			buildConfigurationList = 4935F8B32FB00EE600842F9F /* Build configuration list for PBXProject "BetAutopsy" */;
+			buildConfigurationList = 492C26022FB03309001826C5 /* Build configuration list for PBXProject "BetAutopsy" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 4935F8AF2FB00EE600842F9F;
+			mainGroup = 492C25FE2FB03309001826C5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 4935F8B92FB00EE600842F9F /* Products */;
+			productRefGroup = 492C26082FB03309001826C5 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4935F8B72FB00EE600842F9F /* BetAutopsy */,
+				492C26062FB03309001826C5 /* BetAutopsy */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		4935F8B62FB00EE600842F9F /* Resources */ = {
+		492C26052FB03309001826C5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -128,7 +131,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		4935F8B42FB00EE600842F9F /* Sources */ = {
+		492C26032FB03309001826C5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -138,7 +141,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		4935F8C12FB00EEF00842F9F /* Debug */ = {
+		492C26102FB0330C001826C5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -202,7 +205,7 @@
 			};
 			name = Debug;
 		};
-		4935F8C22FB00EEF00842F9F /* Release */ = {
+		492C26112FB0330C001826C5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -259,7 +262,7 @@
 			};
 			name = Release;
 		};
-		4935F8C42FB00EEF00842F9F /* Debug */ = {
+		492C26132FB0330C001826C5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -270,6 +273,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BetAutopsy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BetAutopsy;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -297,7 +301,7 @@
 			};
 			name = Debug;
 		};
-		4935F8C52FB00EEF00842F9F /* Release */ = {
+		492C26142FB0330C001826C5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -308,6 +312,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BetAutopsy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BetAutopsy;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -338,25 +343,36 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4935F8B32FB00EE600842F9F /* Build configuration list for PBXProject "BetAutopsy" */ = {
+		492C26022FB03309001826C5 /* Build configuration list for PBXProject "BetAutopsy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4935F8C12FB00EEF00842F9F /* Debug */,
-				4935F8C22FB00EEF00842F9F /* Release */,
+				492C26102FB0330C001826C5 /* Debug */,
+				492C26112FB0330C001826C5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4935F8C32FB00EEF00842F9F /* Build configuration list for PBXNativeTarget "BetAutopsy" */ = {
+		492C26122FB0330C001826C5 /* Build configuration list for PBXNativeTarget "BetAutopsy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4935F8C42FB00EEF00842F9F /* Debug */,
-				4935F8C52FB00EEF00842F9F /* Release */,
+				492C26132FB0330C001826C5 /* Debug */,
+				492C26142FB0330C001826C5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
-	rootObject = 4935F8B02FB00EE600842F9F /* Project object */;
+	rootObject = 492C25FF2FB03309001826C5 /* Project object */;
 }

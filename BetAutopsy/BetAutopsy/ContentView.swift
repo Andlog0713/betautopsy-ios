@@ -12,7 +12,6 @@ struct ContentView: View {
 
             ScrollView {
                 VStack(spacing: BASpacing.l) {
-                    // Hero section
                     VStack(spacing: BASpacing.s) {
                         BAChromeLabel("Case #001")
 
@@ -27,7 +26,6 @@ struct ContentView: View {
                     }
                     .padding(.top, BASpacing.xxl)
 
-                    // Sample card
                     BACard {
                         VStack(alignment: .leading, spacing: BASpacing.s) {
                             BAChromeLabel("Exhibit A")
@@ -40,20 +38,6 @@ struct ContentView: View {
                         }
                     }
 
-                    // Sample card
-                    BACard {
-                        VStack(alignment: .leading, spacing: BASpacing.s) {
-                            BAChromeLabel("Exhibit B")
-                            Text("Heated session pattern")
-                                .font(BAFont.bodyLarge)
-                                .foregroundStyle(BAColor.textPrimary)
-                            Text("8 bets between 11pm and 1am Sunday. 2.4× normal sizing.")
-                                .font(BAFont.bodyDefault)
-                                .foregroundStyle(BAColor.textSecondary)
-                        }
-                    }
-
-                    // Sample button
                     BAButton("View full autopsy", style: .primary) {
                         print("Tapped autopsy")
                     }

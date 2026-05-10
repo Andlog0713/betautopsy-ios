@@ -43,12 +43,13 @@ struct AuthView: View {
                             request.requestedScopes = [.fullName, .email]
                         },
                         onCompletion: { result in
-                            // Real handling wired post-DUNS. For now, just log.
                             switch result {
                             case .success:
                                 print("AuthView: SiwA stub success (real wiring blocked on DUNS)")
+                                Analytics.signal("auth.stub_completed")
                             case .failure(let error):
                                 print("AuthView: SiwA stub failure - \(error.localizedDescription)")
+                                Analytics.signal("auth.stub_failed")
                             }
                         }
                     )
@@ -77,6 +78,9 @@ struct AuthView: View {
                 }
                 .padding(.bottom, BASpacing.xxl)
             }
+        }
+        .onAppear {
+            Analytics.signal("auth.viewed")
         }
     }
 }

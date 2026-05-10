@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		490D37692FB0EEB400825278 /* TelemetryClient in Frameworks */ = {isa = PBXBuildFile; productRef = 490D37682FB0EEB400825278 /* TelemetryClient */; };
+		490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 490D376A2FB0EEB400825278 /* TelemetryDeck */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		492C26072FB03309001826C5 /* BetAutopsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetAutopsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				490D37692FB0EEB400825278 /* TelemetryClient in Frameworks */,
+				490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +85,8 @@
 			);
 			name = BetAutopsy;
 			packageProductDependencies = (
+				490D37682FB0EEB400825278 /* TelemetryClient */,
+				490D376A2FB0EEB400825278 /* TelemetryDeck */,
 			);
 			productName = BetAutopsy;
 			productReference = 492C26072FB03309001826C5 /* BetAutopsy.app */;
@@ -109,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 492C26082FB03309001826C5 /* Products */;
@@ -364,6 +374,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.12.0;
+			};
+		};
 		492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift.git";
@@ -373,6 +391,19 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		490D37682FB0EEB400825278 /* TelemetryClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */;
+			productName = TelemetryClient;
+		};
+		490D376A2FB0EEB400825278 /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */;
+			productName = TelemetryDeck;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 492C25FF2FB03309001826C5 /* Project object */;
 }

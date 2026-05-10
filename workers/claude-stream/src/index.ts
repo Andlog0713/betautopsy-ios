@@ -77,7 +77,7 @@ app.post('/stream', async (c) => {
     async start(controller) {
       try {
         const messageStream = anthropic.messages.stream({
-          model: body.model ?? 'claude-sonnet-4-5-20250929',
+          model: body.model ?? 'claude-sonnet-4-6',
           max_tokens: body.max_tokens ?? 4096,
           system: body.system,
           messages: body.messages,

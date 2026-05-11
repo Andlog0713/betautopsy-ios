@@ -28,9 +28,9 @@ struct ReportView: View {
                         ChapterYourMindView(report: report).tag(1)
                         ChapterYourDisciplineView(report: report).tag(2)
                         ChapterYourBiasesView(report: report).tag(3)
-                        ChapterPlaceholder(label: "CHAPTER 5").tag(4)
-                        ChapterPlaceholder(label: "CHAPTER 6").tag(5)
-                        ChapterPlaceholder(label: "CHAPTER 7").tag(6)
+                        ChapterYourPatternsView(report: report).tag(4)
+                        ChapterYourSportsView(report: report).tag(5)
+                        ChapterYourNext7DaysView(report: report).tag(6)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
 

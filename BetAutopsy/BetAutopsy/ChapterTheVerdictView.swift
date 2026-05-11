@@ -33,6 +33,12 @@ struct ChapterTheVerdictView: View {
                     .foregroundStyle(DS.Color.Text.tertiary)
                     .padding(.top, 6)
 
+                if report.reportType == "snapshot" {
+                    LabelChip(text: "FREE SNAPSHOT",
+                              color: DS.Color.Accent.luminolSoft)
+                        .padding(.top, 6)
+                }
+
                 Spacer().frame(height: 80)
 
                 ZStack {

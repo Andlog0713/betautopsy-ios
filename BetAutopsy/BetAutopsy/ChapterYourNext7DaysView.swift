@@ -81,34 +81,77 @@ struct ChapterYourNext7DaysView: View {
 
     private var finalCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("We'll re-run your autopsy next Sunday.")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Upload a fresh CSV to see what changed.")
-                .font(.system(size: 15))
-                .foregroundStyle(DS.Color.Text.primary.opacity(0.85))
-                .padding(.top, 6)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button(action: { dismiss() }) {
-                Text("Continue")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(DS.Color.Text.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DS.Radius.card)
-                            .stroke(DS.Color.Text.primary, lineWidth: 1)
-                    )
+            if report.reportType == "snapshot" {
+                snapshotCardContent
+            } else {
+                fullCardContent
             }
-            .padding(.top, DS.Spacing.md)
         }
         .padding(DS.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DS.Color.Accent.luminol)
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+
+    @ViewBuilder
+    private var fullCardContent: some View {
+        Text("We'll re-run your autopsy next Sunday.")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(DS.Color.Text.primary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        Text("Upload a fresh CSV to see what changed.")
+            .font(.system(size: 15))
+            .foregroundStyle(DS.Color.Text.primary.opacity(0.85))
+            .padding(.top, 6)
+            .fixedSize(horizontal: false, vertical: true)
+
+        Button(action: { dismiss() }) {
+            Text("Continue")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DS.Color.Text.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.card)
+                        .stroke(DS.Color.Text.primary, lineWidth: 1)
+                )
+        }
+        .padding(.top, DS.Spacing.md)
+    }
+
+    @ViewBuilder
+    private var snapshotCardContent: some View {
+        Text("See your full autopsy.")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(DS.Color.Text.primary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        Text("Unlock the dollar costs, recommendations, and session details for $9.99.")
+            .font(.system(size: 15))
+            .foregroundStyle(DS.Color.Text.primary.opacity(0.85))
+            .lineSpacing(3)
+            .padding(.top, 6)
+            .fixedSize(horizontal: false, vertical: true)
+
+        Button(action: handleUnlock) {
+            Text("Unlock the full autopsy")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DS.Color.Text.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.card)
+                        .stroke(DS.Color.Text.primary, lineWidth: 1)
+                )
+        }
+        .padding(.top, DS.Spacing.md)
+    }
+
+    private func handleUnlock() {
+        #if DEBUG
+        print("Paywall would open here — PR-7")
+        #endif
     }
 }
 

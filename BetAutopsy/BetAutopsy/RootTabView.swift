@@ -12,6 +12,7 @@ import UIKit
 struct RootTabView: View {
     @Environment(OnboardingCoordinator.self) private var coordinator
     @State private var uploadCoordinator = UploadFlowCoordinator()
+    @State private var reportStore = ReportStore()
 
     init() {
         configureTabBarAppearance()
@@ -31,6 +32,7 @@ struct RootTabView: View {
 
             ReportListView()
                 .environment(uploadCoordinator)
+                .environment(reportStore)
                 .tabItem {
                     Label("Reports", systemImage: "doc.text")
                 }

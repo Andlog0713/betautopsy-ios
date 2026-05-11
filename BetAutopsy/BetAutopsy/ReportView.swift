@@ -26,8 +26,8 @@ struct ReportView: View {
                     TabView(selection: $currentIndex) {
                         ChapterTheVerdictView(report: report).tag(0)
                         ChapterYourMindView(report: report).tag(1)
-                        ChapterPlaceholder(label: "CHAPTER 3").tag(2)
-                        ChapterPlaceholder(label: "CHAPTER 4").tag(3)
+                        ChapterYourDisciplineView(report: report).tag(2)
+                        ChapterYourBiasesView(report: report).tag(3)
                         ChapterPlaceholder(label: "CHAPTER 5").tag(4)
                         ChapterPlaceholder(label: "CHAPTER 6").tag(5)
                         ChapterPlaceholder(label: "CHAPTER 7").tag(6)

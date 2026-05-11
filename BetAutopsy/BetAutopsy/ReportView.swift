@@ -24,8 +24,8 @@ struct ReportView: View {
                 topBar
                 ZStack(alignment: .bottom) {
                     TabView(selection: $currentIndex) {
-                        ChapterPlaceholder(label: "CHAPTER 1").tag(0)
-                        ChapterPlaceholder(label: "CHAPTER 2").tag(1)
+                        ChapterTheVerdictView(report: report).tag(0)
+                        ChapterYourMindView(report: report).tag(1)
                         ChapterPlaceholder(label: "CHAPTER 3").tag(2)
                         ChapterPlaceholder(label: "CHAPTER 4").tag(3)
                         ChapterPlaceholder(label: "CHAPTER 5").tag(4)

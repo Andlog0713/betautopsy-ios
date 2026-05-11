@@ -12,8 +12,8 @@ enum DS {
     }
     enum Text {
       static let primary    = SwiftUI.Color(hex: 0xECEDF1)
-      static let secondary  = SwiftUI.Color(hex: 0x8E90A6)
-      static let tertiary   = SwiftUI.Color(hex: 0x5F6178)
+      static let secondary  = SwiftUI.Color(hex: 0xA8AABF)
+      static let tertiary   = SwiftUI.Color(hex: 0x74768C)
       static let quaternary = SwiftUI.Color(hex: 0x3D3F50)
     }
     enum Accent {
@@ -25,11 +25,15 @@ enum DS {
       static let win   = SwiftUI.Color(hex: 0x5BFFA8)
     }
     enum Archetype {
-      static let heatChaser    = SwiftUI.Color(hex: 0xFF5454)
-      static let surgeon       = SwiftUI.Color(hex: 0x6B5BFF)
-      static let parlayDreamer = SwiftUI.Color(hex: 0xFF8FB1)
-      static let grinder       = SwiftUI.Color(hex: 0xA89472)
-      static let gutBettor     = SwiftUI.Color(hex: 0xFFCB47)
+      static let natural        = SwiftUI.Color(hex: 0x5BFFA8)
+      static let sharpSleeper   = SwiftUI.Color(hex: 0x6B5BFF)
+      static let heatedBettor   = SwiftUI.Color(hex: 0xFF5454)
+      static let chalkGrinder   = SwiftUI.Color(hex: 0xB8944A)
+      static let parlayDreamer  = SwiftUI.Color(hex: 0x8B7DFF)
+      static let sniper         = SwiftUI.Color(hex: 0x60A5FA)
+      static let volumeWarrior  = SwiftUI.Color(hex: 0xA78BFA)
+      static let degenKing      = SwiftUI.Color(hex: 0xFF5454)
+      static let grinder        = SwiftUI.Color(hex: 0xA8AABF)
     }
   }
   enum Spacing {
@@ -58,5 +62,15 @@ extension Color {
     let g = Double((hex >> 8) & 0xFF) / 255
     let b = Double(hex & 0xFF) / 255
     self.init(.sRGB, red: r, green: g, blue: b, opacity: 1)
+  }
+
+  init(hex: String) {
+    var trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.hasPrefix("#") { trimmed.removeFirst() }
+    guard trimmed.count == 6, let value = UInt32(trimmed, radix: 16) else {
+      self.init(.sRGB, red: 0, green: 0, blue: 0, opacity: 1)
+      return
+    }
+    self.init(hex: value)
   }
 }

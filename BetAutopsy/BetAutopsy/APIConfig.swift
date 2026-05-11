@@ -10,7 +10,11 @@
 import Foundation
 
 enum APIConfig {
-    nonisolated static let baseURL = URL(string: "https://betautopsy.com")!
+    // www-canonical: the apex returns a 308 to https://www.betautopsy.com,
+    // and URLSession strips the Authorization header on cross-host redirects
+    // (apex -> www counts as cross-host). Targeting the canonical host
+    // directly avoids the redirect and preserves the Bearer token.
+    nonisolated static let baseURL = URL(string: "https://www.betautopsy.com")!
 
     nonisolated static var jwt: String? {
         guard let value = Bundle.main.object(forInfoDictionaryKey:

@@ -3,20 +3,22 @@
 //  BetAutopsy
 //
 //  3-tab root: Today, Sessions, Reports.
-//  Mock placeholders for Sessions/Reports in PR-1.
+//  Today tab is wrapped in NavigationStack to host a DEBUG-only reset button.
 //
 
 import SwiftUI
 import UIKit
 
 struct RootTabView: View {
+    @Environment(OnboardingCoordinator.self) private var coordinator
+
     init() {
         configureTabBarAppearance()
     }
 
     var body: some View {
         TabView {
-            TodayView()
+            todayTab
                 .tabItem {
                     Label("Today", systemImage: "circle.dotted")
                 }
@@ -26,12 +28,33 @@ struct RootTabView: View {
                     Label("Sessions", systemImage: "list.bullet.rectangle")
                 }
 
-            ContentUnavailableView("Your first report", systemImage: "doc.text")
+            ReportListView()
                 .tabItem {
                     Label("Reports", systemImage: "doc.text")
                 }
         }
         .tint(DS.Color.Accent.luminolSoft)
+    }
+
+    private var todayTab: some View {
+        NavigationStack {
+            TodayView()
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(DS.Color.Surface.canvas, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbar {
+                    #if DEBUG
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: { coordinator.reset() }) {
+                            Text("RESET")
+                                .font(.custom("JetBrainsMono-Regular", size: 10))
+                                .tracking(10 * 0.15)
+                                .foregroundStyle(DS.Color.Text.tertiary)
+                        }
+                    }
+                    #endif
+                }
+        }
     }
 
     private func configureTabBarAppearance() {
@@ -60,5 +83,6 @@ struct RootTabView: View {
 
 #Preview {
     RootTabView()
+        .environment(OnboardingCoordinator())
         .preferredColorScheme(.dark)
 }

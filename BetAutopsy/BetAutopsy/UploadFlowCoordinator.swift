@@ -83,7 +83,7 @@ final class UploadFlowCoordinator {
                 // Stream ended without .complete.
                 if case .succeeded = state { return }
                 state = .failed(.streamParseError(
-                    detail: "Stream ended without complete event"))
+                    detail: "Stream ended. \(AnalyzeClient.lastDiagnostics)"))
 
             } catch let e as AnalyzeError {
                 state = .failed(e)

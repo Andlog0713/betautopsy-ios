@@ -78,7 +78,7 @@ private struct WrappedReportPayload: Decodable {
         let betCountAnalyzed: Int
         let dateRangeStart: String?
         let dateRangeEnd: String?
-        let createdAt: String
+        let createdAt: String?
         let reportJson: AutopsyAnalysis
     }
 }
@@ -132,6 +132,10 @@ private struct PreStreamErrorResponse: Decodable {
 /// the main thread, so MainActor here is safe.
 final class AnalyzeClient {
     private let session: URLSession
+
+    /// Last-stream diagnostic counters, surfaced into user-facing errors
+    /// so we don't depend on the Xcode console being attached.
+    static var lastDiagnostics: String = ""
 
     init() {
         let config = URLSessionConfiguration.default
@@ -211,22 +215,37 @@ final class AnalyzeClient {
                 do {
                     var currentEvent: String?
                     var dataLines: [String] = []
+                    var lineCount = 0
+                    var dataLineCount = 0
+                    var dispatchCount = 0
+                    print("[AnalyzeClient] SSE stream started, contentType=\(contentType)")
 
                     for try await line in bytes.lines {
+                        lineCount += 1
                         if line.hasPrefix(":") {
                             continue
                         }
 
                         if line.isEmpty {
-                            if let event = currentEvent,
-                               !dataLines.isEmpty {
+                            if !dataLines.isEmpty {
                                 let joined = dataLines.joined(
                                     separator: "\n")
-                                try Self.dispatchEvent(
-                                    name: event,
-                                    dataJSON: joined,
-                                    continuation: continuation
-                                )
+                                if let event = currentEvent {
+                                    try Self.dispatchEvent(
+                                        name: event,
+                                        dataJSON: joined,
+                                        continuation: continuation
+                                    )
+                                    dispatchCount += 1
+                                } else if let envelope =
+                                    Self.extractEnvelope(from: joined) {
+                                    try Self.dispatchEvent(
+                                        name: envelope.type,
+                                        dataJSON: envelope.dataJSON,
+                                        continuation: continuation
+                                    )
+                                    dispatchCount += 1
+                                }
                             }
                             currentEvent = nil
                             dataLines = []
@@ -237,17 +256,61 @@ final class AnalyzeClient {
                             currentEvent = String(line.dropFirst(7))
                         } else if line.hasPrefix("event:") {
                             currentEvent = String(line.dropFirst(6))
-                        } else if line.hasPrefix("data: ") {
-                            dataLines.append(String(line.dropFirst(6)))
-                        } else if line.hasPrefix("data:") {
-                            dataLines.append(String(line.dropFirst(5)))
+                        } else if line.hasPrefix("data: ") || line.hasPrefix("data:") {
+                            let payload = line.hasPrefix("data: ")
+                                ? String(line.dropFirst(6))
+                                : String(line.dropFirst(5))
+                            dataLines.append(payload)
+                            dataLineCount += 1
+
+                            // Eager dispatch: URLSession.AsyncBytes.lines doesn't
+                            // reliably yield the empty lines between SSE events,
+                            // so we can't depend on an empty-line boundary to
+                            // trigger dispatch. If this data: line on its own is
+                            // a complete envelope ({"type":"...","data":...}),
+                            // dispatch and clear the buffer immediately.
+                            if currentEvent == nil,
+                               let envelope = Self.extractEnvelope(from: payload) {
+                                try Self.dispatchEvent(
+                                    name: envelope.type,
+                                    dataJSON: envelope.dataJSON,
+                                    continuation: continuation
+                                )
+                                dispatchCount += 1
+                                dataLines = []
+                            }
                         }
                         // Ignore other SSE fields (id, retry, etc.)
                     }
+
+                    // Flush any event still buffered at end-of-stream (no
+                    // trailing empty line). Some senders omit the final \n\n.
+                    if !dataLines.isEmpty {
+                        let joined = dataLines.joined(separator: "\n")
+                        if let event = currentEvent {
+                            try Self.dispatchEvent(
+                                name: event, dataJSON: joined,
+                                continuation: continuation)
+                            dispatchCount += 1
+                        } else if let envelope =
+                            Self.extractEnvelope(from: joined) {
+                            try Self.dispatchEvent(
+                                name: envelope.type,
+                                dataJSON: envelope.dataJSON,
+                                continuation: continuation)
+                            dispatchCount += 1
+                        }
+                    }
+
+                    Self.lastDiagnostics = "lines=\(lineCount) data=\(dataLineCount) dispatched=\(dispatchCount) ct=\(contentType.prefix(20))"
+                    print("[AnalyzeClient] SSE stream done: \(Self.lastDiagnostics)")
+
                     continuation.finish()
                 } catch is CancellationError {
+                    print("[AnalyzeClient] SSE stream cancelled")
                     continuation.finish(throwing: AnalyzeError.cancelled)
                 } catch {
+                    print("[AnalyzeClient] SSE stream error: \(error)")
                     let mapped = Self.mapStreamError(error)
                     continuation.finish(throwing: mapped)
                 }
@@ -345,6 +408,33 @@ final class AnalyzeClient {
         return .streamParseError(detail: "\(error)")
     }
 
+    // MARK: - Envelope unwrap
+
+    /// Backend ships SSE events as `data: {"type":"...","data":...}` without
+    /// an `event:` line. This helper peeks at the JSON; if it has a `type`
+    /// field, returns the type string and the re-serialized inner `data`
+    /// so the rest of the pipeline can treat it like a standard SSE event.
+    private static func extractEnvelope(
+        from json: String
+    ) -> (type: String, dataJSON: String)? {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data)
+                            as? [String: Any],
+              let type = obj["type"] as? String
+        else {
+            return nil
+        }
+        let inner = obj["data"] ?? [String: Any]()
+        guard let innerData = try? JSONSerialization.data(
+                withJSONObject: inner,
+                options: [.fragmentsAllowed]),
+              let innerString = String(data: innerData, encoding: .utf8)
+        else {
+            return nil
+        }
+        return (type, innerString)
+    }
+
     // MARK: - SSE event dispatch
 
     private static func dispatchEvent(
@@ -372,8 +462,10 @@ final class AnalyzeClient {
             }
 
         case "complete":
-            if let wrapped = try? decoder.decode(
-                WrappedReportPayload.self, from: data) {
+            var wrappedErr: Error?
+            do {
+                let wrapped = try decoder.decode(
+                    WrappedReportPayload.self, from: data)
                 continuation.yield(.complete(
                     wrapped.report.reportJson,
                     reportType: wrapped.report.reportType,
@@ -381,8 +473,12 @@ final class AnalyzeClient {
                     dateRange: (wrapped.report.dateRangeStart,
                                 wrapped.report.dateRangeEnd),
                     createdAt: wrapped.report.createdAt
+                                ?? ISO8601DateFormatter().string(from: Date())
                 ))
                 return
+            } catch {
+                wrappedErr = error
+                print("[AnalyzeClient] WrappedReportPayload decode failed: \(error)")
             }
             do {
                 let direct = try decoder.decode(
@@ -397,7 +493,7 @@ final class AnalyzeClient {
                 ))
             } catch {
                 throw AnalyzeError.streamParseError(
-                    detail: "complete decode (both shapes failed): \(error)")
+                    detail: "wrapped: \(wrappedErr.map { "\($0)" } ?? "nil"). direct: \(error)")
             }
 
         case "error":

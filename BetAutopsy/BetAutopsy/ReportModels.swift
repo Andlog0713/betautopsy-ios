@@ -308,11 +308,58 @@ struct AnnotationSummary: Codable {
     let distribution: [ClassificationStats]
     let emotionalCost: Double
     let insight: String
+
+    init(annotations: [BetAnnotation], distribution: [ClassificationStats],
+         emotionalCost: Double, insight: String) {
+        self.annotations = annotations
+        self.distribution = distribution
+        self.emotionalCost = emotionalCost
+        self.insight = insight
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case annotations, distribution, emotionalCost, insight
+    }
+
+    /// Helper used when backend ships `distribution` as a dict keyed by
+    /// classification name (vs an array of {classification, ...} objects).
+    private struct DistributionEntry: Decodable {
+        let count: Int
+        let percent: Double
+        let totalStaked: Double
+        let totalProfit: Double
+        let roi: Double
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.annotations = (try? container.decode([BetAnnotation].self, forKey: .annotations)) ?? []
+        self.emotionalCost = (try? container.decode(Double.self, forKey: .emotionalCost)) ?? 0
+        self.insight = (try? container.decode(String.self, forKey: .insight)) ?? ""
+
+        if let arr = try? container.decode([ClassificationStats].self, forKey: .distribution) {
+            self.distribution = arr
+        } else if let dict = try? container.decode([String: DistributionEntry].self, forKey: .distribution) {
+            self.distribution = dict.compactMap { key, entry in
+                guard let classification = BetClassification(rawValue: key) else { return nil }
+                return ClassificationStats(
+                    classification: classification,
+                    count: entry.count,
+                    percent: entry.percent,
+                    totalStaked: entry.totalStaked,
+                    totalProfit: entry.totalProfit,
+                    roi: entry.roi
+                )
+            }
+        } else {
+            self.distribution = []
+        }
+    }
 }
 
 struct SportSpecificFinding: Codable, Identifiable {
-    var id: String { findingId }
-    let findingId: String
+    var id: String { findingId ?? "\(sport)_\(name)" }
+    let findingId: String?
     let name: String
     let sport: String
     let severity: BiasSeverity
@@ -389,7 +436,7 @@ struct BettingArchetypeData: Codable {
 // MARK: - Top-level analysis
 
 struct AutopsyAnalysis: Codable {
-    let schemaVersion: Int
+    let schemaVersion: Int?
     let summary: AutopsySummary
     let biasesDetected: [BiasDetected]
     let strategicLeaks: [StrategicLeak]
@@ -414,6 +461,92 @@ struct AutopsyAnalysis: Codable {
     let contradictions: [Contradiction]?
     let bettingArchetype: BettingArchetypeData?
     let quizArchetype: String?
+
+    init(schemaVersion: Int?, summary: AutopsySummary,
+         biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
+         behavioralPatterns: [BehavioralPattern], recommendations: [Recommendation],
+         emotionScore: Int, emotionBreakdown: EmotionBreakdown?,
+         bankrollHealth: BankrollHealth, disciplineScore: DisciplineScore?,
+         betiq: BetIQResult?, enhancedTilt: EnhancedTiltResult?,
+         timingAnalysis: TimingAnalysis?, oddsAnalysis: OddsAnalysis?,
+         sessionDetection: SessionDetectionResult?, betAnnotations: AnnotationSummary?,
+         sportSpecificFindings: [SportSpecificFinding]?, dfsMode: Bool,
+         dfsPlatform: String?, dfsMetrics: DFSMetrics?,
+         executiveDiagnosis: String?, pertinentNegatives: [PertinentNegative]?,
+         contradictions: [Contradiction]?, bettingArchetype: BettingArchetypeData?,
+         quizArchetype: String?) {
+        self.schemaVersion = schemaVersion
+        self.summary = summary
+        self.biasesDetected = biasesDetected
+        self.strategicLeaks = strategicLeaks
+        self.behavioralPatterns = behavioralPatterns
+        self.recommendations = recommendations
+        self.emotionScore = emotionScore
+        self.emotionBreakdown = emotionBreakdown
+        self.bankrollHealth = bankrollHealth
+        self.disciplineScore = disciplineScore
+        self.betiq = betiq
+        self.enhancedTilt = enhancedTilt
+        self.timingAnalysis = timingAnalysis
+        self.oddsAnalysis = oddsAnalysis
+        self.sessionDetection = sessionDetection
+        self.betAnnotations = betAnnotations
+        self.sportSpecificFindings = sportSpecificFindings
+        self.dfsMode = dfsMode
+        self.dfsPlatform = dfsPlatform
+        self.dfsMetrics = dfsMetrics
+        self.executiveDiagnosis = executiveDiagnosis
+        self.pertinentNegatives = pertinentNegatives
+        self.contradictions = contradictions
+        self.bettingArchetype = bettingArchetype
+        self.quizArchetype = quizArchetype
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, summary, biasesDetected, strategicLeaks
+        case behavioralPatterns, recommendations, emotionScore, emotionBreakdown
+        case bankrollHealth, disciplineScore, betiq, enhancedTilt
+        case timingAnalysis, oddsAnalysis, sessionDetection, betAnnotations
+        case sportSpecificFindings, dfsMode, dfsPlatform, dfsMetrics
+        case executiveDiagnosis, pertinentNegatives, contradictions
+        case bettingArchetype, quizArchetype
+    }
+
+    /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
+    /// single-field shape mismatch from the backend collapses to nil or
+    /// an empty default instead of blowing up the whole AutopsyAnalysis
+    /// decode. Required scalars fall back to neutral defaults.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.schemaVersion        = try? c.decode(Int.self, forKey: .schemaVersion)
+        self.summary              = (try? c.decode(AutopsySummary.self, forKey: .summary))
+            ?? AutopsySummary(totalBets: 0, record: "", totalProfit: 0,
+                              roiPercent: 0, avgStake: 0, dateRange: "",
+                              overallGrade: "")
+        self.biasesDetected       = (try? c.decode([BiasDetected].self, forKey: .biasesDetected)) ?? []
+        self.strategicLeaks       = (try? c.decode([StrategicLeak].self, forKey: .strategicLeaks)) ?? []
+        self.behavioralPatterns   = (try? c.decode([BehavioralPattern].self, forKey: .behavioralPatterns)) ?? []
+        self.recommendations      = (try? c.decode([Recommendation].self, forKey: .recommendations)) ?? []
+        self.emotionScore         = (try? c.decode(Int.self, forKey: .emotionScore)) ?? 0
+        self.emotionBreakdown     = try? c.decode(EmotionBreakdown.self, forKey: .emotionBreakdown)
+        self.bankrollHealth       = (try? c.decode(BankrollHealth.self, forKey: .bankrollHealth)) ?? .healthy
+        self.disciplineScore      = try? c.decode(DisciplineScore.self, forKey: .disciplineScore)
+        self.betiq                = try? c.decode(BetIQResult.self, forKey: .betiq)
+        self.enhancedTilt         = try? c.decode(EnhancedTiltResult.self, forKey: .enhancedTilt)
+        self.timingAnalysis       = try? c.decode(TimingAnalysis.self, forKey: .timingAnalysis)
+        self.oddsAnalysis         = try? c.decode(OddsAnalysis.self, forKey: .oddsAnalysis)
+        self.sessionDetection     = try? c.decode(SessionDetectionResult.self, forKey: .sessionDetection)
+        self.betAnnotations       = try? c.decode(AnnotationSummary.self, forKey: .betAnnotations)
+        self.sportSpecificFindings = try? c.decode([SportSpecificFinding].self, forKey: .sportSpecificFindings)
+        self.dfsMode              = (try? c.decode(Bool.self, forKey: .dfsMode)) ?? false
+        self.dfsPlatform          = try? c.decode(String.self, forKey: .dfsPlatform)
+        self.dfsMetrics           = try? c.decode(DFSMetrics.self, forKey: .dfsMetrics)
+        self.executiveDiagnosis   = try? c.decode(String.self, forKey: .executiveDiagnosis)
+        self.pertinentNegatives   = try? c.decode([PertinentNegative].self, forKey: .pertinentNegatives)
+        self.contradictions       = try? c.decode([Contradiction].self, forKey: .contradictions)
+        self.bettingArchetype     = try? c.decode(BettingArchetypeData.self, forKey: .bettingArchetype)
+        self.quizArchetype        = try? c.decode(String.self, forKey: .quizArchetype)
+    }
 }
 
 struct AutopsyReport: Codable, Identifiable {

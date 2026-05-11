@@ -8,6 +8,21 @@
 import SwiftUI
 
 struct TodayView: View {
+    @Environment(OnboardingCoordinator.self) private var coordinator
+
+    @AppStorage("userArchetype")         private var userArchetype: String = ""
+    @AppStorage("userArchetypeColorHex") private var userArchetypeColorHex: String = ""
+    @AppStorage("userEmotionScore")      private var userEmotionScore: Int = 0
+    @AppStorage("userDisciplineScore")   private var userDisciplineScore: Int = 0
+
+    private var hasArchetype: Bool { !userArchetype.isEmpty }
+
+    private var archetypeColor: Color {
+        userArchetypeColorHex.isEmpty
+            ? DS.Color.Accent.luminol
+            : Color(hex: userArchetypeColorHex)
+    }
+
     var body: some View {
         ZStack {
             DS.Color.Surface.canvas.ignoresSafeArea()
@@ -50,9 +65,9 @@ struct TodayView: View {
     private var heroRing: some View {
         ZStack {
             Circle()
-                .stroke(DS.Color.Accent.luminol, lineWidth: 3)
+                .stroke(archetypeColor, lineWidth: 3)
                 .frame(width: 130, height: 130)
-                .shadow(color: DS.Color.Accent.luminol.opacity(0.22), radius: 12, x: 0, y: 0)
+                .shadow(color: archetypeColor.opacity(0.22), radius: 12, x: 0, y: 0)
 
             VStack(spacing: DS.Spacing.xxs) {
                 Text("87")
@@ -68,13 +83,31 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Archetype label
+    // MARK: - Archetype label / assessment CTA
 
+    @ViewBuilder
     private var archetypeLabel: some View {
-        Text("HEAT CHASER")
-            .font(.custom("Inter-Bold", size: 14))
-            .tracking(14 * 0.22)
-            .foregroundStyle(DS.Color.Accent.luminolSoft)
+        if hasArchetype {
+            Text(userArchetype.uppercased())
+                .font(.custom("Inter-Bold", size: 14))
+                .tracking(14 * 0.22)
+                .foregroundStyle(DS.Color.Accent.luminolSoft)
+        } else {
+            Button(action: { coordinator.reset() }) {
+                Text("TAKE YOUR ASSESSMENT")
+                    .font(.custom("JetBrainsMono-Regular", size: 12))
+                    .tracking(12 * 0.15)
+                    .foregroundStyle(DS.Color.Accent.luminolSoft)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .overlay(
+                        Capsule()
+                            .stroke(DS.Color.Accent.luminol, lineWidth: 1)
+                    )
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Verdict
@@ -90,8 +123,8 @@ struct TodayView: View {
 
     private var rangeCard: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.lg) {
-            RangeBar(label: "Discipline", value: 62, dotColor: DS.Color.Accent.luminol)
-            RangeBar(label: "Tilt", value: 34, dotColor: DS.Color.Semantic.blood)
+            RangeBar(label: "Discipline", value: userDisciplineScore, dotColor: DS.Color.Accent.luminol)
+            RangeBar(label: "Emotion score", value: userEmotionScore, dotColor: DS.Color.Semantic.blood)
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -150,5 +183,6 @@ private struct RangeBar: View {
 
 #Preview {
     TodayView()
+        .environment(OnboardingCoordinator())
         .preferredColorScheme(.dark)
 }

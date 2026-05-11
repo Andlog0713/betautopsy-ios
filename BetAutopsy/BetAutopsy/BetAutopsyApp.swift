@@ -13,7 +13,7 @@ struct BetAutopsyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
                 .preferredColorScheme(.dark)
         }
     }

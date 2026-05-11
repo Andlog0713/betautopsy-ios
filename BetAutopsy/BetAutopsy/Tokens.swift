@@ -1,112 +1,62 @@
-//
-//  Tokens.swift
-//  BetAutopsy
-//
-//  Forensic case-file design system.
-//  Reference Tokens.swift for every value. Never hardcode hex.
-//
-
 import SwiftUI
 
-// MARK: - Colors
-
-enum BAColor {
-    // Brand
-    static let midnight = Color(hex: 0x0D1117)        // ground
-    static let scalpelTeal = Color(hex: 0x00C9A7)     // signal
-    static let bleedRed = Color(hex: 0xE8453C)        // warning / loss
-
-    // Surface ramp (dark only — app is dark-mode locked)
-    static let surface0 = Color(hex: 0x0D1117)        // base background
-    static let surface1 = Color(hex: 0x161B22)        // cards
-    static let surface2 = Color(hex: 0x1F2630)        // elevated cards
-    static let surface3 = Color(hex: 0x2A3340)        // highest
-
-    // Text
-    static let textPrimary = Color(hex: 0xF0F0F0)
-    static let textSecondary = Color(hex: 0xA0A0A0)
-    static let textTertiary = Color(hex: 0x606060)
-
-    // Edge highlight (1px top-edge for elevation, never shadows)
-    static let edgeHighlight = Color.white.opacity(0.03)
-}
-
-// MARK: - Typography
-
-enum BAFont {
-    // Numbers, IDs, timestamps — JetBrains Mono
-    static func mono(_ size: CGFloat, weight: MonoWeight = .regular) -> Font {
-        .custom(weight.fontName, size: size)
+enum DS {
+  enum Color {
+    enum Surface {
+      static let canvas = SwiftUI.Color(hex: 0x14151D)
+      static let card   = SwiftUI.Color(hex: 0x1B1D27)
+      static let raised = SwiftUI.Color(hex: 0x232636)
     }
-
-    // Body, narrative — Inter
-    static func body(_ size: CGFloat, weight: InterWeight = .regular) -> Font {
-        .custom(weight.fontName, size: size)
+    enum Border {
+      static let subtle = SwiftUI.Color(hex: 0x292B38)
     }
-
-    enum MonoWeight {
-        case regular, medium, bold
-        var fontName: String {
-            switch self {
-            case .regular: return "JetBrainsMono-Regular"
-            case .medium:  return "JetBrainsMono-Medium"
-            case .bold:    return "JetBrainsMono-Bold"
-            }
-        }
+    enum Text {
+      static let primary    = SwiftUI.Color(hex: 0xECEDF1)
+      static let secondary  = SwiftUI.Color(hex: 0x8E90A6)
+      static let tertiary   = SwiftUI.Color(hex: 0x5F6178)
+      static let quaternary = SwiftUI.Color(hex: 0x3D3F50)
     }
-
-    enum InterWeight {
-        case regular, medium, semibold, bold
-        var fontName: String {
-            switch self {
-            case .regular:  return "Inter-Regular"
-            case .medium:   return "Inter-Medium"
-            case .semibold: return "Inter-SemiBold"
-            case .bold:     return "Inter-Bold"
-            }
-        }
+    enum Accent {
+      static let luminol     = SwiftUI.Color(hex: 0x6B5BFF)
+      static let luminolSoft = SwiftUI.Color(hex: 0x8B7DFF)
     }
-
-    // Hero number (dollar impact on dashboard)
-    static let heroNumber = mono(56, weight: .bold)
-
-    // Section headers
-    static let sectionHeader = body(14, weight: .medium)
-
-    // Body
-    static let bodyLarge = body(17, weight: .regular)
-    static let bodyDefault = body(15, weight: .regular)
-    static let bodySmall = body(13, weight: .regular)
-
-    // Forensic chrome (uppercase metadata: "CASE #", "EXHIBIT A")
-    static let chrome = body(11, weight: .medium)
-}
-
-// MARK: - Spacing
-
-enum BASpacing {
-    static let xs: CGFloat = 4
-    static let s: CGFloat = 8
-    static let m: CGFloat = 16
-    static let l: CGFloat = 24
-    static let xl: CGFloat = 32
+    enum Semantic {
+      static let blood = SwiftUI.Color(hex: 0xFF5454)
+      static let win   = SwiftUI.Color(hex: 0x5BFFA8)
+    }
+    enum Archetype {
+      static let heatChaser    = SwiftUI.Color(hex: 0xFF5454)
+      static let surgeon       = SwiftUI.Color(hex: 0x6B5BFF)
+      static let parlayDreamer = SwiftUI.Color(hex: 0xFF8FB1)
+      static let grinder       = SwiftUI.Color(hex: 0xA89472)
+      static let gutBettor     = SwiftUI.Color(hex: 0xFFCB47)
+    }
+  }
+  enum Spacing {
+    static let xxs: CGFloat = 2
+    static let xs:  CGFloat = 4
+    static let sm:  CGFloat = 8
+    static let md:  CGFloat = 16
+    static let lg:  CGFloat = 24
+    static let xl:  CGFloat = 32
     static let xxl: CGFloat = 48
+  }
+  enum Radius {
+    static let chip:  CGFloat = 4
+    static let tile:  CGFloat = 6
+    static let card:  CGFloat = 10
+    static let sheet: CGFloat = 16
+  }
+  enum Stroke {
+    static let hairline: CGFloat = 0.5
+  }
 }
-
-// MARK: - Radii
-
-enum BARadius {
-    static let none: CGFloat = 0    // panels
-    static let small: CGFloat = 4   // buttons, chips (max)
-}
-
-// MARK: - Color hex initializer
 
 extension Color {
-    init(hex: UInt32, opacity: Double = 1.0) {
-        let r = Double((hex & 0xFF0000) >> 16) / 255.0
-        let g = Double((hex & 0x00FF00) >> 8) / 255.0
-        let b = Double(hex & 0x0000FF) / 255.0
-        self.init(.sRGB, red: r, green: g, blue: b, opacity: opacity)
-    }
+  init(hex: UInt32) {
+    let r = Double((hex >> 16) & 0xFF) / 255
+    let g = Double((hex >> 8) & 0xFF) / 255
+    let b = Double(hex & 0xFF) / 255
+    self.init(.sRGB, red: r, green: g, blue: b, opacity: 1)
+  }
 }

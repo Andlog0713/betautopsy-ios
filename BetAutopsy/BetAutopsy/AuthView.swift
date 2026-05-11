@@ -12,32 +12,30 @@ import AuthenticationServices
 struct AuthView: View {
     var body: some View {
         ZStack {
-            BAColor.surface0.ignoresSafeArea()
+            DS.Color.Surface.canvas.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
-                // Hero
-                VStack(alignment: .leading, spacing: BASpacing.m) {
+                VStack(alignment: .leading, spacing: DS.Spacing.md) {
                     BAChromeLabel("CASE FILE ACCESS")
 
                     Text("BetAutopsy")
-                        .font(BAFont.body(40, weight: .bold))
-                        .foregroundStyle(BAColor.textPrimary)
+                        .font(.custom("Inter-Bold", size: 40))
+                        .foregroundStyle(DS.Color.Text.primary)
 
                     Text("Behavioral analysis for sports bettors. Upload your history. See what's costing you.")
-                        .font(BAFont.bodyDefault)
-                        .foregroundStyle(BAColor.textSecondary)
+                        .font(.custom("Inter-Regular", size: 15))
+                        .foregroundStyle(DS.Color.Text.secondary)
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, BASpacing.l)
+                .padding(.horizontal, DS.Spacing.lg)
 
                 Spacer()
 
-                // Sign in
-                VStack(spacing: BASpacing.m) {
+                VStack(spacing: DS.Spacing.md) {
                     SignInWithAppleButton(
                         onRequest: { request in
                             request.requestedScopes = [.fullName, .email]
@@ -55,28 +53,27 @@ struct AuthView: View {
                     )
                     .signInWithAppleButtonStyle(.white)
                     .frame(maxWidth: 375, maxHeight: 52)
-                    .cornerRadius(BARadius.small)
-                    .padding(.horizontal, BASpacing.l)
+                    .cornerRadius(DS.Radius.chip)
+                    .padding(.horizontal, DS.Spacing.lg)
 
-                    // Compliance footer
-                    VStack(spacing: BASpacing.xs) {
+                    VStack(spacing: DS.Spacing.xs) {
                         Text("By continuing you confirm you are 21 or older.")
-                            .font(BAFont.bodySmall)
-                            .foregroundStyle(BAColor.textTertiary)
+                            .font(.custom("Inter-Regular", size: 13))
+                            .foregroundStyle(DS.Color.Text.tertiary)
 
-                        HStack(spacing: BASpacing.xs) {
+                        HStack(spacing: DS.Spacing.xs) {
                             Text("Problem gambling?")
-                                .font(BAFont.bodySmall)
-                                .foregroundStyle(BAColor.textTertiary)
+                                .font(.custom("Inter-Regular", size: 13))
+                                .foregroundStyle(DS.Color.Text.tertiary)
 
                             Text("Call 1-800-GAMBLER")
-                                .font(BAFont.bodySmall)
-                                .foregroundStyle(BAColor.scalpelTeal)
+                                .font(.custom("Inter-Regular", size: 13))
+                                .foregroundStyle(DS.Color.Accent.luminolSoft)
                         }
                     }
-                    .padding(.top, BASpacing.s)
+                    .padding(.top, DS.Spacing.sm)
                 }
-                .padding(.bottom, BASpacing.xxl)
+                .padding(.bottom, DS.Spacing.xxl)
             }
         }
         .onAppear {

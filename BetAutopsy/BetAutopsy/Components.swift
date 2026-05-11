@@ -9,10 +9,6 @@
 import SwiftUI
 
 // MARK: - BACard
-//
-// Forensic case-file card. Surface1 background, 1px border, 1px top edge highlight.
-// Use for any grouped content: bet rows, report sections, settings groups.
-//
 
 struct BACard<Content: View>: View {
     let content: Content
@@ -22,48 +18,36 @@ struct BACard<Content: View>: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            content
-                .padding(BASpacing.m)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(BAColor.surface1)
-                .overlay(
-                    Rectangle()
-                        .stroke(BAColor.surface3, lineWidth: 0.5)
-                )
-
-            // 1px top-edge highlight (Linear's pattern)
-            Rectangle()
-                .fill(BAColor.edgeHighlight)
-                .frame(height: 1)
-        }
+        content
+            .padding(DS.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS.Color.Surface.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card)
+                    .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
     }
 }
 
 // MARK: - BAButton
-//
-// Three variants:
-// - .primary: scalpel teal background, dark text. The CTA.
-// - .secondary: surface2 background, primary text. Secondary actions.
-// - .destructive: bleed red background, white text. Delete, sign out.
-//
 
 enum BAButtonStyle {
     case primary, secondary, destructive
 
     var background: Color {
         switch self {
-        case .primary:     return BAColor.scalpelTeal
-        case .secondary:   return BAColor.surface2
-        case .destructive: return BAColor.bleedRed
+        case .primary:     return DS.Color.Accent.luminol
+        case .secondary:   return DS.Color.Surface.raised
+        case .destructive: return DS.Color.Semantic.blood
         }
     }
 
     var foreground: Color {
         switch self {
-        case .primary:     return BAColor.midnight
-        case .secondary:   return BAColor.textPrimary
-        case .destructive: return Color.white
+        case .primary:     return DS.Color.Text.primary
+        case .secondary:   return DS.Color.Text.primary
+        case .destructive: return DS.Color.Text.primary
         }
     }
 }
@@ -82,21 +66,17 @@ struct BAButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(BAFont.body(15, weight: .semibold))
+                .font(.custom("Inter-SemiBold", size: 15))
                 .foregroundStyle(style.foreground)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(style.background)
-                .clipShape(RoundedRectangle(cornerRadius: BARadius.small))
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.chip))
         }
     }
 }
 
 // MARK: - BAChromeLabel
-//
-// Forensic metadata stamp. Uppercase, tracked, tertiary text.
-// Use for "CASE #", "EXHIBIT A", "FILED:", etc.
-//
 
 struct BAChromeLabel: View {
     let text: String
@@ -107,9 +87,9 @@ struct BAChromeLabel: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(BAFont.chrome)
-            .foregroundStyle(BAColor.textTertiary)
-            .tracking(1.2)
+            .font(.custom("JetBrainsMono-Medium", size: 11))
+            .foregroundStyle(DS.Color.Text.tertiary)
+            .tracking(11 * 0.15)
     }
 }
 
@@ -117,21 +97,21 @@ struct BAChromeLabel: View {
 
 #Preview("Components") {
     ZStack {
-        BAColor.surface0.ignoresSafeArea()
+        DS.Color.Surface.canvas.ignoresSafeArea()
 
         ScrollView {
-            VStack(spacing: BASpacing.l) {
+            VStack(spacing: DS.Spacing.lg) {
                 BAChromeLabel("Case File Components")
 
                 BACard {
-                    VStack(alignment: .leading, spacing: BASpacing.s) {
+                    VStack(alignment: .leading, spacing: DS.Spacing.sm) {
                         BAChromeLabel("Exhibit A")
                         Text("This is a card.")
-                            .font(BAFont.bodyDefault)
-                            .foregroundStyle(BAColor.textPrimary)
-                        Text("Surface1 background, 1px border, edge highlight.")
-                            .font(BAFont.bodySmall)
-                            .foregroundStyle(BAColor.textSecondary)
+                            .font(.custom("Inter-Regular", size: 15))
+                            .foregroundStyle(DS.Color.Text.primary)
+                        Text("Card surface, hairline border.")
+                            .font(.custom("Inter-Regular", size: 13))
+                            .foregroundStyle(DS.Color.Text.secondary)
                     }
                 }
 
@@ -139,7 +119,7 @@ struct BAChromeLabel: View {
                 BAButton("Secondary action", style: .secondary) {}
                 BAButton("Destructive action", style: .destructive) {}
             }
-            .padding(BASpacing.m)
+            .padding(DS.Spacing.md)
         }
     }
     .preferredColorScheme(.dark)

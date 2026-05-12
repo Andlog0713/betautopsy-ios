@@ -86,7 +86,23 @@ final class UploadFlowCoordinator {
                     detail: "Stream ended. \(AnalyzeClient.lastDiagnostics)"))
 
             } catch let e as AnalyzeError {
+                // User-initiated cancellation (e.g. dragged the progress
+                // sheet down mid-stream) bubbles up as AnalyzeError.cancelled
+                // via AnalyzeClient.mapStreamError. Reset state silently —
+                // they know they canceled; no error UI flash.
+                if case .cancelled = e {
+                    state = .idle
+                    return
+                }
                 state = .failed(e)
+            } catch let urlError as URLError where urlError.code == .cancelled {
+                // Cancellation that bypassed AnalyzeClient's mapping (e.g.
+                // session.bytes(for:) throws before the stream Task is
+                // even constructed). Same silent-dismiss treatment.
+                state = .idle
+            } catch is CancellationError {
+                // Swift Task cancellation. Same path.
+                state = .idle
             } catch {
                 state = .failed(.streamParseError(detail: "\(error)"))
             }

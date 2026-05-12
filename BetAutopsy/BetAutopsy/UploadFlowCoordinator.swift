@@ -25,11 +25,25 @@ final class UploadFlowCoordinator {
     private let client = AnalyzeClient()
     private var currentTask: Task<Void, Never>?
 
+    /// Tracks whether the in-flight upload was aborted by the user (Cancel
+    /// button) vs failed organically. URLSession.bytes(for:) sometimes
+    /// closes its stream gracefully on task cancellation rather than
+    /// throwing URLError.cancelled — when that happens, the for-await
+    /// loop completes normally and the "Stream ended without complete"
+    /// path fires, which previously surfaced the PR-4 diagnostic dump as
+    /// a "Try again" error. This flag distinguishes "user wanted out"
+    /// from "actual stream failure" regardless of how cancellation
+    /// propagates through URLSession.
+    private var userInitiatedCancel: Bool = false
+
     func startUpload(csvData: Data, filename: String,
                      reportType: String = "snapshot") {
         // Cancel any in-flight task.
         currentTask?.cancel()
         currentTask = nil
+
+        // Reset the cancel flag on every fresh upload.
+        userInitiatedCancel = false
 
         state = .uploading
 
@@ -45,7 +59,9 @@ final class UploadFlowCoordinator {
 
                 for try await event in stream {
                     if Task.isCancelled {
-                        state = .failed(.cancelled)
+                        // Cancellation noticed mid-iteration. Treat as
+                        // user-initiated (only path that cancels the task).
+                        state = .idle
                         return
                     }
 
@@ -80,42 +96,49 @@ final class UploadFlowCoordinator {
                     }
                 }
 
-                // Stream ended without .complete.
+                // Stream ended without .complete. User-initiated cancel
+                // beats the diagnostic-surface path — they don't need to
+                // see "Stream ended. lines=… data=… dispatched=…" when
+                // they themselves chose to stop.
                 if case .succeeded = state { return }
+                if userInitiatedCancel {
+                    state = .idle
+                    return
+                }
                 state = .failed(.streamParseError(
                     detail: "Stream ended. \(AnalyzeClient.lastDiagnostics)"))
 
             } catch let e as AnalyzeError {
-                // User-initiated cancellation (e.g. dragged the progress
-                // sheet down mid-stream) bubbles up as AnalyzeError.cancelled
-                // via AnalyzeClient.mapStreamError. Reset state silently —
-                // they know they canceled; no error UI flash.
+                if userInitiatedCancel { state = .idle; return }
                 if case .cancelled = e {
                     state = .idle
                     return
                 }
                 state = .failed(e)
             } catch let urlError as URLError where urlError.code == .cancelled {
-                // Cancellation that bypassed AnalyzeClient's mapping (e.g.
-                // session.bytes(for:) throws before the stream Task is
-                // even constructed). Same silent-dismiss treatment.
                 state = .idle
             } catch is CancellationError {
-                // Swift Task cancellation. Same path.
                 state = .idle
             } catch {
+                if userInitiatedCancel { state = .idle; return }
                 state = .failed(.streamParseError(detail: "\(error)"))
             }
         }
     }
 
     func cancel() {
+        // Flag MUST be set before cancelling the task. The task's catch
+        // path reads the flag synchronously when cancellation propagates,
+        // and we want it to see true regardless of how URLSession
+        // surfaces the cancel (throw vs graceful close).
+        userInitiatedCancel = true
         currentTask?.cancel()
         currentTask = nil
         state = .idle
     }
 
     func dismiss() {
+        userInitiatedCancel = true
         currentTask?.cancel()
         currentTask = nil
         state = .idle

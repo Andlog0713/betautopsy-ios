@@ -2,9 +2,18 @@
 //  ChapterYourPatternsView.swift
 //  BetAutopsy
 //
-//  Chapter 5: behavioral patterns, session grade distribution, notable
-//  sessions (worst F's + one A), and bet classification distribution as a
-//  stacked bar with legend.
+//  Chapter 5: The Patterns.
+//
+//  Layout (top-to-bottom):
+//      ChapterNavigator (no hero ring)
+//      ->  3-5 PatternCards: Biggest Loss, Worst Day, Worst Hour,
+//          Longest Skid, Biggest Win. Computed client-side from
+//          sessionDetection.sessions + timingAnalysis aggregates.
+//      ->  InsightCallout (or fallback string if no patterns computed)
+//
+//  Engine doesn't ship a per-bet timeline; pattern extremes come from
+//  session-level data and pre-aggregated hourly/daily buckets. Skip
+//  silently when a pattern can't be computed. Do not fabricate.
 //
 
 import SwiftUI
@@ -12,291 +21,243 @@ import SwiftUI
 struct ChapterYourPatternsView: View {
     let report: AutopsyReport
 
-    private var heatedPercentLabel: String {
-        let pct = Int((report.analysis.sessionDetection?.heatedSessionPercent ?? 0).rounded())
-        return "\(pct)% HEATED SESSIONS"
+    private var sessions: [DetectedSession] {
+        report.analysis.sessionDetection?.sessions ?? []
+    }
+
+    private var byHour: [TimingBucket] {
+        report.analysis.timingAnalysis?.byHour ?? []
+    }
+
+    private var byDay: [TimingBucket] {
+        report.analysis.timingAnalysis?.byDay ?? []
+    }
+
+    private var patternCards: [PatternCard.Pattern] {
+        var result: [PatternCard.Pattern] = []
+
+        // BIGGEST LOSS (session-level extreme; closest available proxy
+        // for the per-bet biggest-loss the engine doesn't surface).
+        if let worst = sessions.filter({ $0.profit < 0 })
+                                .min(by: { $0.profit < $1.profit }) {
+            result.append(PatternCard.Pattern(
+                title: "BIGGEST LOSS",
+                bigNumber: signedDollar(Int(worst.profit.rounded())),
+                bigNumberColor: DS.Color.V3.Severity.red,
+                namedEntity: worst.date,
+                supportingLine: "\(worst.bets) bets in a \(worst.durationMinutes)-minute session."
+            ))
+        }
+
+        // WORST DAY (pre-aggregated)
+        if let worstDay = byDay.filter({ $0.profit < 0 })
+                                .min(by: { $0.profit < $1.profit }) {
+            result.append(PatternCard.Pattern(
+                title: "WORST DAY",
+                bigNumber: signedDollar(Int(worstDay.profit.rounded())),
+                bigNumberColor: DS.Color.V3.Severity.red,
+                namedEntity: dayLabel(worstDay.label),
+                supportingLine: "\(worstDay.bets) bets, \(formatPct(worstDay.roi, signed: true, decimals: 1)) ROI."
+            ))
+        }
+
+        // WORST HOUR (pre-aggregated)
+        if let worstHour = byHour.filter({ $0.profit < 0 })
+                                  .min(by: { $0.profit < $1.profit }) {
+            result.append(PatternCard.Pattern(
+                title: "WORST HOUR",
+                bigNumber: signedDollar(Int(worstHour.profit.rounded())),
+                bigNumberColor: DS.Color.V3.Severity.red,
+                namedEntity: hourLabel(worstHour.label),
+                supportingLine: "\(worstHour.bets) bets, \(formatPct(worstHour.roi, signed: true, decimals: 1)) ROI."
+            ))
+        }
+
+        // LONGEST SKID (consecutive negative sessions, parsed-date order)
+        if let skid = longestSkid() {
+            result.append(skid)
+        }
+
+        // BIGGEST WIN
+        if let best = sessions.filter({ $0.profit > 0 })
+                               .max(by: { $0.profit < $1.profit }) {
+            result.append(PatternCard.Pattern(
+                title: "BIGGEST WIN",
+                bigNumber: signedDollar(Int(best.profit.rounded())),
+                bigNumberColor: DS.Color.V3.textPrimary,
+                namedEntity: best.date,
+                supportingLine: "\(best.bets) bets, \(formatPct(best.roi, signed: true, decimals: 1)) ROI."
+            ))
+        }
+
+        return result
+    }
+
+    private var insightBody: String {
+        if patternCards.isEmpty {
+            return "Not enough bet history to surface patterns yet."
+        }
+        return (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ChapterHeader(
-                    chipText: "YOUR PATTERNS",
-                    alertChip: (text: heatedPercentLabel, color: DS.Color.Semantic.blood),
-                    title: "Your patterns repeat. The math is in them.",
-                    pullQuote: nil
-                )
-                .padding(.top, DS.Spacing.md)
-
-                patternsSection.padding(.top, DS.Spacing.xl)
-                sessionGradesSection.padding(.top, DS.Spacing.xl)
-                notableSessionsSection.padding(.top, DS.Spacing.xl)
-                classificationSection.padding(.top, DS.Spacing.xl)
-            }
-            .padding(.horizontal, DS.Spacing.md)
-            .padding(.bottom, 60)
-        }
-    }
-
-    // MARK: - Behavioral patterns
-
-    private var patternsSection: some View {
-        VStack(spacing: 12) {
-            ForEach(report.analysis.behavioralPatterns) { p in
-                patternCard(p)
-            }
-        }
-    }
-
-    private func patternCard(_ p: BehavioralPattern) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(p.patternName.uppercased())
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.primary)
-                Spacer()
-                impactChip(for: p.impact)
-            }
-
-            Text(p.description)
-                .font(.system(size: 15))
-                .foregroundStyle(DS.Color.Text.secondary)
-                .lineSpacing(3)
-                .padding(.top, 8)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Rectangle()
-                .fill(DS.Color.Border.subtle)
-                .frame(height: DS.Stroke.hairline)
-                .padding(.top, 12)
-
-            Text("FREQUENCY: \(p.frequency)")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-                .padding(.top, 12)
-
-            Text(p.dataPoints)
-                .font(.custom("JetBrainsMono-Regular", size: 13))
-                .monospacedDigit()
-                .foregroundStyle(DS.Color.Text.primary)
-                .padding(.top, 4)
-        }
-        .padding(DS.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-    }
-
-    @ViewBuilder
-    private func impactChip(for impact: String) -> some View {
-        switch impact {
-        case "positive": LabelChip(text: "POSITIVE", color: DS.Color.Semantic.win)
-        case "negative": LabelChip(text: "NEGATIVE", color: DS.Color.Semantic.blood)
-        default:         LabelChip(text: "NEUTRAL",  color: DS.Color.Text.tertiary)
-        }
-    }
-
-    // MARK: - Session grade distribution
-
-    private var sessionGradesSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("SESSION GRADES")
-                .font(.custom("JetBrainsMono-Regular", size: 11))
-                .tracking(11 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-
-            Text("\(report.analysis.sessionDetection?.totalSessions ?? 0) sessions detected. Heated sessions cost an average of $187 each.")
-                .font(.system(size: 14))
-                .foregroundStyle(DS.Color.Text.secondary)
-                .padding(.top, 4)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 6) {
-                ForEach(report.analysis.sessionDetection?.sessionGradeDistribution ?? []) { g in
-                    gradePill(g)
-                }
-            }
-            .padding(.top, DS.Spacing.md)
-
-            if let insight = report.analysis.sessionDetection?.insight {
-                Text(insight)
-                    .font(.system(size: 14))
-                    .foregroundStyle(DS.Color.Text.secondary)
-                    .lineSpacing(3)
-                    .padding(.top, 12)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func gradePill(_ g: SessionGradeDistribution) -> some View {
-        VStack(spacing: 4) {
-            Text(g.grade)
-                .font(.system(size: 24, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(DS.Color.Text.primary)
-            Text("\(g.count)")
-                .font(.custom("JetBrainsMono-Regular", size: 12))
-                .monospacedDigit()
-                .foregroundStyle(DS.Color.Text.secondary)
-            Text("\(Int(g.percent.rounded()))%")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .monospacedDigit()
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-        }
-        .padding(8)
-        .frame(maxWidth: .infinity)
-        .frame(height: 80)
-        .background(DS.Color.Surface.card)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    // MARK: - Notable sessions
-
-    private var notableSessionsSection: some View {
-        let sessions = report.analysis.sessionDetection?.sessions ?? []
-        let worst = Array(sessions.filter { $0.grade == "F" }.prefix(3))
-        let best  = Array(sessions.filter { $0.grade == "A" }.prefix(1))
-        let notable = worst + best
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("NOTABLE SESSIONS")
-                .font(.custom("JetBrainsMono-Regular", size: 11))
-                .tracking(11 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-                .padding(.bottom, 4)
-
-            ForEach(notable) { s in
-                sessionCard(s)
-            }
-        }
-    }
-
-    private func sessionCard(_ s: DetectedSession) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                Text("\(s.date.uppercased()) · \(s.dayOfWeek)")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
-                Spacer()
-                ZStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(DS.Color.Surface.raised)
-                        .frame(width: 32, height: 32)
-                    Text(s.grade)
-                        .font(.system(size: 24, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundStyle(DS.Color.Text.primary)
-                }
-            }
-
-            Text("\(s.startTime) to \(s.endTime) · \(s.durationMinutes) min")
-                .font(.system(size: 13))
-                .foregroundStyle(DS.Color.Text.secondary)
-                .padding(.top, 4)
-
-            Rectangle()
-                .fill(DS.Color.Border.subtle)
-                .frame(height: DS.Stroke.hairline)
-                .padding(.top, 12)
-
-            HStack {
-                Text("\(s.bets) bets")
-                    .font(.custom("JetBrainsMono-Regular", size: 13))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
-                Spacer()
-                Text(formatCurrency(s.profit, signed: true))
-                    .font(.custom("JetBrainsMono-Medium", size: 13))
-                    .monospacedDigit()
-                    .foregroundStyle(s.profit >= 0 ? DS.Color.Semantic.win : DS.Color.Semantic.blood)
-            }
-            .padding(.top, 12)
-
-            if !s.heatSignals.isEmpty {
-                Text("Heat signals: \(s.heatSignals.joined(separator: ", "))")
-                    .font(.custom("Georgia-Italic", size: 13))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+            VStack(spacing: 0) {
+                ChapterNavigator(chapterNumber: 5, subtitle: "THE PATTERNS")
+                    .padding(.horizontal, 16)
                     .padding(.top, 8)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(DS.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-    }
 
-    // MARK: - Bet classification distribution
-
-    private var classificationSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("BET CLASSIFICATION")
-                .font(.custom("JetBrainsMono-Regular", size: 11))
-                .tracking(11 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-
-            if let dist = report.analysis.betAnnotations?.distribution, !dist.isEmpty {
-                GeometryReader { geo in
-                    HStack(spacing: 0) {
-                        ForEach(dist) { stats in
-                            Rectangle()
-                                .fill(stats.classification.color)
-                                .frame(width: geo.size.width * stats.percent / 100, height: 24)
+                if !patternCards.isEmpty {
+                    Spacer().frame(height: 24)
+                    VStack(spacing: 12) {
+                        ForEach(patternCards) { p in
+                            PatternCard(pattern: p)
                         }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .frame(height: 24)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.top, DS.Spacing.md)
 
-                VStack(spacing: 8) {
-                    ForEach(dist) { stats in
-                        legendRow(stats)
-                    }
+                if !insightBody.isEmpty {
+                    Spacer().frame(height: 24)
+                    InsightCallout(
+                        text: insightBody,
+                        ctaLabel: "SEE THE SPORT BREAKDOWN",
+                        onTap: handleInsightTap
+                    )
+                    .padding(.horizontal, 16)
                 }
-                .padding(.top, DS.Spacing.md)
-            }
 
-            if let insight = report.analysis.betAnnotations?.insight {
-                Text(insight)
-                    .font(.custom("Georgia-Italic", size: 15))
-                    .foregroundStyle(DS.Color.Text.secondary)
-                    .lineSpacing(4)
-                    .padding(.top, DS.Spacing.md)
-                    .fixedSize(horizontal: false, vertical: true)
+                Spacer().frame(height: 60)
             }
+            .frame(maxWidth: .infinity)
+        }
+        .background(canvasGradient.ignoresSafeArea())
+    }
+
+    // MARK: - Pattern computations
+
+    /// Walk sessions in chronological order (parsed dates). Count the
+    /// longest run of consecutive negative-profit sessions. Skip
+    /// silently if dates can't be parsed or the longest run is < 2.
+    private func longestSkid() -> PatternCard.Pattern? {
+        let parsed: [(date: Date, session: DetectedSession)] = sessions.compactMap {
+            guard let date = parseSessionDate($0.date) else { return nil }
+            return (date, $0)
+        }.sorted { $0.date < $1.date }
+
+        guard parsed.count >= 2 else { return nil }
+
+        var bestRun = 0
+        var bestStart: Date?
+        var bestEnd: Date?
+        var currentRun = 0
+        var currentStart: Date?
+        var currentEnd: Date?
+
+        for entry in parsed {
+            if entry.session.profit < 0 {
+                if currentRun == 0 { currentStart = entry.date }
+                currentEnd = entry.date
+                currentRun += 1
+                if currentRun > bestRun {
+                    bestRun = currentRun
+                    bestStart = currentStart
+                    bestEnd = currentEnd
+                }
+            } else {
+                currentRun = 0
+                currentStart = nil
+                currentEnd = nil
+            }
+        }
+
+        guard bestRun >= 2, let start = bestStart, let end = bestEnd else {
+            return nil
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "MMM d"
+        let range = "\(dateFormatter.string(from: start)) to \(dateFormatter.string(from: end))"
+
+        return PatternCard.Pattern(
+            title: "LONGEST SKID",
+            bigNumber: "\(bestRun) STRAIGHT",
+            bigNumberColor: DS.Color.V3.textPrimary,
+            namedEntity: range,
+            supportingLine: "Consecutive losing sessions."
+        )
+    }
+
+    private func parseSessionDate(_ raw: String) -> Date? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let formats = ["MMM d, yyyy", "MMMM d, yyyy", "yyyy-MM-dd"]
+        for fmt in formats {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = fmt
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+        return nil
+    }
+
+    private func signedDollar(_ value: Int) -> String {
+        let absVal = abs(value)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        let formatted = formatter.string(from: NSNumber(value: absVal)) ?? "\(absVal)"
+        let sign = value < 0 ? "-" : (value > 0 ? "+" : "")
+        return "\(sign)$\(formatted)"
+    }
+
+    /// Friendly day label from engine's short code ("SUN" -> "Sundays").
+    private func dayLabel(_ raw: String) -> String {
+        let map: [String: String] = [
+            "MON": "Mondays",  "TUE": "Tuesdays", "WED": "Wednesdays",
+            "THU": "Thursdays","FRI": "Fridays",  "SAT": "Saturdays",
+            "SUN": "Sundays"
+        ]
+        if let label = map[raw.uppercased()] { return label }
+        return raw
+    }
+
+    /// Friendly hour label from engine's hour-of-day integer string.
+    private func hourLabel(_ raw: String) -> String {
+        guard let hour = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return raw
+        }
+        switch hour {
+        case 0: return "Midnight to 1am"
+        case 1...4: return "Around \(hour)am"
+        case 5...11: return "Early morning (\(hour)am)"
+        case 12: return "Noon hour"
+        case 13...17: return "Afternoon (\(hour - 12)pm)"
+        case 18...20: return "Evening (\(hour - 12)pm)"
+        case 21: return "After 9pm"
+        case 22: return "After 10pm"
+        case 23: return "After 11pm"
+        default: return raw
         }
     }
 
-    private func legendRow(_ stats: ClassificationStats) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(stats.classification.color)
-                .frame(width: 8, height: 8)
-            Text(stats.classification.label)
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-            Spacer()
-            Text("\(stats.count) BETS · \(formatPct(stats.percent, decimals: 1))")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .monospacedDigit()
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.primary)
-        }
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private func handleInsightTap() {
+        #if DEBUG
+        print("InsightCallout tapped on Chapter 5 (V1 stub).")
+        #endif
     }
 }
 

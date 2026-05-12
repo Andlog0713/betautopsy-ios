@@ -2,18 +2,25 @@
 //  PaywallView.swift
 //  BetAutopsy
 //
-//  PR-7 Phase 1. Grammarly-style paywall presented as a sheet from
-//  Chapter 7. Three plan cards as iOS-native radio buttons (tap to
-//  select); single bottom CTA tracks the selected plan's label, price,
-//  and microcopy. Bundle is visually featured (Luminol border + math
-//  chip) but not pre-selected — Single is the default per Pivot v2's
-//  impulse-buy entry-hook role.
+//  PR-7 Phase 1 / PR-7.5 Phase 1. Grammarly-style paywall presented
+//  as a sheet from Chapter 7. Two plan cards as iOS-native radio
+//  buttons (Bundle featured + default-selected, Annual prominent)
+//  plus a small text-link fallback for Single below the card stack.
+//  Single bottom CTA tracks the selected plan's label, price, and
+//  microcopy across all three plans.
+//
+//  Bundle is the visually featured plan (Luminol border + math chip)
+//  AND the default selection in the two-plan layout. The Single
+//  enum case is preserved (raw value, CTA copy, microcopy) so the
+//  link selector lights it up correctly.
 //
 //  Mocked IAP for v1: Buy and Restore Purchases both log to console
 //  and present the same "Coming soon" alert. Real StoreKit wires in
 //  PR-10 once DUNS is unblocked.
 //
-//  TelemetryDeck signals land in Phase 2.
+//  TelemetryDeck signals: paywall.viewed on appear, paywall.dismissed
+//  on disappear, paywall.plan_selected (with plan_id parameter) on
+//  any plan tap including the Single link, paywall.buy_tapped on Buy.
 //
 
 import SwiftUI
@@ -91,7 +98,7 @@ enum PaywallPlan: String, CaseIterable, Identifiable {
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedPlan: PaywallPlan = .single
+    @State private var selectedPlan: PaywallPlan = .bundle3
     @State private var showingMockAlert: Bool = false
 
     private let privacyURL = URL(string: "https://betautopsy.com/privacy")!
@@ -111,6 +118,9 @@ struct PaywallView: View {
 
                         planCards
                             .padding(.top, DS.Spacing.xl)
+
+                        singleLink
+                            .padding(.top, 16)
 
                         restoreButton
                             .padding(.top, DS.Spacing.lg)
@@ -183,7 +193,7 @@ struct PaywallView: View {
 
     private var planCards: some View {
         VStack(spacing: DS.Spacing.md) {
-            ForEach(PaywallPlan.allCases) { plan in
+            ForEach([PaywallPlan.bundle3, .annual]) { plan in
                 planCard(plan)
             }
         }
@@ -288,6 +298,39 @@ struct PaywallView: View {
         }
         .frame(width: 20, height: 20)
         .padding(.top, 2)
+    }
+
+    // MARK: - Single-plan text link
+
+    /// Third plan selector for Single, sitting below the Bundle + Annual
+    /// card stack. Tapping it selects .single — the bottom CTA + microcopy
+    /// then track Single just like a card tap would. Dot-on-left visual
+    /// indicator when Single is the active plan; no underline/border/shadow.
+    /// 44pt minimum tap target per iOS HIG (8pt vertical padding either side
+    /// of the 14pt text + 6pt dot bumps the hit area).
+    private var singleLink: some View {
+        Button {
+            selectedPlan = .single
+            Analytics.signal("paywall.plan_selected",
+                             parameters: ["plan_id": PaywallPlan.single.rawValue])
+        } label: {
+            HStack(spacing: 8) {
+                if selectedPlan == .single {
+                    Circle()
+                        .fill(DS.Color.Accent.luminol)
+                        .frame(width: 6, height: 6)
+                }
+                Text("or just this report ($9.99)")
+                    .font(.system(size: 14))
+                    .foregroundStyle(selectedPlan == .single
+                                     ? DS.Color.Text.primary
+                                     : DS.Color.Text.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Restore

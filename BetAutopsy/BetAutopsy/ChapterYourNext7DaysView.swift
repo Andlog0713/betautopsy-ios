@@ -132,7 +132,7 @@ struct ChapterYourNext7DaysView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(action: handleUnlock) {
-                Text("Read the full report ($9.99).")
+                Text("Read the full report ($19.99).")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(DS.Color.V3.textPrimary)
                     .frame(maxWidth: .infinity)

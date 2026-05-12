@@ -379,7 +379,7 @@ private struct SnapshotCountsModule: View {
             .padding(.top, DS.Spacing.md)
 
             Button(action: onTap) {
-                Text("Read the full report ($9.99).")
+                Text("Read the full report ($19.99).")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(DS.Color.Text.primary)
                     .frame(maxWidth: .infinity)

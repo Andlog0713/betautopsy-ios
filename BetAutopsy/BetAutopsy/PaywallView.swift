@@ -9,8 +9,9 @@
 //  Single bottom CTA tracks the selected plan's label, price, and
 //  microcopy across all three plans.
 //
-//  Bundle is the visually featured plan (Luminol border + math chip)
-//  AND the default selection in the two-plan layout. The Single
+//  Bundle is the featured plan and the default selection. Its
+//  featuring is the "$6.66 PER REPORT" math chip only; the luminol
+//  border is pure selection state (any card, when tapped). The Single
 //  enum case is preserved (raw value, CTA copy, microcopy) so the
 //  link selector lights it up correctly.
 //
@@ -83,8 +84,10 @@ enum PaywallPlan: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Bundle is the visually featured plan — Luminol border + math chip
-    /// per §3D's "arithmetic, not adjective" rule. No text badge.
+    /// Bundle is the featured plan. Drives only the math chip below
+    /// per §3D's "arithmetic, not adjective" rule. No text badge, no
+    /// border, no background tint. The luminol border is pure selection
+    /// state for any card.
     var isFeatured: Bool { self == .bundle3 }
 
     /// Math chip on the featured card. Backed by $19.99 / 3 = $6.66.
@@ -201,9 +204,10 @@ struct PaywallView: View {
 
     private func planCard(_ plan: PaywallPlan) -> some View {
         let isSelected = selectedPlan == plan
-        let cardBg: Color = plan.isFeatured
-            ? DS.Color.Accent.luminol.opacity(0.08)
-            : DS.Color.Surface.card
+        // Uniform card background across plans. Bundle's "featured"
+        // signal is the math chip only; the selection-state border is
+        // the sole luminol-on-card treatment.
+        let cardBg: Color = DS.Color.Surface.card
 
         return Button {
             selectedPlan = plan
@@ -264,15 +268,11 @@ struct PaywallView: View {
     }
 
     private func borderColor(for plan: PaywallPlan, selected: Bool) -> Color {
-        if selected { return DS.Color.Accent.luminol }
-        if plan.isFeatured { return DS.Color.Accent.luminol }
-        return DS.Color.Border.subtle
+        selected ? DS.Color.Accent.luminol : DS.Color.Border.subtle
     }
 
     private func borderWidth(for plan: PaywallPlan, selected: Bool) -> CGFloat {
-        if selected { return 2 }
-        if plan.isFeatured { return 1 }
-        return DS.Stroke.hairline
+        selected ? 2 : DS.Stroke.hairline
     }
 
     private func radio(selected: Bool, holeColor: Color) -> some View {

@@ -40,9 +40,10 @@ struct ChapterTheVerdictView: View {
     }
 
     private var insightBody: String {
-        report.analysis.executiveDiagnosis
+        let raw = report.analysis.executiveDiagnosis
             ?? report.analysis.bettingArchetype?.description
             ?? ""
+        return raw.firstSentence
     }
 
     var body: some View {

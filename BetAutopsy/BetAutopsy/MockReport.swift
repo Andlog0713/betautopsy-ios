@@ -2,7 +2,7 @@
 //  MockReport.swift
 //  BetAutopsy
 //
-//  Heated Bettor archetype mock. 247 bets, 103-138-6 record, -$2,847 net.
+//  The Tilter archetype mock. 247 bets, 103-138-6 record, -$2,847 net.
 //  Sunday-night NFL → midnight NBA spirals. Bottom 12% discipline, top
 //  8% emotional volatility. Real data wires in PR-4 via SSE.
 //
@@ -300,10 +300,10 @@ enum MockReport {
             )
         ],
         bettingArchetype: BettingArchetypeData(
-            name: "Heated Bettor",
+            name: "The Tilter",
             description: "Your reads aren't bad, but your emotions turn winners into losing weeks. The bets after losses are where your bankroll goes to die."
         ),
-        quizArchetype: "Heated Bettor"
+        quizArchetype: "The Tilter"
     )
 
     // MARK: - Helpers

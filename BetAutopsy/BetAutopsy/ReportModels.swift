@@ -450,15 +450,13 @@ struct BettingArchetypeData: Codable {
 
     var color: Color {
         switch name {
-        case "The Natural":     return DS.Color.Archetype.natural
-        case "Sharp Sleeper":   return DS.Color.Archetype.sharpSleeper
-        case "Heated Bettor":   return DS.Color.Archetype.heatedBettor
-        case "Chalk Grinder":   return DS.Color.Archetype.chalkGrinder
-        case "Parlay Dreamer":  return DS.Color.Archetype.parlayDreamer
-        case "Sniper":          return DS.Color.Archetype.sniper
-        case "Volume Warrior":  return DS.Color.Archetype.volumeWarrior
-        case "Degen King":      return DS.Color.Archetype.degenKing
-        default:                return DS.Color.Archetype.grinder
+        case "The Chaser":         return DS.Color.Archetype.chaser
+        case "The Tilter":         return DS.Color.Archetype.tilter
+        case "The Sharp":          return DS.Color.Archetype.sharp
+        case "The Lottery Bettor": return DS.Color.Archetype.lotteryBettor
+        case "The Grinder":        return DS.Color.Archetype.grinder
+        case "The Action Junkie":  return DS.Color.Archetype.actionJunkie
+        default:                   return DS.Color.Archetype.methodical
         }
     }
 }

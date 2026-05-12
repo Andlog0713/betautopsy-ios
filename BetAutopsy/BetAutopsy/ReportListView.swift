@@ -3,7 +3,7 @@
 //  BetAutopsy
 //
 //  Reports tab. Reads AutopsyReport instances from ReportStore (falling
-//  back to the Heated Bettor mock when empty), provides the CSV upload
+//  back to the Tilter mock when empty), provides the CSV upload
 //  entry point, and routes upload state into a progress cover and the
 //  final ReportView.
 //

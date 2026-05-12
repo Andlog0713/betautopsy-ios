@@ -11,7 +11,41 @@ struct BetAutopsyApp: App {
     @AppStorage("onboardingComplete") private var onboardingComplete = false
 
     init() {
+        Self.runArchetypeV2toV3MigrationIfNeeded()
         Analytics.initialize()
+    }
+
+    /// One-shot migration: any UserDefaults `userArchetype` value still
+    /// holding a V2 archetype string gets remapped to its V3 equivalent.
+    /// Guarded by a flag so it cannot run twice on the same device.
+    /// V2-era users land on the right V3 archetype on first launch
+    /// after the update; V3-era users hit a no-op and the flag is set.
+    private static func runArchetypeV2toV3MigrationIfNeeded() {
+        let flagKey = "betautopsy.archetypeV2toV3MigrationCompleted"
+        guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
+
+        let migrationMap: [String: String] = [
+            "Heated Bettor":  "The Tilter",
+            "Parlay Dreamer": "The Lottery Bettor",
+            "Volume Warrior": "The Grinder",
+            "The Natural":    "The Sharp",
+            "Sniper":         "The Sharp",
+            "Degen King":     "The Action Junkie",
+            "Sharp Sleeper":  "The Methodical",
+            "Chalk Grinder":  "The Methodical",
+            "The Grinder":    "The Methodical"
+        ]
+
+        let currentValue = UserDefaults.standard.string(forKey: "userArchetype") ?? ""
+        let migrated = migrationMap[currentValue]
+        if let migrated {
+            UserDefaults.standard.set(migrated, forKey: "userArchetype")
+        }
+        UserDefaults.standard.set(true, forKey: flagKey)
+
+        #if DEBUG
+        print("PR-V11 migration shim: ran, currentValue=\(currentValue), migrated=\(migrated ?? "nil")")
+        #endif
     }
 
     var body: some Scene {

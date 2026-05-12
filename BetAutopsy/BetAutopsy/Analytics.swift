@@ -7,7 +7,7 @@
 //
 //  Usage:
 //    Analytics.signal("auth.completed")
-//    Analytics.signal("archetype.revealed", parameters: ["archetype": "Heat Chaser"])
+//    Analytics.signal("archetype.revealed", parameters: ["archetype": "The Tilter"])
 //
 
 import Foundation

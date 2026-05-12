@@ -15,7 +15,7 @@ final class ReportStore {
     private(set) var reports: [AutopsyReport] = []
 
     /// True when no real reports exist yet — ReportListView uses this to
-    /// fall back to the Heated Bettor mock as a placeholder card.
+    /// fall back to the Tilter mock as a placeholder card.
     var showMockPlaceholder: Bool { reports.isEmpty }
 
     /// Mock placeholder when empty, otherwise the real reports list.

@@ -280,71 +280,71 @@ enum QuizScoring {
 
         if d >= 7.5 && e <= 3.5 && s >= 6 {
             return ArchetypeResult(
-                name: "The Natural",
-                color: DS.Color.Archetype.natural,
+                name: "The Sharp",
+                color: DS.Color.Archetype.sharp,
                 colorHex: "#5BFFA8",
                 description: "Cool, calculated, and data-driven. You treat betting like a business, not a game. Your discipline is your edge. Most bettors would kill for your self-control."
             )
         }
         if d >= 6 && r >= 6 && s >= 5 {
             return ArchetypeResult(
-                name: "Sharp Sleeper",
-                color: DS.Color.Archetype.sharpSleeper,
-                colorHex: "#6B5BFF",
+                name: "The Methodical",
+                color: DS.Color.Archetype.methodical,
+                colorHex: "#A8AABF",
                 description: "You've got real instincts and some genuine edges, but your sizing is all over the place. Lock in your stake strategy and you could be dangerous."
             )
         }
         if e >= 6 && c >= 6 && d <= 4 {
             return ArchetypeResult(
-                name: "Heated Bettor",
-                color: DS.Color.Archetype.heatedBettor,
+                name: "The Tilter",
+                color: DS.Color.Archetype.tilter,
                 colorHex: "#FF5454",
                 description: "Your reads aren't bad, but your emotions turn winners into losing weeks. The bets after losses are where your bankroll goes to die."
             )
         }
         if f >= 7 && d >= 4 {
             return ArchetypeResult(
-                name: "Chalk Grinder",
-                color: DS.Color.Archetype.chalkGrinder,
-                colorHex: "#B8944A",
+                name: "The Methodical",
+                color: DS.Color.Archetype.methodical,
+                colorHex: "#A8AABF",
                 description: "You play it safe with favorites and that feels smart, but you're paying a tax on every bet. The juice is eating you alive."
             )
         }
         if p >= 7 {
             return ArchetypeResult(
-                name: "Parlay Dreamer",
-                color: DS.Color.Archetype.parlayDreamer,
+                name: "The Lottery Bettor",
+                color: DS.Color.Archetype.lotteryBettor,
                 colorHex: "#8B7DFF",
                 description: "The big ticket is always calling. Your straight bet game is probably solid. The parlays are where the dream meets reality, and reality usually wins."
             )
         }
         if s >= 7 && v <= 4 {
             return ArchetypeResult(
-                name: "Sniper",
-                color: DS.Color.Archetype.sniper,
-                colorHex: "#60A5FA",
+                name: "The Sharp",
+                color: DS.Color.Archetype.sharp,
+                colorHex: "#5BFFA8",
                 description: "You pick your spots carefully and don't bet just to bet. Selective and focused. Now it's about sharpening the edge on the shots you do take."
             )
         }
         if v >= 7 && r <= 4 {
             return ArchetypeResult(
-                name: "Volume Warrior",
-                color: DS.Color.Archetype.volumeWarrior,
+                name: "The Grinder",
+                color: DS.Color.Archetype.grinder,
                 colorHex: "#A78BFA",
                 description: "You grind it out with consistent sizing across a lot of bets. The approach is sustainable. The question is whether there are leaks hiding in the volume."
             )
         }
         if r >= 7 && p >= 5 && e >= 5 {
             return ArchetypeResult(
-                name: "Degen King",
-                color: DS.Color.Archetype.degenKing,
+                name: "The Action Junkie",
+                color: DS.Color.Archetype.actionJunkie,
                 colorHex: "#FF5454",
                 description: "You're here for the ride and you own it. High variance, high energy, high entertainment value. But somewhere in the chaos there might be real edges, if you can find them."
             )
         }
         return ArchetypeResult(
-            name: "The Grinder",
-            color: DS.Color.Archetype.grinder,
+            name: "The Methodical",
+            color: DS.Color.Archetype.methodical,
             colorHex: "#A8AABF",
             description: "Steady and consistent without any extreme tendencies. You're not making the big mistakes most bettors make. The question is whether you're leaving edges on the table."
         )

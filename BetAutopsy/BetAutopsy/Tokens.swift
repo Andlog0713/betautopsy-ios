@@ -43,15 +43,17 @@ enum DS {
       static let win   = SwiftUI.Color(hex: 0x5BFFA8)
     }
     enum Archetype {
-      static let natural        = SwiftUI.Color(hex: 0x5BFFA8)
-      static let sharpSleeper   = SwiftUI.Color(hex: 0x6B5BFF)
-      static let heatedBettor   = SwiftUI.Color(hex: 0xFF5454)
-      static let chalkGrinder   = SwiftUI.Color(hex: 0xB8944A)
-      static let parlayDreamer  = SwiftUI.Color(hex: 0x8B7DFF)
-      static let sniper         = SwiftUI.Color(hex: 0x60A5FA)
-      static let volumeWarrior  = SwiftUI.Color(hex: 0xA78BFA)
-      static let degenKing      = SwiftUI.Color(hex: 0xFF5454)
-      static let grinder        = SwiftUI.Color(hex: 0xA8AABF)
+      // V3 archetype color tokens (PR-V11). Hex values preserved from
+      // the V2 keys they replaced — only the key names changed. The
+      // backend-only V3 archetypes (Reformed Degen, Bonus Hunter,
+      // Steamer) will get their own colors when those branches land.
+      static let chaser        = SwiftUI.Color(hex: 0xFF5C45)  // NEW. PLACEHOLDER — refine in PR-V9 design pass.
+      static let tilter        = SwiftUI.Color(hex: 0xFF5454)  // was heatedBettor
+      static let sharp         = SwiftUI.Color(hex: 0x5BFFA8)  // was natural
+      static let lotteryBettor = SwiftUI.Color(hex: 0x8B7DFF)  // was parlayDreamer
+      static let grinder       = SwiftUI.Color(hex: 0xA78BFA)  // was volumeWarrior — V3 sense (high-volume archetype)
+      static let actionJunkie  = SwiftUI.Color(hex: 0xFF5454)  // was degenKing
+      static let methodical    = SwiftUI.Color(hex: 0xA8AABF)  // was the V2 fallback (also keyed .grinder) — renamed to avoid V3 Grinder collision
     }
   }
   enum Spacing {

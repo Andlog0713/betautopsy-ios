@@ -2,20 +2,18 @@
 //  ChapterTheVerdictView.swift
 //  BetAutopsy
 //
-//  Chapter 1: V3 visual direction pilot.
+//  Chapter 1: V3 trailer pattern.
 //
 //  Layout (top-to-bottom):
-//      ChapterNavigator  →  HeroRingView  →  archetype name
-//      →  contributor card (DISCIPLINE + EMOTION)
+//      ChapterNavigator  →  HeroRingView  →  archetype name + percentile
+//      →  TOP DAMAGES section header + DamagesCard
 //      →  InsightCallout  →  bottom spacer.
 //
-//  Ring color is severity-driven, not archetype-driven (V3 token spec).
-//  Archetype subtitle (percentile) deliberately omitted in V1 — data
-//  not available on AutopsyAnalysis. Will revisit when subtitle source
-//  lands on the model.
+//  Trailer vs autopsy split: Chapter 1 names the top damages by dollar
+//  cost (verdict). Chapter 4 explains them with bars, translations,
+//  and fixes (autopsy). Same biases, different jobs.
 //
-//  SELECTIVITY + PATTERN contributor rows are deferred until those
-//  scores land on AutopsyAnalysis. V1 ships with two rows.
+//  DamagesCard hides entirely when no bias has estimatedCost > 0.
 //
 
 import SwiftUI
@@ -31,12 +29,20 @@ struct ChapterTheVerdictView: View {
         report.analysis.bettingArchetype?.name ?? ""
     }
 
-    private var disciplineValue: Int {
-        report.analysis.disciplineScore?.total ?? 0
+    private var totalBets: Int {
+        report.analysis.summary.totalBets
     }
 
-    private var emotionValue: Int {
-        report.analysis.emotionScore
+    private var topDamages: [DamagesCard.Damage] {
+        report.analysis.biasesDetected
+            .compactMap { bias -> DamagesCard.Damage? in
+                let cost = Int(bias.estimatedCost.rounded())
+                guard cost > 0 else { return nil }
+                return DamagesCard.Damage(name: bias.biasName, cost: cost)
+            }
+            .sorted { $0.cost > $1.cost }
+            .prefix(3)
+            .map { $0 }
     }
 
     private var insightBody: String {
@@ -75,10 +81,21 @@ struct ChapterTheVerdictView: View {
                 }
                 .padding(.horizontal, 24)
 
-                Spacer().frame(height: 24)
+                if !topDamages.isEmpty {
+                    Spacer().frame(height: 24)
 
-                contributorCard
-                    .padding(.horizontal, 16)
+                    Text("TOP DAMAGES \u{00B7} \(totalBets) BETS")
+                        .font(DS.Font.V3.navigatorSubtitle)
+                        .tracking(1.8)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 8)
+
+                    DamagesCard(damages: topDamages)
+                        .padding(.horizontal, 16)
+                }
 
                 Spacer().frame(height: 24)
 
@@ -94,35 +111,6 @@ struct ChapterTheVerdictView: View {
             .frame(maxWidth: .infinity)
         }
         .background(canvasGradient.ignoresSafeArea())
-    }
-
-    private var contributorCard: some View {
-        VStack(spacing: 0) {
-            ContributorRow(
-                iconSystemName: "shield",
-                label: "DISCIPLINE",
-                value: disciplineValue,
-                trendUp: nil
-            )
-            .padding(.horizontal, 16)
-
-            V3Divider()
-                .padding(.horizontal, 16)
-
-            ContributorRow(
-                iconSystemName: "flame",
-                label: "EMOTION",
-                value: emotionValue,
-                trendUp: nil
-            )
-            .padding(.horizontal, 16)
-        }
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var canvasGradient: LinearGradient {

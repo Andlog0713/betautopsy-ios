@@ -122,12 +122,12 @@ struct ChapterYourNext7DaysView: View {
 
     @ViewBuilder
     private var snapshotCardContent: some View {
-        Text("See your full autopsy.")
+        Text("The autopsy is ready.")
             .font(.system(size: 18, weight: .semibold))
             .foregroundStyle(DS.Color.Text.primary)
             .fixedSize(horizontal: false, vertical: true)
 
-        Text("Unlock the dollar costs, recommendations, and session details for $9.99.")
+        Text("Dollar costs, recommendations, and the full session timeline. 23 pages.")
             .font(.system(size: 15))
             .foregroundStyle(DS.Color.Text.primary.opacity(0.85))
             .lineSpacing(3)
@@ -135,7 +135,7 @@ struct ChapterYourNext7DaysView: View {
             .fixedSize(horizontal: false, vertical: true)
 
         Button(action: handleUnlock) {
-            Text("Unlock the full autopsy")
+            Text("Read the full report ($9.99).")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(DS.Color.Text.primary)
                 .frame(maxWidth: .infinity)
@@ -146,6 +146,13 @@ struct ChapterYourNext7DaysView: View {
                 )
         }
         .padding(.top, DS.Spacing.md)
+
+        Text("One-time charge. Yours to keep. No subscription.")
+            .font(.system(size: 13))
+            .foregroundStyle(DS.Color.Text.secondary)
+            .lineSpacing(2)
+            .padding(.top, 8)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func handleUnlock() {

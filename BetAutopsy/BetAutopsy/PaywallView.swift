@@ -138,6 +138,12 @@ struct PaywallView: View {
         } message: {
             Text("IAP wires in PR-10.")
         }
+        .onAppear {
+            Analytics.signal("paywall.viewed")
+        }
+        .onDisappear {
+            Analytics.signal("paywall.dismissed")
+        }
     }
 
     // MARK: - Top bar
@@ -191,6 +197,8 @@ struct PaywallView: View {
 
         return Button {
             selectedPlan = plan
+            Analytics.signal("paywall.plan_selected",
+                             parameters: ["plan_id": plan.rawValue])
         } label: {
             HStack(alignment: .top, spacing: DS.Spacing.md) {
                 radio(selected: isSelected, holeColor: cardBg)
@@ -354,6 +362,8 @@ struct PaywallView: View {
     // MARK: - Mocked IAP handlers
 
     private func handleBuy() {
+        Analytics.signal("paywall.buy_tapped",
+                         parameters: ["plan_id": selectedPlan.rawValue])
         #if DEBUG
         print("[Paywall] Buy tapped for plan: \(selectedPlan.rawValue)")
         #endif

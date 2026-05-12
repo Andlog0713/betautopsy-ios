@@ -10,8 +10,9 @@ Read this file in full before any change.
 2. COPY_SYSTEM.md (every user-facing string check)
 3. BETAUTOPSY_IOS_MASTER_PLAN.md (sections 1 and 3, plus the relevant week)
 4. BETAUTOPSY_PRICING_PIVOT_V2.md (one-shot product reality, current pricing)
-5. POLISH_BACKLOG.md if relevant to the task
-6. Any prior commits this conversation references
+5. APPLE_REVIEW_COMPLIANCE.md (positioning, guidelines, demo credentials, Review Notes, rejection playbook)
+6. POLISH_BACKLOG.md if relevant to the task
+7. Any prior commits this conversation references
 
 If anything in this file conflicts with the Notion source-of-truth pages
 (BetAutopsy iOS Build dashboard, Luminol V2 LOCKED, Pricing Pivot v2),

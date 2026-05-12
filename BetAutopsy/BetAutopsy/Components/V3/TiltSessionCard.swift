@@ -52,9 +52,16 @@ struct TiltSessionCard: View {
         session.pnl < 0 ? DS.Color.V3.Severity.red : DS.Color.V3.textPrimary
     }
 
+    private var hasTimeRange: Bool {
+        !session.timeRangeLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var accessibilityDescription: String {
+        let header = hasTimeRange
+            ? "\(session.dateLabel) \(session.timeRangeLabel)"
+            : session.dateLabel
         var parts: [String] = [
-            "\(session.dateLabel) \(session.timeRangeLabel)",
+            header,
             "Net \(pnlLabel) dollars"
         ]
         if let betCount = session.betCount, betCount > 1 {
@@ -79,9 +86,11 @@ struct TiltSessionCard: View {
                         .font(DS.Font.V3.rowCapsLabel)
                         .tracking(1.1)
                         .foregroundStyle(DS.Color.V3.textPrimary)
-                    Text(session.timeRangeLabel)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(DS.Color.V3.textSecondary)
+                    if hasTimeRange {
+                        Text(session.timeRangeLabel)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(DS.Color.V3.textSecondary)
+                    }
                 }
                 Spacer()
                 Text(pnlLabel)

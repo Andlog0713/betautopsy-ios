@@ -203,8 +203,8 @@ enum MockReport {
             luckRating: -5.4,
             luckLabel: "Running slightly cold",
             totalSettled: 241,
-            bestBucket: BucketHighlight(label: "Heavy chalk", edge: 0.03, count: 14),
-            worstBucket: BucketHighlight(label: "Pick em area", edge: -0.05, count: 92)
+            bestBucket: BucketHighlight(label: "Heavy chalk", edge: 3.0, count: 14),
+            worstBucket: BucketHighlight(label: "Pick em area", edge: -5.0, count: 92)
         ),
         sessionDetection: SessionDetectionResult(
             sessions: Self.mockSessions(),
@@ -353,11 +353,11 @@ enum MockReport {
 
     private static func mockOddsBuckets() -> [OddsBucket] {
         [
-            OddsBucket(label: "Heavy chalk", range: "-300 or worse", bets: 14, wins: 11, losses: 3, staked: 4200, profit: -212, roi: -5.0, winRate: 0.79, impliedProb: 0.76, actualWinRate: 0.79, edge: 0.03),
-            OddsBucket(label: "Moderate favorites", range: "-200 to -149", bets: 38, wins: 22, losses: 16, staked: 4636, profit: -278, roi: -6.0, winRate: 0.58, impliedProb: 0.62, actualWinRate: 0.58, edge: -0.04),
-            OddsBucket(label: "Pick em area", range: "-130 to +130", bets: 92, wins: 41, losses: 51, staked: 11224, profit: -1418, roi: -12.6, winRate: 0.45, impliedProb: 0.50, actualWinRate: 0.45, edge: -0.05),
-            OddsBucket(label: "Moderate dogs", range: "+131 to +200", bets: 51, wins: 18, losses: 33, staked: 6222, profit: -424, roi: -6.8, winRate: 0.35, impliedProb: 0.37, actualWinRate: 0.35, edge: -0.02),
-            OddsBucket(label: "Long shots", range: "+201 or longer", bets: 46, wins: 11, losses: 35, staked: 4324, profit: -515, roi: -11.9, winRate: 0.24, impliedProb: 0.27, actualWinRate: 0.24, edge: -0.03)
+            OddsBucket(label: "Heavy chalk", range: "-300 or worse", bets: 14, wins: 11, losses: 3, staked: 4200, profit: -212, roi: -5.0, winRate: 79.0, impliedProb: 76.0, actualWinRate: 79.0, edge: 3.0),
+            OddsBucket(label: "Moderate favorites", range: "-200 to -149", bets: 38, wins: 22, losses: 16, staked: 4636, profit: -278, roi: -6.0, winRate: 58.0, impliedProb: 62.0, actualWinRate: 58.0, edge: -4.0),
+            OddsBucket(label: "Pick em area", range: "-130 to +130", bets: 92, wins: 41, losses: 51, staked: 11224, profit: -1418, roi: -12.6, winRate: 45.0, impliedProb: 50.0, actualWinRate: 45.0, edge: -5.0),
+            OddsBucket(label: "Moderate dogs", range: "+131 to +200", bets: 51, wins: 18, losses: 33, staked: 6222, profit: -424, roi: -6.8, winRate: 35.0, impliedProb: 37.0, actualWinRate: 35.0, edge: -2.0),
+            OddsBucket(label: "Long shots", range: "+201 or longer", bets: 46, wins: 11, losses: 35, staked: 4324, profit: -515, roi: -11.9, winRate: 24.0, impliedProb: 27.0, actualWinRate: 24.0, edge: -3.0)
         ]
     }
 

@@ -47,7 +47,10 @@ struct ChapterYourMindView: View {
                 }
                 return TiltSessionCard.Session(
                     dateLabel: shortDateLabel(session.date),
-                    timeRangeLabel: "\(session.startTime) - \(session.endTime)",
+                    timeRangeLabel: usableTimeRange(
+                        start: session.startTime,
+                        end: session.endTime
+                    ),
                     pnl: Int(session.profit.rounded()),
                     betCount: session.bets,
                     triggerLabel: trigger,
@@ -134,6 +137,21 @@ struct ChapterYourMindView: View {
         #if DEBUG
         print("InsightCallout tapped on Chapter 2 (V1 stub).")
         #endif
+    }
+
+    /// Suppress the time-range row when the engine's session start and
+    /// end both fall back to "12:00 AM" — that's the symptom of a
+    /// date-only CSV that has no per-bet timestamps. The proper fix is
+    /// a backend nullable/sentinel + hasTimeData flag; this iOS-side
+    /// guard prevents the misleading "12:00 AM - 12:00 AM" rendering
+    /// in the meantime.
+    private func usableTimeRange(start: String, end: String) -> String {
+        let s = start.trimmingCharacters(in: .whitespacesAndNewlines)
+        let e = end.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s == "12:00 AM" && e == "12:00 AM" {
+            return ""
+        }
+        return "\(start) - \(end)"
     }
 
     /// Best-effort short date label from the engine's date string.

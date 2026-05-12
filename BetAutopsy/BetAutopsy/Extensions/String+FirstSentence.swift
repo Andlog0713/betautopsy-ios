@@ -10,29 +10,41 @@
 import Foundation
 
 extension String {
-    /// Returns the first sentence of the string, or the whole string
-    /// (trimmed) if no sentence boundary is detected.
-    ///
-    /// Uses Foundation's built-in sentence detection, which handles
-    /// abbreviations (Mr., Dr.), ellipses, decimals, and locale-
-    /// specific rules. Robust against the executive_diagnosis
-    /// paragraph format produced by the analysis engine.
+    /// Returns the first sentence of the string, trimmed, or the whole
+    /// (trimmed) string if no sentence boundary is detected.
     var firstSentence: String {
-        let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
+        firstSentences(1)
+    }
 
-        var result: String?
+    /// Returns the first `count` sentences of the string, joined with
+    /// a single space. Trimmed. Falls back to the whole trimmed string
+    /// if Foundation can't detect any sentence boundary.
+    ///
+    /// Uses Foundation's [.bySentences, .localized] enumeration, which
+    /// handles abbreviations (Mr., Dr.), decimals (3.14), ellipses,
+    /// and locale-specific rules.
+    func firstSentences(_ count: Int) -> String {
+        let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, count > 0 else { return "" }
+
+        var collected: [String] = []
         trimmed.enumerateSubstrings(
             in: trimmed.startIndex..<trimmed.endIndex,
             options: [.bySentences, .localized]
         ) { substring, _, _, stop in
-            if let substring = substring, !substring.isEmpty {
-                result = substring.trimmingCharacters(
-                    in: .whitespacesAndNewlines
-                )
+            guard let substring = substring else { return }
+            let cleaned = substring.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            guard !cleaned.isEmpty else { return }
+            collected.append(cleaned)
+            if collected.count >= count {
                 stop = true
             }
         }
-        return result ?? trimmed
+
+        return collected.isEmpty
+            ? trimmed
+            : collected.joined(separator: " ")
     }
 }

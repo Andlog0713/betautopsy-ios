@@ -43,7 +43,7 @@ struct ChapterTheVerdictView: View {
         let raw = report.analysis.executiveDiagnosis
             ?? report.analysis.bettingArchetype?.description
             ?? ""
-        return raw.firstSentence
+        return raw.firstSentences(2)
     }
 
     var body: some View {
@@ -59,11 +59,21 @@ struct ChapterTheVerdictView: View {
 
                 Spacer().frame(height: 28)
 
-                Text(archetypeName)
-                    .font(DS.Font.V3.sectionTitle)
-                    .foregroundStyle(DS.Color.V3.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                VStack(spacing: 4) {
+                    Text(archetypeName)
+                        .font(DS.Font.V3.sectionTitle)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    if let percentile = report.analysis.betiq?.percentile,
+                       (1...100).contains(percentile) {
+                        Text("\(percentile.ordinalText) PERCENTILE")
+                            .font(DS.Font.V3.navigatorSubtitle)
+                            .tracking(1.8)
+                            .foregroundStyle(DS.Color.V3.textTertiary)
+                    }
+                }
+                .padding(.horizontal, 24)
 
                 Spacer().frame(height: 24)
 

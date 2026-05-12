@@ -16,12 +16,16 @@ struct ContributorRow: View {
     let label: String            // caps display
     let value: Int               // 0...100
     let trendUp: Bool?           // nil in V1
+    var higherIsWorse: Bool = false
 
     private var clampedValue: Int { max(0, min(100, value)) }
     private var progress: CGFloat { CGFloat(clampedValue) / 100.0 }
 
     private var segmentColor: Color {
-        DS.Color.V3.Severity.zoneColor(forScore: clampedValue)
+        DS.Color.V3.Severity.zoneColor(
+            forScore: clampedValue,
+            higherIsWorse: higherIsWorse
+        )
     }
 
     private let barWidth: CGFloat = 70

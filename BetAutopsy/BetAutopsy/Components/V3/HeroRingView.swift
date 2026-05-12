@@ -16,6 +16,7 @@ import SwiftUI
 struct HeroRingView: View {
     let score: Int           // 0...100
     let metricLabel: String  // e.g. "BETIQ"
+    var higherIsWorse: Bool = false
 
     private let diameter: CGFloat = 230
     private let lineWidth: CGFloat = 14
@@ -29,7 +30,10 @@ struct HeroRingView: View {
     }
 
     private var ringColor: Color {
-        DS.Color.V3.Severity.zoneColor(forScore: clampedScore)
+        DS.Color.V3.Severity.zoneColor(
+            forScore: clampedScore,
+            higherIsWorse: higherIsWorse
+        )
     }
 
     var body: some View {

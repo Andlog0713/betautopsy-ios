@@ -132,11 +132,22 @@ extension DS.Color {
             static let green  = SwiftUI.Color(hex: "#00DC82")
             static let gray   = SwiftUI.Color(hex: "#7A7E8B")
 
-            static func zoneColor(forScore score: Int) -> SwiftUI.Color {
-                switch score {
-                case ..<34:    return red
+            /// Returns the severity color for a 0-100 score.
+            /// - When `higherIsWorse` is false (default), higher scores trend
+            ///   toward green (optimal). Used for BetIQ, Discipline, Selectivity.
+            /// - When `higherIsWorse` is true, higher scores trend toward red
+            ///   (critical). Used for Emotion, Tilt, Loss Chasing, etc.
+            static func zoneColor(
+                forScore score: Int,
+                higherIsWorse: Bool = false
+            ) -> SwiftUI.Color {
+                let clamped = max(0, min(100, score))
+                let lowZone:  SwiftUI.Color = higherIsWorse ? green : red
+                let highZone: SwiftUI.Color = higherIsWorse ? red   : green
+                switch clamped {
+                case ..<34:    return lowZone
                 case 34..<67:  return yellow
-                default:       return green
+                default:       return highZone
                 }
             }
         }

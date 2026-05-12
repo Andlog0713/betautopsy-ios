@@ -272,26 +272,32 @@ enum QuizScoring {
         let e = averages[.emotion]        ?? 5.0
         let p = averages[.parlayLean]     ?? 5.0
         let c = averages[.chaseTendency]  ?? 5.0
-        let f = averages[.favLean]        ?? 5.0
         let v = averages[.volume]         ?? 5.0
         let d = averages[.discipline]     ?? 5.0
         let r = averages[.variance]       ?? 5.0
         let s = averages[.selectivity]    ?? 5.0
 
+        // The Chaser threshold is a first-guess. Tune in v1.1 once real
+        // quiz-taker distribution data exists. Placement BEFORE Tilter
+        // is critical: Tilter is broader and will swallow Chaser
+        // eligibility if evaluated first.
+        if c >= 7 && (e >= 5 || r >= 6) {
+            return ArchetypeResult(
+                name: "The Chaser",
+                color: DS.Color.Archetype.chaser,
+                colorHex: "#FF5C45",
+                description: "The bet after a loss is always the most expensive one. You know it, you do it anyway. The chase is the leak, not the cards."
+            )
+        }
+        // Threshold combines former Natural + Sniper paths. See
+        // docs/archetype-mapping-review.md "Proposed mapping (V2 -> V3)"
+        // for the merge rationale.
         if d >= 7.5 && e <= 3.5 && s >= 6 {
             return ArchetypeResult(
                 name: "The Sharp",
                 color: DS.Color.Archetype.sharp,
                 colorHex: "#5BFFA8",
                 description: "Cool, calculated, and data-driven. You treat betting like a business, not a game. Your discipline is your edge. Most bettors would kill for your self-control."
-            )
-        }
-        if d >= 6 && r >= 6 && s >= 5 {
-            return ArchetypeResult(
-                name: "The Methodical",
-                color: DS.Color.Archetype.methodical,
-                colorHex: "#A8AABF",
-                description: "You've got real instincts and some genuine edges, but your sizing is all over the place. Lock in your stake strategy and you could be dangerous."
             )
         }
         if e >= 6 && c >= 6 && d <= 4 {
@@ -302,28 +308,12 @@ enum QuizScoring {
                 description: "Your reads aren't bad, but your emotions turn winners into losing weeks. The bets after losses are where your bankroll goes to die."
             )
         }
-        if f >= 7 && d >= 4 {
-            return ArchetypeResult(
-                name: "The Methodical",
-                color: DS.Color.Archetype.methodical,
-                colorHex: "#A8AABF",
-                description: "You play it safe with favorites and that feels smart, but you're paying a tax on every bet. The juice is eating you alive."
-            )
-        }
         if p >= 7 {
             return ArchetypeResult(
                 name: "The Lottery Bettor",
                 color: DS.Color.Archetype.lotteryBettor,
                 colorHex: "#8B7DFF",
                 description: "The big ticket is always calling. Your straight bet game is probably solid. The parlays are where the dream meets reality, and reality usually wins."
-            )
-        }
-        if s >= 7 && v <= 4 {
-            return ArchetypeResult(
-                name: "The Sharp",
-                color: DS.Color.Archetype.sharp,
-                colorHex: "#5BFFA8",
-                description: "You pick your spots carefully and don't bet just to bet. Selective and focused. Now it's about sharpening the edge on the shots you do take."
             )
         }
         if v >= 7 && r <= 4 {
@@ -334,7 +324,10 @@ enum QuizScoring {
                 description: "You grind it out with consistent sizing across a lot of bets. The approach is sustainable. The question is whether there are leaks hiding in the volume."
             )
         }
-        if r >= 7 && p >= 5 && e >= 5 {
+        // Added volume floor distinguishes Action Junkie from casual
+        // high-emotion bettors who land in Tilter. See
+        // docs/archetype-mapping-review.md for the threshold change.
+        if v >= 6 && r >= 6 && d <= 4 {
             return ArchetypeResult(
                 name: "The Action Junkie",
                 color: DS.Color.Archetype.actionJunkie,
@@ -342,6 +335,17 @@ enum QuizScoring {
                 description: "You're here for the ride and you own it. High variance, high energy, high entertainment value. But somewhere in the chaos there might be real edges, if you can find them."
             )
         }
+        // 3 V3 archetypes are deferred to a future backend PR:
+        //   The Reformed Degen (needs longitudinal trend data)
+        //   The Bonus Hunter   (needs promo-restricted bet markers)
+        //   The Steamer        (needs line-timing data)
+        // The quiz cannot emit these from 7 answer dimensions alone.
+        // They will be assigned by the backend post-CSV-upload when the
+        // engine produces the required signals.
+        //
+        // Methodical is the V3 fallback. Renamed from V2 "The Grinder"
+        // to avoid collision with V3 Grinder (which is now Volume-
+        // Warrior-equivalent: high volume, decent discipline).
         return ArchetypeResult(
             name: "The Methodical",
             color: DS.Color.Archetype.methodical,

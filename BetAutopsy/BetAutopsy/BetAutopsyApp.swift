@@ -37,15 +37,10 @@ struct BetAutopsyApp: App {
         ]
 
         let currentValue = UserDefaults.standard.string(forKey: "userArchetype") ?? ""
-        let migrated = migrationMap[currentValue]
-        if let migrated {
+        if let migrated = migrationMap[currentValue] {
             UserDefaults.standard.set(migrated, forKey: "userArchetype")
         }
         UserDefaults.standard.set(true, forKey: flagKey)
-
-        #if DEBUG
-        print("PR-V11 migration shim: ran, currentValue=\(currentValue), migrated=\(migrated ?? "nil")")
-        #endif
     }
 
     var body: some Scene {

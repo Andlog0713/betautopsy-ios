@@ -37,19 +37,35 @@ struct ChapterYourBiasesView: View {
     }
 
     private var biasRows: [BiasRow.Bias] {
-        materialBiases.map { bias in
+        // With only one material bias, the relative-cost bar reduces
+        // to full width regardless of severity, which visually
+        // contradicts the severity label. Fall back to a severity-
+        // anchored fixed width in that case. Temporary defensive fix:
+        // engine bias-floor work in v1.1 should keep materialBiases
+        // count >= 3 in production.
+        let useFixedWidths = materialBiases.count == 1
+        return materialBiases.map { bias in
             BiasRow.Bias(
                 biasName: bias.biasName.uppercased(),
                 costAbs: Int(abs(bias.estimatedCost).rounded()),
                 severityLabel: severityCaps(bias.severity),
                 severityColor: severityColor(bias.severity),
-                widthRatio: maxCost > 0
-                    ? abs(bias.estimatedCost) / maxCost
-                    : 0,
+                widthRatio: useFixedWidths
+                    ? fixedSeverityWidth(bias.severity)
+                    : (maxCost > 0 ? abs(bias.estimatedCost) / maxCost : 0),
                 evidence: bias.evidence,
                 translation: bias.description,
                 fix: bias.fix
             )
+        }
+    }
+
+    private func fixedSeverityWidth(_ severity: BiasSeverity) -> Double {
+        switch severity {
+        case .critical: return 1.0
+        case .high:     return 0.66
+        case .medium:   return 0.40
+        case .low:      return 0.20
         }
     }
 

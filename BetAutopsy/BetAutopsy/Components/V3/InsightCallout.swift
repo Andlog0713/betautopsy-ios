@@ -56,7 +56,7 @@ struct InsightCallout: View {
     InsightCallout(
         text: "Stake volatility spiked across the last six sessions. Smaller, " +
               "more uniform stakes pull this number down inside two weeks.",
-        ctaLabel: "READ THE FULL VERDICT",
+        ctaLabel: "READ THE TILT FILE",
         onTap: { print("InsightCallout tapped (V1 stub).") }
     )
     .padding(16)

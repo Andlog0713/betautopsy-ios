@@ -12,6 +12,7 @@ struct ChapterYourNext7DaysView: View {
     let report: AutopsyReport
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showingPaywall: Bool = false
 
     var body: some View {
         ScrollView {
@@ -33,6 +34,9 @@ struct ChapterYourNext7DaysView: View {
             }
             .padding(.horizontal, DS.Spacing.md)
             .padding(.bottom, 60)
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
         }
     }
 
@@ -156,9 +160,7 @@ struct ChapterYourNext7DaysView: View {
     }
 
     private func handleUnlock() {
-        #if DEBUG
-        print("Paywall would open here — PR-7")
-        #endif
+        showingPaywall = true
     }
 }
 

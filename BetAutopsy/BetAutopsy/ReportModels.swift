@@ -414,6 +414,36 @@ struct Contradiction: Codable, Identifiable {
     let annualCost: Double?
 }
 
+// MARK: - Snapshot side-channel (PR-7.5 Phase 2)
+//
+// Snapshot responses ship two extra fields on `report_json` describing
+// what the full paid report would contain: `_snapshot_teaser` lists the
+// names + severities of withheld biases (and grade/leak previews we
+// don't surface in v1), `_snapshot_counts` rolls up category totals.
+// Backend omits both for full-paid responses; optional decoding handles
+// that cleanly.
+
+struct TeaserBias: Codable, Identifiable {
+    let name: String
+    let severity: BiasSeverity
+
+    var id: String { name }
+}
+
+struct SnapshotTeaser: Codable {
+    let biasNames: [TeaserBias]
+    // sessionGrades, leakCategories, heatedSessionCount also on wire;
+    // intentionally not decoded in v1 — add when a surface needs them.
+}
+
+struct SnapshotCounts: Codable {
+    let totalBiases: Int
+    let leaks: Int
+    let patterns: Int
+    let sessions: Int
+    let sportFindings: Int
+}
+
 struct BettingArchetypeData: Codable {
     let name: String
     let description: String
@@ -461,6 +491,8 @@ struct AutopsyAnalysis: Codable {
     let contradictions: [Contradiction]?
     let bettingArchetype: BettingArchetypeData?
     let quizArchetype: String?
+    let snapshotTeaser: SnapshotTeaser?
+    let snapshotCounts: SnapshotCounts?
 
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
@@ -474,7 +506,9 @@ struct AutopsyAnalysis: Codable {
          dfsPlatform: String?, dfsMetrics: DFSMetrics?,
          executiveDiagnosis: String?, pertinentNegatives: [PertinentNegative]?,
          contradictions: [Contradiction]?, bettingArchetype: BettingArchetypeData?,
-         quizArchetype: String?) {
+         quizArchetype: String?,
+         snapshotTeaser: SnapshotTeaser? = nil,
+         snapshotCounts: SnapshotCounts? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -500,6 +534,8 @@ struct AutopsyAnalysis: Codable {
         self.contradictions = contradictions
         self.bettingArchetype = bettingArchetype
         self.quizArchetype = quizArchetype
+        self.snapshotTeaser = snapshotTeaser
+        self.snapshotCounts = snapshotCounts
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -510,6 +546,13 @@ struct AutopsyAnalysis: Codable {
         case sportSpecificFindings, dfsMode, dfsPlatform, dfsMetrics
         case executiveDiagnosis, pertinentNegatives, contradictions
         case bettingArchetype, quizArchetype
+        // Backend snapshot side-channel. Leading underscore on the wire
+        // survives the convertFromSnakeCase strategy (it strips internal
+        // underscores only, not leading), so the post-conversion form is
+        // _snapshotTeaser / _snapshotCounts. Explicit raw values pin the
+        // match.
+        case snapshotTeaser = "_snapshotTeaser"
+        case snapshotCounts = "_snapshotCounts"
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -546,6 +589,8 @@ struct AutopsyAnalysis: Codable {
         self.contradictions       = try? c.decode([Contradiction].self, forKey: .contradictions)
         self.bettingArchetype     = try? c.decode(BettingArchetypeData.self, forKey: .bettingArchetype)
         self.quizArchetype        = try? c.decode(String.self, forKey: .quizArchetype)
+        self.snapshotTeaser       = try? c.decode(SnapshotTeaser.self, forKey: .snapshotTeaser)
+        self.snapshotCounts       = try? c.decode(SnapshotCounts.self, forKey: .snapshotCounts)
     }
 }
 

@@ -160,6 +160,10 @@ struct ChapterYourNext7DaysView: View {
     }
 
     private func handleUnlock() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "chapter_7_button"]
+        )
         showingPaywall = true
     }
 }

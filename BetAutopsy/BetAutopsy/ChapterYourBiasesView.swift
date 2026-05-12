@@ -11,6 +11,8 @@ import SwiftUI
 struct ChapterYourBiasesView: View {
     let report: AutopsyReport
 
+    @State private var showingPaywall: Bool = false
+
     private var sortedBiases: [BiasDetected] {
         report.analysis.biasesDetected.sorted { a, b in
             if a.severity.sortOrder != b.severity.sortOrder {
@@ -41,6 +43,9 @@ struct ChapterYourBiasesView: View {
             .padding(.horizontal, DS.Spacing.md)
             .padding(.bottom, 60)
         }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+        }
     }
 
     // MARK: - Bias section
@@ -49,6 +54,21 @@ struct ChapterYourBiasesView: View {
         VStack(spacing: 12) {
             ForEach(sortedBiases) { bias in
                 biasCard(bias)
+            }
+
+            // Snapshot mode: after the (single) returned bias, show one
+            // teaser card for the first withheld bias name from
+            // _snapshot_teaser.biasNames. Empty teaser → render nothing.
+            if report.reportType == "snapshot",
+               let teaser = report.analysis.snapshotTeaser,
+               let firstTeaser = teaser.biasNames.first {
+                WithheldBiasTeaserCard(teaserBias: firstTeaser) {
+                    Analytics.signal(
+                        "paywall.triggered",
+                        parameters: ["source": "bias_teaser_card"]
+                    )
+                    showingPaywall = true
+                }
             }
         }
     }
@@ -279,6 +299,71 @@ struct ChapterYourBiasesView: View {
                 .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
         )
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+}
+
+// MARK: - Withheld bias teaser card (PR-7.5 Phase 2)
+
+/// Snapshot-only card placed after the returned bias in Chapter 4.
+/// Shows the SAME card frame as bias #1 (Surface.card + hairline border
+/// + DS.Radius.card corners) so the visual register doesn't drift.
+/// The severity badge and name are real (from _snapshot_teaser); the
+/// estimated cost is replaced by a solid redaction bar — no character
+/// glyphs underneath. Whole card is tappable and triggers the paywall.
+private struct WithheldBiasTeaserCard: View {
+    let teaserBias: TeaserBias
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text(teaserBias.name.uppercased())
+                        .font(.custom("JetBrainsMono-Regular", size: 11))
+                        .tracking(11 * 0.15)
+                        .foregroundStyle(DS.Color.Text.primary)
+                    Spacer()
+                    SeverityChip(severity: teaserBias.severity)
+                }
+
+                Text(teaserBias.name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(DS.Color.Text.primary)
+                    .padding(.top, 8)
+
+                // Redaction bar where the estimated cost would appear in
+                // a full bias card. Width 72pt approximates a 4-figure
+                // dollar render at JetBrainsMono-Medium 18pt; height 18pt
+                // matches the font size. Solid fill, no characters.
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(DS.Color.Border.subtle)
+                    .frame(width: 72, height: 18)
+                    .padding(.top, 16)
+
+                HStack {
+                    Text("Read this in your full report")
+                        .font(.system(size: 13))
+                        .foregroundStyle(DS.Color.Text.tertiary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(DS.Color.Text.tertiary)
+                }
+                .padding(.top, 16)
+            }
+            .padding(DS.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS.Color.Surface.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card)
+                    .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Withheld bias: \(teaserBias.name), \(teaserBias.severity.rawValue) severity. Tap to read full analysis in your report.")
+        .accessibilityHint("Opens paywall")
     }
 }
 

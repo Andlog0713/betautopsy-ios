@@ -13,6 +13,8 @@ import Charts
 struct ChapterYourSportsView: View {
     let report: AutopsyReport
 
+    @State private var showingPaywall: Bool = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -28,9 +30,30 @@ struct ChapterYourSportsView: View {
                 dayTilesSection.padding(.top, DS.Spacing.xl)
                 oddsSection.padding(.top, DS.Spacing.xl)
                 sportFindingsSection.padding(.top, DS.Spacing.xl)
+
+                // Snapshot mode: closing volume-anchor module at end of
+                // Chapter 6, placed AFTER the existing sport findings.
+                // Decision (a) per spec — Chapter 7 has substantial own
+                // content (header + recommendations + finalCard), so the
+                // counts module wraps up Sports and the user swipes to
+                // Chapter 7 for the dedicated CTA if not converted here.
+                if report.reportType == "snapshot",
+                   let counts = report.analysis.snapshotCounts {
+                    SnapshotCountsModule(counts: counts) {
+                        Analytics.signal(
+                            "paywall.triggered",
+                            parameters: ["source": "counts_module_cta"]
+                        )
+                        showingPaywall = true
+                    }
+                    .padding(.top, DS.Spacing.xl)
+                }
             }
             .padding(.horizontal, DS.Spacing.md)
             .padding(.bottom, 60)
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
         }
     }
 
@@ -317,6 +340,65 @@ struct ChapterYourSportsView: View {
                 .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
         )
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+}
+
+// MARK: - Snapshot counts module (PR-7.5 Phase 2)
+
+/// Volume-anchor module rendered at end of Chapter 6 in snapshot mode.
+/// Reads `_snapshot_counts` and lists the category totals the full
+/// report would contain, leading with sessions (largest number anchors
+/// scale). Includes a dedicated CTA that mirrors Chapter 7's existing
+/// button copy so the conversion moment is identical regardless of
+/// which surface the user taps from.
+private struct SnapshotCountsModule: View {
+    let counts: SnapshotCounts
+    let onTap: () -> Void
+
+    private func pluralize(_ count: Int, _ singular: String, _ plural: String) -> String {
+        "\(count) \(count == 1 ? singular : plural)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("IN YOUR FULL REPORT")
+                .font(.custom("JetBrainsMono-Medium", size: 13))
+                .tracking(13 * 0.15)
+                .foregroundStyle(DS.Color.Text.secondary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(pluralize(counts.sessions, "betting session", "betting sessions")) analyzed")
+                Text("\(pluralize(counts.totalBiases, "behavioral bias", "behavioral biases")) detected")
+                Text("\(pluralize(counts.patterns, "behavioral pattern", "behavioral patterns")) identified")
+                Text("\(pluralize(counts.leaks, "leak pattern", "leak patterns")) flagged")
+                Text(pluralize(counts.sportFindings, "sport-level finding", "sport-level findings"))
+            }
+            .font(.system(size: 15))
+            .foregroundStyle(DS.Color.Text.primary)
+            .lineSpacing(2)
+            .padding(.top, DS.Spacing.md)
+
+            Button(action: onTap) {
+                Text("Read the full report ($9.99).")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DS.Color.Text.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(DS.Color.Accent.luminol)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+            }
+            .padding(.top, DS.Spacing.lg)
+        }
+        .padding(DS.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.Surface.card)
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card)
+                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Full report contents: \(counts.sessions) sessions, \(counts.totalBiases) biases, \(counts.patterns) behavioral patterns, \(counts.leaks) leak patterns, \(counts.sportFindings) sport findings. Read the full report for nine dollars and ninety-nine cents.")
     }
 }
 

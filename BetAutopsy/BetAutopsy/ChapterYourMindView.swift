@@ -2,23 +2,16 @@
 //  ChapterYourMindView.swift
 //  BetAutopsy
 //
-//  Chapter 2: V3 visual direction cascade.
+//  Chapter 2: The Tilt File.
 //
 //  Layout (top-to-bottom):
-//      ChapterNavigator  →  HeroRingView (Emotion, higherIsWorse: true)
-//      →  contributor card (4 emotion sub-dimensions)
-//      →  InsightCallout (worst trigger or fallback)
+//      ChapterNavigator  ->  HeroRingView (Emotion, higherIsWorse: true)
+//      ->  TOP TILT SESSIONS list (up to 3 heated sessions)
+//      ->  InsightCallout (worst trigger / executive diagnosis fallback)
 //
-//  Inverted color logic: high emotion = high tilt = red zone.
-//  Sub-dimensions individually directional (three higherIsWorse,
-//  one higherIsWorse: false for SESSION DISCIPLINE).
-//
-//  Emotion breakdown components are 0-25 in the engine; we × 4 at
-//  the call site to render on ContributorRow's 0-100 scale.
-//
-//  Radar chart, worst-trigger card, and pertinent-negative cards
-//  from the V2 version are removed. WHOOP-style restraint: ring +
-//  contributors + insight, nothing more.
+//  Tilt predicate: session.isHeated == true.
+//  Total count for header: sessionDetection.heatedSessionCount when
+//  available, else filtered array count.
 //
 
 import SwiftUI
@@ -30,20 +23,37 @@ struct ChapterYourMindView: View {
         report.analysis.emotionScore
     }
 
-    private var stakeVolatility: Int {
-        (report.analysis.emotionBreakdown?.stakeVolatility ?? 0) * 4
+    private var heatedSessions: [DetectedSession] {
+        (report.analysis.sessionDetection?.sessions ?? [])
+            .filter { $0.isHeated }
     }
 
-    private var lossChasing: Int {
-        (report.analysis.emotionBreakdown?.lossChasing ?? 0) * 4
+    private var totalTiltSessionCount: Int {
+        report.analysis.sessionDetection?.heatedSessionCount
+            ?? heatedSessions.count
     }
 
-    private var streakBehavior: Int {
-        (report.analysis.emotionBreakdown?.streakBehavior ?? 0) * 4
-    }
-
-    private var sessionDiscipline: Int {
-        (report.analysis.emotionBreakdown?.sessionDiscipline ?? 0) * 4
+    private var topTiltSessions: [TiltSessionCard.Session] {
+        heatedSessions
+            .sorted { abs($0.profit) > abs($1.profit) }
+            .prefix(3)
+            .map { session in
+                let trigger = session.heatSignals.first
+                let secondarySignal: String?
+                if session.heatSignals.count > 1 {
+                    secondarySignal = session.heatSignals[1]
+                } else {
+                    secondarySignal = session.gradeReasons.first
+                }
+                return TiltSessionCard.Session(
+                    dateLabel: shortDateLabel(session.date),
+                    timeRangeLabel: "\(session.startTime) - \(session.endTime)",
+                    pnl: Int(session.profit.rounded()),
+                    betCount: session.bets,
+                    triggerLabel: trigger,
+                    behavioralSignal: secondarySignal
+                )
+            }
     }
 
     private var insightBody: String {
@@ -59,7 +69,7 @@ struct ChapterYourMindView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                ChapterNavigator(chapterNumber: 2, subtitle: "YOUR MIND")
+                ChapterNavigator(chapterNumber: 2, subtitle: "THE TILT FILE")
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
@@ -71,17 +81,32 @@ struct ChapterYourMindView: View {
                     higherIsWorse: true
                 )
 
-                Spacer().frame(height: 28)
+                if !topTiltSessions.isEmpty {
+                    Spacer().frame(height: 28)
 
-                contributorCard
+                    Text("TOP TILT SESSIONS \u{00B7} \(totalTiltSessionCount) TOTAL")
+                        .font(DS.Font.V3.navigatorSubtitle)
+                        .tracking(1.8)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 8)
+
+                    VStack(spacing: 8) {
+                        ForEach(topTiltSessions) { session in
+                            TiltSessionCard(session: session)
+                        }
+                    }
                     .padding(.horizontal, 16)
+                }
 
                 if !insightBody.isEmpty {
                     Spacer().frame(height: 24)
 
                     InsightCallout(
                         text: insightBody,
-                        ctaLabel: "BREAK DOWN MY MIND",
+                        ctaLabel: "READ THE DISCIPLINE AUDIT",
                         onTap: handleInsightTap
                     )
                     .padding(.horizontal, 16)
@@ -92,61 +117,6 @@ struct ChapterYourMindView: View {
             .frame(maxWidth: .infinity)
         }
         .background(canvasGradient.ignoresSafeArea())
-    }
-
-    private var contributorCard: some View {
-        VStack(spacing: 0) {
-            ContributorRow(
-                iconSystemName: "scribble.variable",
-                label: "STAKE VOLATILITY",
-                value: stakeVolatility,
-                trendUp: nil,
-                higherIsWorse: true
-            )
-            .padding(.horizontal, 16)
-
-            V3Divider()
-                .padding(.horizontal, 16)
-
-            ContributorRow(
-                iconSystemName: "arrow.uturn.right",
-                label: "LOSS CHASING",
-                value: lossChasing,
-                trendUp: nil,
-                higherIsWorse: true
-            )
-            .padding(.horizontal, 16)
-
-            V3Divider()
-                .padding(.horizontal, 16)
-
-            ContributorRow(
-                iconSystemName: "arrow.triangle.2.circlepath",
-                label: "STREAK BEHAVIOR",
-                value: streakBehavior,
-                trendUp: nil,
-                higherIsWorse: true
-            )
-            .padding(.horizontal, 16)
-
-            V3Divider()
-                .padding(.horizontal, 16)
-
-            ContributorRow(
-                iconSystemName: "timer",
-                label: "SESSION DISCIPLINE",
-                value: sessionDiscipline,
-                trendUp: nil,
-                higherIsWorse: false
-            )
-            .padding(.horizontal, 16)
-        }
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var canvasGradient: LinearGradient {
@@ -164,6 +134,30 @@ struct ChapterYourMindView: View {
         #if DEBUG
         print("InsightCallout tapped on Chapter 2 (V1 stub).")
         #endif
+    }
+
+    /// Best-effort short date label from the engine's date string.
+    /// Input may be "Dec 3, 2025" or similar; falls back to the raw
+    /// uppercased string if parsing fails.
+    private func shortDateLabel(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parsers: [String] = [
+            "MMM d, yyyy",
+            "MMMM d, yyyy",
+            "yyyy-MM-dd"
+        ]
+        for fmt in parsers {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = fmt
+            if let date = formatter.date(from: trimmed) {
+                let out = DateFormatter()
+                out.locale = Locale(identifier: "en_US_POSIX")
+                out.dateFormat = "MMM d"
+                return out.string(from: date).uppercased()
+            }
+        }
+        return trimmed.uppercased()
     }
 }
 

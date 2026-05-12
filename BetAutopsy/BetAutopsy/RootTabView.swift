@@ -25,7 +25,8 @@ struct RootTabView: View {
                     Label("Today", systemImage: "circle.dotted")
                 }
 
-            ContentUnavailableView("No sessions yet", systemImage: "list.bullet.rectangle")
+            SessionsTabView()
+                .environment(reportStore)
                 .tabItem {
                     Label("Sessions", systemImage: "list.bullet.rectangle")
                 }

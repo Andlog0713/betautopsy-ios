@@ -2,9 +2,17 @@
 //  ChapterYourDisciplineView.swift
 //  BetAutopsy
 //
-//  Chapter 3: discipline + BetIQ. Four-dimension discipline breakdown bars,
-//  BetIQ hero with archetype tint, six-row BetIQ component table, and a
-//  short prose payoff line.
+//  Chapter 3: Discipline Audit.
+//
+//  Layout (top-to-bottom):
+//      ChapterNavigator  ->  HeroRingView (Discipline, higherIsWorse: false)
+//      ->  BEHAVIORAL IMPACT card (multiple session-derived impacts)
+//      ->  COMPONENT BREAKDOWN section (4 sub-component lines)
+//      ->  InsightCallout (executive diagnosis)
+//
+//  Engine doesn't ship a per-bet timeline; impacts are computed from
+//  sessionDetection.sessions instead. The framing ("OVER N INSTANCES")
+//  surfaces session counts, not bet counts. This is the v1 honest form.
 //
 
 import SwiftUI
@@ -12,208 +20,205 @@ import SwiftUI
 struct ChapterYourDisciplineView: View {
     let report: AutopsyReport
 
-    private var archetypeColor: Color {
-        report.analysis.bettingArchetype?.color ?? DS.Color.Accent.luminol
+    private var disciplineTotal: Int {
+        report.analysis.disciplineScore?.total ?? 0
+    }
+
+    private var sessions: [DetectedSession] {
+        report.analysis.sessionDetection?.sessions ?? []
+    }
+
+    private var impacts: [BehavioralImpactRow.Impact] {
+        var result: [BehavioralImpactRow.Impact] = []
+
+        // LATE-NIGHT SESSIONS
+        let lateNight = sessions.filter { $0.lateNight }
+        if lateNight.count >= 2 {
+            let net = Int(lateNight.reduce(0) { $0 + $1.profit }.rounded())
+            if net <= -50 {
+                result.append(BehavioralImpactRow.Impact(
+                    iconSystemName: "moon.fill",
+                    label: "LATE-NIGHT SESSIONS (POST-11PM)",
+                    dollarImpact: net,
+                    sampleSize: lateNight.count
+                ))
+            }
+        }
+
+        // HEATED SESSIONS
+        let heated = sessions.filter { $0.isHeated }
+        if heated.count >= 2 {
+            let net = Int(heated.reduce(0) { $0 + $1.profit }.rounded())
+            if net <= -50 {
+                result.append(BehavioralImpactRow.Impact(
+                    iconSystemName: "flame.fill",
+                    label: "HEATED SESSIONS",
+                    dollarImpact: net,
+                    sampleSize: heated.count
+                ))
+            }
+        }
+
+        // STAKE ESCALATION
+        let escalated = sessions.filter { $0.stakeEscalation > 1.5 }
+        if escalated.count >= 2 {
+            let net = Int(escalated.reduce(0) { $0 + $1.profit }.rounded())
+            if net <= -50 {
+                result.append(BehavioralImpactRow.Impact(
+                    iconSystemName: "arrow.up.right.square.fill",
+                    label: "STAKE ESCALATION (>1.5x)",
+                    dollarImpact: net,
+                    sampleSize: escalated.count
+                ))
+            }
+        }
+
+        // RAPID-FIRE
+        let rapid = sessions.filter { $0.betsPerHour > 3 }
+        if rapid.count >= 2 {
+            let net = Int(rapid.reduce(0) { $0 + $1.profit }.rounded())
+            if net <= -50 {
+                result.append(BehavioralImpactRow.Impact(
+                    iconSystemName: "bolt.fill",
+                    label: "RAPID-FIRE (>3 BETS/HOUR)",
+                    dollarImpact: net,
+                    sampleSize: rapid.count
+                ))
+            }
+        }
+
+        return result
+            .sorted { abs($0.dollarImpact) > abs($1.dollarImpact) }
+            .prefix(5)
+            .map { $0 }
+    }
+
+    private var insightBody: String {
+        (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ChapterHeader(
-                    chipText: "YOUR DISCIPLINE",
-                    alertChip: (text: "BOTTOM 12%", color: DS.Color.Semantic.blood),
-                    title: "Your discipline ranks in the bottom 12% of bettors.",
-                    pullQuote: "Discipline is sizing, tracking, control, and strategy. Three of the four are working against you."
+            VStack(spacing: 0) {
+                ChapterNavigator(chapterNumber: 3, subtitle: "DISCIPLINE AUDIT")
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                Spacer().frame(height: 28)
+
+                HeroRingView(
+                    score: disciplineTotal,
+                    metricLabel: "DISCIPLINE",
+                    higherIsWorse: false
                 )
-                .padding(.top, DS.Spacing.md)
 
-                disciplineSection.padding(.top, DS.Spacing.xl)
-                betiqSection.padding(.top, DS.Spacing.xl)
-                insightProse.padding(.top, DS.Spacing.lg)
+                if !impacts.isEmpty {
+                    Spacer().frame(height: 28)
+
+                    Text("BEHAVIORAL IMPACT")
+                        .font(DS.Font.V3.navigatorSubtitle)
+                        .tracking(1.8)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 8)
+
+                    impactCard
+                        .padding(.horizontal, 16)
+                }
+
+                Spacer().frame(height: 28)
+
+                Text("COMPONENT BREAKDOWN")
+                    .font(DS.Font.V3.navigatorSubtitle)
+                    .tracking(1.8)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+
+                Spacer().frame(height: 8)
+
+                componentBreakdown
+                    .padding(.horizontal, 16)
+
+                if !insightBody.isEmpty {
+                    Spacer().frame(height: 24)
+
+                    InsightCallout(
+                        text: insightBody,
+                        ctaLabel: "READ THE BIAS SHEET",
+                        onTap: handleInsightTap
+                    )
+                    .padding(.horizontal, 16)
+                }
+
+                Spacer().frame(height: 60)
             }
-            .padding(.horizontal, DS.Spacing.md)
-            .padding(.bottom, 60)
+            .frame(maxWidth: .infinity)
         }
+        .background(canvasGradient.ignoresSafeArea())
     }
 
-    // MARK: - Discipline section
-
-    private var disciplineSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("DISCIPLINE SCORE \(report.analysis.disciplineScore?.total ?? 0)/100")
-                .font(.custom("JetBrainsMono-Regular", size: 12))
-                .monospacedDigit()
-                .tracking(12 * 0.15)
-                .foregroundStyle(DS.Color.Text.primary)
-
-            VStack(spacing: 12) {
-                if let d = report.analysis.disciplineScore {
-                    disciplineRow("Tracking", value: d.tracking)
-                    disciplineRow("Sizing",   value: d.sizing)
-                    disciplineRow("Control",  value: d.control)
-                    disciplineRow("Strategy", value: d.strategy)
+    private var impactCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(impacts.enumerated()), id: \.element.id) { index, impact in
+                BehavioralImpactRow(impact: impact)
+                    .padding(.horizontal, 16)
+                if index < impacts.count - 1 {
+                    V3Divider()
+                        .padding(.horizontal, 16)
                 }
             }
-            .padding(.top, DS.Spacing.md)
-
-            Text("PERCENTILE: \(report.analysis.disciplineScore?.percentile ?? 0)")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .monospacedDigit()
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-                .padding(.top, DS.Spacing.md)
         }
-        .padding(DS.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .padding(.vertical, 2)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func disciplineRow(_ label: String, value: Int) -> some View {
-        let color = bandColor(for: value)
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 14))
-                    .foregroundStyle(DS.Color.Text.primary)
-                Spacer()
-                Text("\(value)/25")
-                    .font(.custom("JetBrainsMono-Regular", size: 13))
+    private var componentBreakdown: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let d = report.analysis.disciplineScore {
+                Text("TRACKING \(d.tracking)/25")
+                    .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
-                    .foregroundStyle(color)
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(DS.Color.Surface.raised)
-                        .frame(height: 8)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(color)
-                        .frame(
-                            width: geo.size.width * (Double(value) / 25.0),
-                            height: 8
-                        )
-                }
-            }
-            .frame(height: 8)
-        }
-    }
-
-    private func bandColor(for value: Int) -> Color {
-        if value <= 7 { return DS.Color.Semantic.blood }
-        if value <= 15 { return DS.Color.Accent.luminol }
-        return DS.Color.Semantic.win
-    }
-
-    // MARK: - BetIQ section
-
-    private var betiqSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("BETIQ SCORE \(report.analysis.betiq?.score ?? 0)/100")
-                .font(.custom("JetBrainsMono-Regular", size: 12))
-                .monospacedDigit()
-                .tracking(12 * 0.15)
-                .foregroundStyle(DS.Color.Text.primary)
-
-            Text("Your skill assessment across six dimensions.")
-                .font(.system(size: 14))
-                .foregroundStyle(DS.Color.Text.secondary)
-                .padding(.top, 4)
-
-            betiqHeroCard.padding(.top, DS.Spacing.md)
-            betiqComponentTable.padding(.top, DS.Spacing.md)
-        }
-    }
-
-    private var betiqHeroCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("\(report.analysis.betiq?.score ?? 0)")
-                .font(.system(size: 56, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(archetypeColor)
-
-            Text("\(report.analysis.betiq?.percentile ?? 0)TH PERCENTILE")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .monospacedDigit()
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
-                .padding(.top, 4)
-
-            Text(report.analysis.betiq?.interpretation ?? "")
-                .font(.custom("Georgia-Italic", size: 15))
-                .foregroundStyle(DS.Color.Text.secondary)
-                .lineSpacing(4)
-                .padding(.top, 12)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(DS.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-    }
-
-    private var betiqComponentTable: some View {
-        VStack(spacing: 0) {
-            if let c = report.analysis.betiq?.components {
-                componentRow("LINE VALUE",     value: c.lineValue,      max: 25, showDivider: true)
-                componentRow("CALIBRATION",    value: c.calibration,    max: 20, showDivider: true)
-                componentRow("SOPHISTICATION", value: c.sophistication, max: 15, showDivider: true)
-                componentRow("SPECIALIZATION", value: c.specialization, max: 15, showDivider: true)
-                componentRow("TIMING",         value: c.timing,         max: 10, showDivider: true)
-                componentRow("CONFIDENCE",     value: c.confidence,     max: 15, showDivider: false)
-            }
-        }
-        .padding(.horizontal, DS.Spacing.lg)
-        .padding(.vertical, DS.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-    }
-
-    private func componentRow(_ label: String, value: Int, max: Int, showDivider: Bool) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(label)
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
-                Spacer()
-                Text("\(value)/\(max)")
-                    .font(.custom("JetBrainsMono-Regular", size: 15))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                Text("SIZING \(d.sizing)/25")
+                    .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
-            }
-            .padding(.vertical, 12)
-
-            if showDivider {
-                Rectangle()
-                    .fill(DS.Color.Border.subtle)
-                    .frame(height: DS.Stroke.hairline)
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                Text("CONTROL \(d.control)/25")
+                    .font(.system(size: 12, weight: .regular))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                Text("STRATEGY \(d.strategy)/25")
+                    .font(.system(size: 12, weight: .regular))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textSecondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Insight prose
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 
-    private var insightProse: some View {
-        Text("Tracking is your strongest discipline subscore. Sizing and control are not. Fix sizing first; everything else follows from it.")
-            .font(.system(size: 15))
-            .foregroundStyle(DS.Color.Text.secondary)
-            .lineSpacing(4)
-            .padding(.top, DS.Spacing.sm)
+    private func handleInsightTap() {
+        #if DEBUG
+        print("InsightCallout tapped on Chapter 3 (V1 stub).")
+        #endif
     }
 }
 

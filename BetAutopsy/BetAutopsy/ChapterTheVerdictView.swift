@@ -2,9 +2,20 @@
 //  ChapterTheVerdictView.swift
 //  BetAutopsy
 //
-//  Chapter 1: cold-open hero. Case number, BetIQ ring tinted by archetype
-//  color, archetype name, percentile, executive diagnosis as italic verdict,
-//  and a pulsing "SWIPE TO BEGIN" hint at the bottom.
+//  Chapter 1: V3 visual direction pilot.
+//
+//  Layout (top-to-bottom):
+//      ChapterNavigator  →  HeroRingView  →  archetype name
+//      →  contributor card (DISCIPLINE + EMOTION)
+//      →  InsightCallout  →  bottom spacer.
+//
+//  Ring color is severity-driven, not archetype-driven (V3 token spec).
+//  Archetype subtitle (percentile) deliberately omitted in V1 — data
+//  not available on AutopsyAnalysis. Will revisit when subtitle source
+//  lands on the model.
+//
+//  SELECTIVITY + PATTERN contributor rows are deferred until those
+//  scores land on AutopsyAnalysis. V1 ships with two rows.
 //
 
 import SwiftUI
@@ -12,106 +23,114 @@ import SwiftUI
 struct ChapterTheVerdictView: View {
     let report: AutopsyReport
 
-    @State private var hintOffset: CGFloat = 0
+    private var betIQScore: Int {
+        report.analysis.betiq?.score ?? 0
+    }
 
-    private var archetypeColor: Color {
-        report.analysis.bettingArchetype?.color ?? DS.Color.Accent.luminol
+    private var archetypeName: String {
+        report.analysis.bettingArchetype?.name ?? ""
+    }
+
+    private var disciplineValue: Int {
+        report.analysis.disciplineScore?.total ?? 0
+    }
+
+    private var emotionValue: Int {
+        report.analysis.emotionScore
+    }
+
+    private var insightBody: String {
+        report.analysis.executiveDiagnosis
+            ?? report.analysis.bettingArchetype?.description
+            ?? ""
     }
 
     var body: some View {
-        GeometryReader { geo in
+        ScrollView {
             VStack(spacing: 0) {
-                Text("CASE \(report.caseNumber)")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.18)
-                    .foregroundStyle(DS.Color.Text.tertiary)
-                    .padding(.top, DS.Spacing.lg)
+                ChapterNavigator(chapterNumber: 1, subtitle: "THE VERDICT")
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                Text(report.analysis.summary.dateRange.uppercased())
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
-                    .padding(.top, 6)
+                Spacer().frame(height: 28)
 
-                if report.reportType == "snapshot" {
-                    LabelChip(text: "FREE SNAPSHOT",
-                              color: DS.Color.Accent.luminolSoft)
-                        .padding(.top, 6)
-                }
+                HeroRingView(score: betIQScore, metricLabel: "BETIQ")
 
-                Spacer().frame(height: 80)
+                Spacer().frame(height: 28)
 
-                ZStack {
-                    Circle()
-                        .stroke(archetypeColor, lineWidth: 3)
-                        .frame(width: 130, height: 130)
-                        .shadow(color: archetypeColor.opacity(0.22),
-                                radius: 12, x: 0, y: 0)
-
-                    VStack(spacing: 4) {
-                        Text("\(report.analysis.betiq?.score ?? 0)")
-                            .font(.system(size: 48, weight: .semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(DS.Color.Text.primary)
-
-                        Text("BETIQ")
-                            .font(.custom("JetBrainsMono-Regular", size: 10))
-                            .tracking(10 * 0.15)
-                            .foregroundStyle(DS.Color.Text.tertiary)
-                    }
-                }
+                Text(archetypeName)
+                    .font(DS.Font.V3.sectionTitle)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
 
                 Spacer().frame(height: 24)
 
-                Text(report.analysis.bettingArchetype?.name.uppercased() ?? "")
-                    .font(.system(size: 22, weight: .bold))
-                    .tracking(22 * 0.22)
-                    .foregroundStyle(archetypeColor)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, DS.Spacing.lg)
+                contributorCard
+                    .padding(.horizontal, 16)
 
-                Spacer().frame(height: 8)
+                Spacer().frame(height: 24)
 
-                Text("\(report.analysis.betiq?.percentile ?? 0)TH PERCENTILE")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                InsightCallout(
+                    text: insightBody,
+                    ctaLabel: "READ THE FULL VERDICT",
+                    onTap: handleInsightTap
+                )
+                .padding(.horizontal, 16)
 
-                Spacer().frame(height: 32)
-
-                Text(report.analysis.executiveDiagnosis
-                     ?? report.analysis.bettingArchetype?.description
-                     ?? "")
-                    .font(.custom("Georgia-Italic", size: 17))
-                    .foregroundStyle(DS.Color.Text.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, DS.Spacing.xl)
-
-                Spacer()
-
-                HStack(spacing: 6) {
-                    Text("SWIPE TO BEGIN")
-                        .font(.custom("JetBrainsMono-Regular", size: 10))
-                        .tracking(10 * 0.15)
-                        .foregroundStyle(DS.Color.Text.tertiary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(DS.Color.Text.tertiary)
-                }
-                .offset(x: hintOffset)
-                .padding(.bottom, max(geo.safeAreaInsets.bottom, DS.Spacing.lg) + 40)
-                .onAppear {
-                    withAnimation(
-                        .easeInOut(duration: 1)
-                            .repeatForever(autoreverses: true)
-                    ) {
-                        hintOffset = 4
-                    }
-                }
+                Spacer().frame(height: 60)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
+            .frame(maxWidth: .infinity)
         }
+        .background(canvasGradient.ignoresSafeArea())
+    }
+
+    private var contributorCard: some View {
+        VStack(spacing: 0) {
+            ContributorRow(
+                iconSystemName: "shield",
+                label: "DISCIPLINE",
+                value: disciplineValue,
+                trendUp: nil
+            )
+            .padding(.horizontal, 16)
+
+            V3Divider()
+                .padding(.horizontal, 16)
+
+            ContributorRow(
+                iconSystemName: "flame",
+                label: "EMOTION",
+                value: emotionValue,
+                trendUp: nil
+            )
+            .padding(.horizontal, 16)
+        }
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private func handleInsightTap() {
+        // V1 stub: navigation lands in v1.1 cascade.
+        // Use log shape only per repo logging rule.
+        #if DEBUG
+        print("InsightCallout tapped on Chapter 1 (V1 stub).")
+        #endif
     }
 }
 

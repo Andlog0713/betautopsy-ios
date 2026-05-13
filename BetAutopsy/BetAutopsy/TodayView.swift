@@ -4,6 +4,12 @@
 //
 //  Today tab. Mock data only — no API calls in PR-1.
 //
+//  PR-V10 Phase 2: token migration only. Visual structure preserved.
+//  Inline hero ring kept (130pt archetype-tinted) rather than swapping
+//  to HeroRingView (230pt severity-tinted) because the smaller
+//  archetype-colored summary widget is intentionally distinct from the
+//  chapter-view hero. Token swap only.
+//
 
 import SwiftUI
 
@@ -19,32 +25,43 @@ struct TodayView: View {
 
     private var archetypeColor: Color {
         userArchetypeColorHex.isEmpty
-            ? DS.Color.Accent.luminol
+            ? DS.Color.V3.ctaText
             : Color(hex: userArchetypeColorHex)
+    }
+
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            canvasGradient.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: DS.Spacing.lg) {
+                VStack(spacing: 24) {
                     caseHeader
-                        .padding(.top, DS.Spacing.md)
+                        .padding(.top, 16)
 
                     heroRing
-                        .padding(.top, DS.Spacing.lg)
+                        .padding(.top, 24)
 
                     archetypeLabel
 
                     verdict
-                        .padding(.horizontal, DS.Spacing.xl)
+                        .padding(.horizontal, 32)
 
                     rangeCard
-                        .padding(.horizontal, DS.Spacing.md)
-                        .padding(.top, DS.Spacing.sm)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
 
-                    Spacer(minLength: DS.Spacing.xl)
+                    Spacer(minLength: 32)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -55,9 +72,9 @@ struct TodayView: View {
 
     private var caseHeader: some View {
         Text("CASE 0247 · MAY 11")
-            .font(.custom("JetBrainsMono-Regular", size: 11))
-            .tracking(11 * 0.15)
-            .foregroundStyle(DS.Color.Text.tertiary)
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1.65)
+            .foregroundStyle(DS.Color.V3.textTertiary)
     }
 
     // MARK: - Hero ring
@@ -69,16 +86,16 @@ struct TodayView: View {
                 .frame(width: 130, height: 130)
                 .shadow(color: archetypeColor.opacity(0.22), radius: 12, x: 0, y: 0)
 
-            VStack(spacing: DS.Spacing.xxs) {
+            VStack(spacing: 2) {
                 Text("87")
                     .font(.system(size: 48, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
 
                 Text("BETIQ")
-                    .font(.custom("JetBrainsMono-Regular", size: 8))
-                    .tracking(8 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 8, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
         }
     }
@@ -89,20 +106,20 @@ struct TodayView: View {
     private var archetypeLabel: some View {
         if hasArchetype {
             Text(userArchetype.uppercased())
-                .font(.custom("Inter-Bold", size: 14))
-                .tracking(14 * 0.22)
-                .foregroundStyle(DS.Color.Accent.luminolSoft)
+                .font(.system(size: 14, weight: .bold))
+                .tracking(3.08)
+                .foregroundStyle(DS.Color.V3.ctaText)
         } else {
             Button(action: { coordinator.reset() }) {
                 Text("TAKE YOUR ASSESSMENT")
-                    .font(.custom("JetBrainsMono-Regular", size: 12))
-                    .tracking(12 * 0.15)
-                    .foregroundStyle(DS.Color.Accent.luminolSoft)
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(1.8)
+                    .foregroundStyle(DS.Color.V3.ctaText)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .overlay(
                         Capsule()
-                            .stroke(DS.Color.Accent.luminol, lineWidth: 1)
+                            .stroke(DS.Color.V3.ctaText, lineWidth: 1)
                     )
                     .clipShape(Capsule())
             }
@@ -115,25 +132,36 @@ struct TodayView: View {
     private var verdict: some View {
         Text("Your impatience cost you $2,847 since November.")
             .font(.custom("Georgia-Italic", size: 17))
-            .foregroundStyle(DS.Color.Text.secondary)
+            .foregroundStyle(DS.Color.V3.textSecondary)
             .multilineTextAlignment(.center)
     }
 
     // MARK: - Range card
 
     private var rangeCard: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.lg) {
-            RangeBar(label: "Discipline", value: userDisciplineScore, dotColor: DS.Color.Accent.luminol)
-            RangeBar(label: "Emotion score", value: userEmotionScore, dotColor: DS.Color.Semantic.blood)
+        VStack(alignment: .leading, spacing: 24) {
+            RangeBar(
+                label: "Discipline",
+                value: userDisciplineScore,
+                dotColor: DS.Color.V3.Severity.zoneColor(
+                    forScore: userDisciplineScore,
+                    higherIsWorse: false
+                )
+            )
+            RangeBar(
+                label: "Emotion score",
+                value: userEmotionScore,
+                dotColor: DS.Color.V3.Severity.red
+            )
         }
-        .padding(DS.Spacing.md)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -145,24 +173,24 @@ private struct RangeBar: View {
     let dotColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.sm) {
-            HStack(spacing: DS.Spacing.sm) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
                 Text(label)
-                    .font(.custom("Inter-Medium", size: 13))
-                    .foregroundStyle(DS.Color.Text.secondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
 
                 Spacer()
 
                 Text("\(value)")
-                    .font(.custom("JetBrainsMono-Medium", size: 13))
+                    .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(DS.Color.Surface.raised)
+                        .fill(DS.Color.V3.surfaceRaised)
                         .frame(height: 4)
 
                     Circle()
@@ -170,7 +198,7 @@ private struct RangeBar: View {
                         .frame(width: 8, height: 8)
                         .overlay(
                             Circle()
-                                .stroke(DS.Color.Surface.canvas, lineWidth: 1.5)
+                                .stroke(DS.Color.V3.canvasGradientEnd, lineWidth: 1.5)
                         )
                         .offset(x: max(0, min(geo.size.width - 8, geo.size.width * CGFloat(value) / 100 - 4)))
                 }

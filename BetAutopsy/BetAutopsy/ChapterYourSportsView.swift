@@ -6,6 +6,10 @@
 //  tile grid tinted by ROI sign, odds bucket cards with edge per bucket,
 //  and sport-specific findings.
 //
+//  PR-V10 Phase 1: token migration only. Visual structure preserved.
+//  ChapterHeader (V2) → ChapterNavigator (V3). Custom JetBrainsMono
+//  fonts → system fonts. Closing InsightCallout added in full mode.
+//
 
 import SwiftUI
 import Charts
@@ -18,22 +22,18 @@ struct ChapterYourSportsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ChapterHeader(
-                    chipText: "YOUR SPORTS",
-                    alertChip: (text: "TIMING IS THE LEAK", color: DS.Color.Semantic.blood),
-                    title: "When you bet matters more than what you bet.",
-                    pullQuote: nil
-                )
-                .padding(.top, DS.Spacing.md)
+                ChapterNavigator(chapterNumber: 6, subtitle: "WHEN AND WHAT")
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                hourChartSection.padding(.top, DS.Spacing.xl)
-                dayTilesSection.padding(.top, DS.Spacing.xl)
-                oddsSection.padding(.top, DS.Spacing.xl)
-                sportFindingsSection.padding(.top, DS.Spacing.xl)
+                hourChartSection.padding(.top, 32)
+                dayTilesSection.padding(.top, 32)
+                oddsSection.padding(.top, 32)
+                sportFindingsSection.padding(.top, 32)
 
                 // Snapshot mode: closing volume-anchor module at end of
                 // Chapter 6, placed AFTER the existing sport findings.
-                // Decision (a) per spec — Chapter 7 has substantial own
+                // Decision (a) per spec: Chapter 7 has substantial own
                 // content (header + recommendations + finalCard), so the
                 // counts module wraps up Sports and the user swipes to
                 // Chapter 7 for the dedicated CTA if not converted here.
@@ -46,15 +46,45 @@ struct ChapterYourSportsView: View {
                         )
                         showingPaywall = true
                     }
-                    .padding(.top, DS.Spacing.xl)
+                    .padding(.top, 32)
+                } else if !insightBody.isEmpty {
+                    // Full mode: closing CTA into Chapter 7.
+                    InsightCallout(
+                        text: insightBody,
+                        ctaLabel: "SEE THE ACTION PLAN",
+                        onTap: handleInsightTap
+                    )
+                    .padding(.top, 32)
                 }
             }
-            .padding(.horizontal, DS.Spacing.md)
+            .padding(.horizontal, 16)
             .padding(.bottom, 60)
         }
+        .background(canvasGradient.ignoresSafeArea())
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
         }
+    }
+
+    private var insightBody: String {
+        (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
+    }
+
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private func handleInsightTap() {
+        #if DEBUG
+        print("InsightCallout tapped on Chapter 6 (V1 stub).")
+        #endif
     }
 
     // MARK: - Hour chart
@@ -64,44 +94,44 @@ struct ChapterYourSportsView: View {
         if let timing = report.analysis.timingAnalysis, !timing.byHour.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 Text("BY HOUR")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
 
                 Chart(timing.byHour) { bucket in
                     BarMark(
                         x: .value("Hour", bucket.label),
                         y: .value("ROI", bucket.roi)
                     )
-                    .foregroundStyle(bucket.roi >= 0 ? DS.Color.Semantic.win : DS.Color.Semantic.blood)
+                    .foregroundStyle(bucket.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
                 }
                 .chartXAxis {
                     AxisMarks(values: ["0", "4", "8", "12", "16", "20"]) { _ in
                         AxisValueLabel()
-                            .font(.custom("JetBrainsMono-Regular", size: 8))
-                            .foregroundStyle(DS.Color.Text.tertiary)
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(DS.Color.V3.textTertiary)
                     }
                 }
                 .chartYAxis(.hidden)
                 .frame(height: 100)
-                .padding(.top, DS.Spacing.sm)
+                .padding(.top, 8)
 
                 HStack {
                     if let best = timing.bestWindow {
                         Text("BEST: \(best.label.uppercased())")
-                            .font(.custom("JetBrainsMono-Regular", size: 10))
-                            .tracking(10 * 0.15)
-                            .foregroundStyle(DS.Color.Semantic.win)
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.5)
+                            .foregroundStyle(DS.Color.V3.Severity.green)
                     }
                     Spacer()
                     if let worst = timing.worstWindow {
                         Text("WORST: \(worst.label.uppercased())")
-                            .font(.custom("JetBrainsMono-Regular", size: 10))
-                            .tracking(10 * 0.15)
-                            .foregroundStyle(DS.Color.Semantic.blood)
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.5)
+                            .foregroundStyle(DS.Color.V3.Severity.red)
                     }
                 }
-                .padding(.top, DS.Spacing.xs)
+                .padding(.top, 4)
             }
         }
     }
@@ -113,21 +143,21 @@ struct ChapterYourSportsView: View {
         if let timing = report.analysis.timingAnalysis, !timing.byDay.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 Text("BY DAY")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
 
                 HStack(spacing: 6) {
                     ForEach(timing.byDay) { day in
                         dayTile(day)
                     }
                 }
-                .padding(.top, DS.Spacing.md)
+                .padding(.top, 16)
 
                 if let lateNight = timing.lateNightStats {
                     Text("\(lateNight.count) bets after 10pm. ROI: \(Int(lateNight.roi.rounded()))%. Cut these and recover most of the bleed.")
                         .font(.system(size: 14))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .lineSpacing(3)
                         .padding(.top, 12)
                         .fixedSize(horizontal: false, vertical: true)
@@ -137,24 +167,24 @@ struct ChapterYourSportsView: View {
     }
 
     private func dayTile(_ day: TimingBucket) -> some View {
-        let tint: Color = day.roi >= 0 ? DS.Color.Semantic.win : DS.Color.Semantic.blood
+        let tint: Color = day.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red
         let tintOpacity = min(0.25, abs(day.roi) / 100)
 
         return ZStack {
-            RoundedRectangle(cornerRadius: DS.Radius.tile)
-                .fill(DS.Color.Surface.card)
-            RoundedRectangle(cornerRadius: DS.Radius.tile)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(DS.Color.V3.surfaceCard)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(tint.opacity(tintOpacity))
 
             VStack(spacing: 4) {
                 Text(day.label)
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                 Text(formatCurrency(day.profit, signed: true))
-                    .font(.custom("JetBrainsMono-Regular", size: 13))
+                    .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
             }
         }
         .frame(maxWidth: .infinity)
@@ -168,13 +198,13 @@ struct ChapterYourSportsView: View {
         if let odds = report.analysis.oddsAnalysis {
             VStack(alignment: .leading, spacing: 0) {
                 Text("BY ODDS")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
 
                 Text("Where you find value, and where you don't.")
                     .font(.system(size: 14))
-                    .foregroundStyle(DS.Color.Text.secondary)
+                    .foregroundStyle(DS.Color.V3.textSecondary)
                     .padding(.top, 4)
 
                 VStack(spacing: 12) {
@@ -182,18 +212,18 @@ struct ChapterYourSportsView: View {
                         oddsBucketCard(bucket)
                     }
                 }
-                .padding(.top, DS.Spacing.md)
+                .padding(.top, 16)
 
                 Text("Luck rating: \(odds.luckLabel)")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
-                    .padding(.top, DS.Spacing.md)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .padding(.top, 16)
 
                 Text("\(odds.actualWins) wins vs \(Int(odds.expectedWins.rounded())) expected")
-                    .font(.custom("JetBrainsMono-Regular", size: 13))
+                    .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                     .padding(.top, 4)
             }
         }
@@ -203,51 +233,51 @@ struct ChapterYourSportsView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(b.label.uppercased())
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.65)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                 Spacer()
                 Text("ROI \(formatPct(b.roi, signed: false))")
-                    .font(.custom("JetBrainsMono-Regular", size: 12))
+                    .font(.system(size: 12, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(b.roi >= 0 ? DS.Color.Semantic.win : DS.Color.Semantic.blood)
+                    .foregroundStyle(b.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
             }
 
             Text(b.range)
-                .font(.custom("JetBrainsMono-Regular", size: 11))
+                .font(.system(size: 11, weight: .regular))
                 .monospacedDigit()
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
                 .padding(.top, 4)
 
             HStack {
                 Text("\(b.bets) BETS")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                 Spacer()
                 Text("\(Int(b.actualWinRate.rounded()))% WIN")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                 Spacer()
                 Text("EDGE \(b.edge >= 0 ? "+" : "")\(Int(b.edge.rounded()))pp")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(b.edge >= 0 ? DS.Color.Semantic.win : DS.Color.Semantic.blood)
+                    .tracking(1.5)
+                    .foregroundStyle(b.edge >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
             }
             .padding(.top, 8)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Sport-specific findings
@@ -257,9 +287,9 @@ struct ChapterYourSportsView: View {
         if let findings = report.analysis.sportSpecificFindings, !findings.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("SPORT-SPECIFIC LEAKS")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
-                    .tracking(11 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.65)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.bottom, 4)
 
                 ForEach(findings) { finding in
@@ -279,67 +309,67 @@ struct ChapterYourSportsView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(f.sport.uppercased())
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Semantic.blood)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.Severity.red)
                 Spacer()
                 SeverityChip(severity: f.severity)
             }
 
             Text(f.name)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .padding(.top, 8)
 
             Text(f.description)
                 .font(.system(size: 15))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .lineSpacing(3)
                 .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
 
             Rectangle()
-                .fill(DS.Color.Border.subtle)
-                .frame(height: DS.Stroke.hairline)
+                .fill(DS.Color.V3.borderSubtle)
+                .frame(height: 0.5)
                 .padding(.top, 12)
 
             Text("EVIDENCE")
-                .font(.custom("JetBrainsMono-Regular", size: 9))
-                .tracking(9 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.35)
+                .foregroundStyle(DS.Color.V3.textTertiary)
                 .padding(.top, 12)
 
             Text(f.evidence)
                 .font(.system(size: 14))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .lineSpacing(3)
                 .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(f.recommendation)
                 .font(.custom("Georgia-Italic", size: 14))
-                .foregroundStyle(DS.Color.Text.primary)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .lineSpacing(3)
                 .padding(.top, 8)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let cost = f.estimatedCost {
                 Text("ESTIMATED COST \(formatCurrency(cost))")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Semantic.blood)
+                    .tracking(1.5)
+                    .foregroundStyle(DS.Color.V3.Severity.red)
                     .padding(.top, 8)
             }
         }
-        .padding(DS.Spacing.md)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -362,9 +392,9 @@ private struct SnapshotCountsModule: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("IN YOUR FULL REPORT")
-                .font(.custom("JetBrainsMono-Medium", size: 13))
-                .tracking(13 * 0.15)
-                .foregroundStyle(DS.Color.Text.secondary)
+                .font(.system(size: 13, weight: .semibold))
+                .tracking(1.95)
+                .foregroundStyle(DS.Color.V3.textSecondary)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(pluralize(counts.sessions, "betting session", "betting sessions")) analyzed")
@@ -374,31 +404,31 @@ private struct SnapshotCountsModule: View {
                 Text(pluralize(counts.sportFindings, "sport-level finding", "sport-level findings"))
             }
             .font(.system(size: 15))
-            .foregroundStyle(DS.Color.Text.primary)
+            .foregroundStyle(DS.Color.V3.textPrimary)
             .lineSpacing(2)
-            .padding(.top, DS.Spacing.md)
+            .padding(.top, 16)
 
             Button(action: onTap) {
                 Text("Read the full report ($19.99).")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(DS.Color.Accent.luminol)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+                    .background(DS.Color.V3.ctaText)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.top, DS.Spacing.lg)
+            .padding(.top, 24)
         }
-        .padding(DS.Spacing.lg)
+        .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Full report contents: \(counts.sessions) sessions, \(counts.totalBiases) biases, \(counts.patterns) behavioral patterns, \(counts.leaks) leak patterns, \(counts.sportFindings) sport findings. Read the full report for nine dollars and ninety-nine cents.")
+        .accessibilityLabel("Full report contents: \(counts.sessions) sessions, \(counts.totalBiases) biases, \(counts.patterns) behavioral patterns, \(counts.leaks) leak patterns, \(counts.sportFindings) sport findings. Read the full report for nineteen dollars and ninety-nine cents.")
     }
 }
 

@@ -14,6 +14,10 @@
 //  paywall.plan_selected was tied to multi-plan selection UI and is
 //  retired along with that UI.
 //
+//  PR-V10 Phase 3: token migration only. All user-visible strings,
+//  TelemetryDeck signals, and mock IAP alert behavior preserved
+//  verbatim.
+//
 
 import SwiftUI
 
@@ -39,9 +43,20 @@ struct PaywallView: View {
     private let privacyURL = URL(string: "https://betautopsy.com/privacy")!
     private let termsURL   = URL(string: "https://betautopsy.com/terms")!
 
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                DS.Color.V3.canvasGradientStart,
+                DS.Color.V3.canvasGradientEnd
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
@@ -49,24 +64,24 @@ struct PaywallView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         header
-                            .padding(.top, DS.Spacing.sm)
+                            .padding(.top, 8)
 
                         restoreButton
-                            .padding(.top, DS.Spacing.xl)
+                            .padding(.top, 32)
 
                         complianceLine
-                            .padding(.top, DS.Spacing.lg)
+                            .padding(.top, 24)
 
                         ageStatement
-                            .padding(.top, DS.Spacing.md)
+                            .padding(.top, 16)
 
                         footerLinks
-                            .padding(.top, DS.Spacing.sm)
+                            .padding(.top, 8)
 
-                        Spacer(minLength: DS.Spacing.lg)
+                        Spacer(minLength: 24)
                     }
-                    .padding(.horizontal, DS.Spacing.md)
-                    .padding(.bottom, DS.Spacing.md)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
 
                 bottomCTA
@@ -93,26 +108,26 @@ struct PaywallView: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .frame(width: 44, height: 44)
             }
         }
-        .padding(.horizontal, DS.Spacing.xs)
+        .padding(.horizontal, 4)
     }
 
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: DS.Spacing.md) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("The autopsy is ready.")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Dollar costs, recommendations, and the full session timeline. 23 pages.")
                 .font(.custom("Georgia-Italic", size: 17))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -124,7 +139,7 @@ struct PaywallView: View {
         Button(action: handleRestore) {
             Text("Restore purchases")
                 .font(.system(size: 14))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
     }
@@ -134,7 +149,7 @@ struct PaywallView: View {
     private var complianceLine: some View {
         Text("If gambling has stopped being fun, call 1-800-GAMBLER. We can wait.")
             .font(.system(size: 13))
-            .foregroundStyle(DS.Color.Accent.luminolSoft)
+            .foregroundStyle(DS.Color.V3.ctaText)
             .multilineTextAlignment(.leading)
             .lineSpacing(3)
             .fixedSize(horizontal: false, vertical: true)
@@ -143,48 +158,48 @@ struct PaywallView: View {
     private var ageStatement: some View {
         Text("By continuing you confirm you are 18 or older.")
             .font(.system(size: 12))
-            .foregroundStyle(DS.Color.Text.tertiary)
+            .foregroundStyle(DS.Color.V3.textTertiary)
             .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     private var footerLinks: some View {
-        HStack(spacing: DS.Spacing.md) {
+        HStack(spacing: 16) {
             Link("Privacy", destination: privacyURL)
                 .font(.system(size: 12))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Link("Terms", destination: termsURL)
                 .font(.system(size: 12))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
         }
     }
 
     // MARK: - Bottom CTA
 
     private var bottomCTA: some View {
-        VStack(spacing: DS.Spacing.sm) {
+        VStack(spacing: 8) {
             Button(action: handleBuy) {
                 Text(PaywallCopy.ctaLabel)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(DS.Color.Accent.luminol)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+                    .background(DS.Color.V3.ctaText)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
             Text(PaywallCopy.microcopy)
                 .font(.system(size: 13))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, DS.Spacing.md)
-        .padding(.top, DS.Spacing.md)
-        .padding(.bottom, DS.Spacing.lg)
-        .background(DS.Color.Surface.canvas)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 24)
+        .background(DS.Color.V3.canvasGradientEnd)
     }
 
     // MARK: - Mocked IAP handlers

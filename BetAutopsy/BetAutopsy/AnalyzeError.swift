@@ -47,7 +47,10 @@ enum AnalyzeError: Error, LocalizedError {
         case .streamError(let message):
             return message
         case .cancelled:
-            return "Upload cancelled."
+            // Silent dismiss — the user already knows they cancelled,
+            // and OS-triggered cancels (backgrounding, etc.) don't
+            // need a "we cancelled" toast either.
+            return ""
         }
     }
 

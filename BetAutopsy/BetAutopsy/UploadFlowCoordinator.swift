@@ -163,6 +163,15 @@ final class UploadFlowCoordinator {
                 state = .idle
             } catch {
                 if userInitiatedCancel { state = .idle; return }
+                // Belt-and-suspenders: AnalyzeClient's mapStreamError
+                // already maps NSError -999 to .cancelled, but if an
+                // unbridged URLSession cancel escapes the client layer
+                // for any reason, suppress the raw blob here too.
+                let ns = error as NSError
+                if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled {
+                    state = .idle
+                    return
+                }
                 state = .failed(.streamParseError(detail: "\(error)"))
             }
         }

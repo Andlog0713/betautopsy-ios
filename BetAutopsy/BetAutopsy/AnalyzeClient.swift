@@ -193,7 +193,17 @@ final class AnalyzeClient {
         // streams the response, including when httpBody is set on the
         // request. The earlier suggestion to use upload(for:from:) was
         // incorrect — that variant buffers the response into Data.
-        let (bytes, response) = try await session.bytes(for: request)
+        //
+        // Wrap the call so its errors share the same mapping logic as
+        // mid-stream errors. Without this, an OS cancel (-999) during
+        // the pre-stream phase would propagate to UploadFlowCoordinator
+        // unmapped and stringify into a 600-char NSError blob.
+        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+        do {
+            (bytes, response) = try await session.bytes(for: request)
+        } catch {
+            throw Self.mapStreamError(error)
+        }
 
         guard let http = response as? HTTPURLResponse else {
             throw AnalyzeError.streamParseError(
@@ -403,6 +413,19 @@ final class AnalyzeClient {
     // MARK: - Stream network error mapping
 
     private static func mapStreamError(_ error: Error) -> AnalyzeError {
+        // NSError-level cancel check runs BEFORE the URLError cast.
+        // URLSession's streaming layer can hand back a raw NSError code
+        // -999 that doesn't auto-bridge cleanly to URLError, which used
+        // to fall through to the bottom `streamParseError(detail:
+        // "\(error)")` path and dump a 600-char description blob.
+        // Only NSURLErrorCancelled (-999) takes this shortcut; every
+        // other NSURLDomain code keeps the existing handling below so
+        // timeout / unreachable / connection-lost still surface as
+        // real errors.
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled {
+            return .cancelled
+        }
         if let urlError = error as? URLError {
             switch urlError.code {
             case .timedOut:

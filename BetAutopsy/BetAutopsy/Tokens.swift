@@ -1,19 +1,24 @@
 // ─────────────────────────────────────────────────────────────────
 // BetAutopsy design system tokens.
 //
-// V2 = Luminol (legacy, being migrated).
+// V2 = Luminol (legacy, retirement deferred).
 // V3 = current visual direction (WHOOP-style).
 //
 // V3 spec: Notion 35e5964c-daf2-819e-9484-de25a4e3af56
 //
-// PR-V1 through PR-V9 cascade migrates every consumer from V2 to V3.
-// Both namespaces coexist during the cascade. The V2 namespace will
-// be deleted in a final cleanup commit after PR-V9 lands.
+// PR-V1 through PR-V9 migrated the report chapters (Ch 1-7) to V3.
+// PR-V10 closes out by migrating Ch 6, TodayView, and PaywallView.
+// The V2 namespace remains intact in this file because ~15 other
+// consumers (BetDNAQuizView, ReportListView, SessionsTabView, the
+// auth and age-gate flow, ArchetypeRevealView, UploadProgressView,
+// ReportModels severity encoders, Components.swift primitives, etc.)
+// are still on V2. V2 namespace retirement is scoped as a follow-up
+// bundle.
 //
-// Rules during cascade:
-//   - Additive only: do not modify or remove V2 tokens.
+// Rules:
+//   - V2 namespace remains; additive-only changes here.
 //   - New views consume V3.
-//   - Existing views stay on V2 until their dedicated cascade PR.
+//   - Existing V2 views stay on V2 until their follow-up migration.
 // ─────────────────────────────────────────────────────────────────
 
 import SwiftUI
@@ -103,9 +108,12 @@ extension Color {
 extension DS.Color {
     enum V3 {
         // Canvas + surfaces
+        // Three-tier elevation: canvas (gradient) → surfaceCard → surfaceRaised.
+        // Mirrors V2's canvas/card/raised pattern.
         static let canvasGradientStart = SwiftUI.Color(hex: "#131A20")
         static let canvasGradientEnd   = SwiftUI.Color(hex: "#0A0E12")
         static let surfaceCard         = SwiftUI.Color.white.opacity(0.04)
+        static let surfaceRaised       = SwiftUI.Color.white.opacity(0.07)
 
         // Borders
         static let borderSubtle       = SwiftUI.Color.white.opacity(0.06)

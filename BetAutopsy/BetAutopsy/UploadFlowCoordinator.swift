@@ -36,6 +36,14 @@ final class UploadFlowCoordinator {
     /// propagates through URLSession.
     private var userInitiatedCancel: Bool = false
 
+    /// Server-emitted report id captured from the report_started SSE
+    /// event. Populated mid-stream; verified against the complete
+    /// event's id in DEBUG. Persisted forward as AutopsyReport.id so
+    /// v1.1 recovery flows can poll /api/reports/:id with a handle
+    /// the backend actually knows. Reset to nil at the top of every
+    /// upload attempt.
+    private var currentReportId: String?
+
     func startUpload(csvData: Data, filename: String,
                      reportType: String = "snapshot") {
         // Cancel any in-flight task.
@@ -45,6 +53,13 @@ final class UploadFlowCoordinator {
         // Reset the cancel flag on every fresh upload.
         userInitiatedCancel = false
 
+        // Reset the server-emitted report id for this attempt.
+        currentReportId = nil
+
+        // Fresh idempotency key per upload attempt. Server ignores
+        // today; ready for v1.1 backend retry dedup.
+        let idempotencyKey = UUID().uuidString
+
         state = .uploading
 
         currentTask = Task { @MainActor in
@@ -52,7 +67,8 @@ final class UploadFlowCoordinator {
                 let stream = try await client.analyze(
                     csvData: csvData,
                     filename: filename,
-                    reportType: reportType
+                    reportType: reportType,
+                    idempotencyKey: idempotencyKey
                 )
 
                 var metricsReceived = false
@@ -70,11 +86,37 @@ final class UploadFlowCoordinator {
                         metricsReceived = true
                         state = .streaming(metricsReceived: true)
 
-                    case .complete(let analysis, let reportType,
-                                   let bets, let dateRange,
-                                   let createdAt):
+                    case .reportStarted(let reportId):
+                        currentReportId = reportId
+                        // No state transition; upload still in progress.
+                        // Skip the trailing metricsReceived check so
+                        // the existing .uploading -> .streaming(true)
+                        // transition sequence is preserved verbatim.
+                        continue
+
+                    case .complete(let analysis, let reportId,
+                                   let reportType, let bets,
+                                   let dateRange, let createdAt):
+                        #if DEBUG
+                        if let stored = currentReportId {
+                            if let serverId = reportId {
+                                if stored != serverId {
+                                    print("[UploadFlow] WARNING reportId mismatch: " +
+                                          "stored=\(stored) serverId=\(serverId)")
+                                }
+                                // else: correlation confirmed, silent success
+                            } else {
+                                print("[UploadFlow] WARNING: report_started emitted " +
+                                      "reportId=\(stored) but complete event omitted id. " +
+                                      "Server contract regression?")
+                            }
+                        } else if reportId != nil {
+                            print("[UploadFlow] WARNING: complete event included id but " +
+                                  "no report_started fired. Server event ordering bug?")
+                        }
+                        #endif
                         let report = AutopsyReport(
-                            id: UUID().uuidString,
+                            id: reportId ?? UUID().uuidString,
                             caseNumber: Self.generateCaseNumber(),
                             reportType: reportType,
                             betCountAnalyzed: bets,

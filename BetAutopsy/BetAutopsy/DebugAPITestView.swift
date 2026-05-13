@@ -95,8 +95,12 @@ struct DebugAPITestView: View {
                         case .metrics:
                             lastEvent = "metrics"
                             status = "Got metrics"
-                        case .complete(_, let reportType, let bets, _, _):
-                            lastEvent = "complete (\(reportType), \(bets) bets)"
+                        case .reportStarted(let reportId):
+                            lastEvent = "report_started (\(reportId))"
+                            status = "Server accepted"
+                        case .complete(_, let reportId, let reportType,
+                                       let bets, _, _):
+                            lastEvent = "complete (\(reportType), \(bets) bets, id=\(reportId ?? "nil"))"
                             status = "Done"
                         case .error(let msg):
                             lastEvent = "error: \(msg)"

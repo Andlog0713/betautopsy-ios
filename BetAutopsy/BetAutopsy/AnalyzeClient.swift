@@ -21,8 +21,15 @@ import Foundation
 
 enum AnalyzeEvent {
     case metrics([String: AnyCodableValue])
-    case complete(AutopsyAnalysis, reportType: String,
-                  betCount: Int, dateRange: (String?, String?),
+    /// Fires before metrics. Carries the server-side report id so the
+    /// client can correlate against the final `complete` event and (in
+    /// v1.1) poll /api/reports/:id if the SSE stream drops.
+    case reportStarted(reportId: String)
+    case complete(AutopsyAnalysis,
+                  reportId: String?,
+                  reportType: String,
+                  betCount: Int,
+                  dateRange: (String?, String?),
                   createdAt: String)
     case error(String)
 }
@@ -152,7 +159,8 @@ final class AnalyzeClient {
     func analyze(
         csvData: Data,
         filename: String,
-        reportType: String = "snapshot"
+        reportType: String = "snapshot",
+        idempotencyKey: String? = nil
     ) async throws -> AsyncThrowingStream<AnalyzeEvent, Error> {
         guard let jwt = APIConfig.jwt else {
             throw AnalyzeError.noJWTConfigured
@@ -167,6 +175,12 @@ final class AnalyzeClient {
                          forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream",
                          forHTTPHeaderField: "Accept")
+        // Server ignores Idempotency-Key today; the wire is now ready
+        // for backend network-retry dedup in v1.1.
+        if let idempotencyKey {
+            request.setValue(idempotencyKey,
+                             forHTTPHeaderField: "Idempotency-Key")
+        }
 
         request.httpBody = Self.makeMultipartBody(
             boundary: boundary,
@@ -461,6 +475,23 @@ final class AnalyzeClient {
                     detail: "metrics decode: \(error)")
             }
 
+        case "report_started":
+            struct ReportStartedPayload: Decodable {
+                let reportId: String
+            }
+            do {
+                let payload = try decoder.decode(
+                    ReportStartedPayload.self, from: data)
+                #if DEBUG
+                print("[AnalyzeClient] report_started received: \(payload.reportId)")
+                #endif
+                continuation.yield(
+                    .reportStarted(reportId: payload.reportId))
+            } catch {
+                throw AnalyzeError.streamParseError(
+                    detail: "report_started decode: \(error)")
+            }
+
         case "complete":
             var wrappedErr: Error?
             do {
@@ -468,6 +499,7 @@ final class AnalyzeClient {
                     WrappedReportPayload.self, from: data)
                 continuation.yield(.complete(
                     wrapped.report.reportJson,
+                    reportId: wrapped.report.id,
                     reportType: wrapped.report.reportType,
                     betCount: wrapped.report.betCountAnalyzed,
                     dateRange: (wrapped.report.dateRangeStart,
@@ -485,6 +517,7 @@ final class AnalyzeClient {
                     DirectPayload.self, from: data)
                 continuation.yield(.complete(
                     direct.analysis,
+                    reportId: nil,
                     reportType: direct.reportType,
                     betCount: direct.betCountAnalyzed,
                     dateRange: (direct.dateRangeStart,

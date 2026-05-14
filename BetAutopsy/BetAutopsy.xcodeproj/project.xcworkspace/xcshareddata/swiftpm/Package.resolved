@@ -1,6 +1,15 @@
 {
-  "originHash" : "773f7cd941acc3e4aaa3d2139f9a95a1f0c0b11937a6f3cf6ea44db0df49a362",
+  "originHash" : "97537422cf3998cf17933b72ee528c3869675f8b5580e98910f2daf312149509",
   "pins" : [
+    {
+      "identity" : "sentry-cocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/getsentry/sentry-cocoa",
+      "state" : {
+        "revision" : "cf44aa8cb4147f39e698c1f28be0b6b2c89f79d2",
+        "version" : "8.58.2"
+      }
+    },
     {
       "identity" : "supabase-swift",
       "kind" : "remoteSourceControl",

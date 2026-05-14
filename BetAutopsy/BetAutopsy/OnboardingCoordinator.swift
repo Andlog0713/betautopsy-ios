@@ -2,10 +2,13 @@
 //  OnboardingCoordinator.swift
 //  BetAutopsy
 //
-//  Drives the first-run flow: age gate → sample → quiz → Pikkit → reveal.
+//  Drives the first-run flow:
+//    age gate -> sample -> quiz -> archetype reveal -> Apple Sign-In
+//    -> Pikkit -> complete
 //  Quiz answers are scored via QuizScoring; result is persisted to
 //  UserDefaults so TodayView (a separate view tree) can read it after the
-//  onboarding sheet dismisses.
+//  onboarding sheet dismisses. PR-13 inserted .signIn between
+//  .archetypeReveal and .pikkitEducation (Pikkit-style "earn the ask").
 //
 
 import Foundation
@@ -16,8 +19,9 @@ final class OnboardingCoordinator {
         case ageGate
         case sampleReportPreview
         case betDNAQuiz
-        case pikkitEducation
         case archetypeReveal
+        case signIn
+        case pikkitEducation
         case complete
     }
 
@@ -32,9 +36,13 @@ final class OnboardingCoordinator {
         switch step {
         case .ageGate:             step = .sampleReportPreview
         case .sampleReportPreview: step = .betDNAQuiz
-        case .betDNAQuiz:          step = .pikkitEducation
-        case .pikkitEducation:     step = .archetypeReveal
-        case .archetypeReveal:     step = .complete
+        case .betDNAQuiz:          step = .archetypeReveal
+        case .archetypeReveal:     step = .signIn
+        case .signIn:              step = .pikkitEducation
+        // Pikkit is the final non-complete step. advance() persists the
+        // archetype and routes to .complete so PikkitEducationView's
+        // existing advance() call needs no change.
+        case .pikkitEducation:     completeOnboarding()
         case .complete:            break
         }
     }
@@ -44,8 +52,9 @@ final class OnboardingCoordinator {
         case .ageGate, .complete:  break
         case .sampleReportPreview: step = .ageGate
         case .betDNAQuiz:          step = .sampleReportPreview
-        case .pikkitEducation:     step = .betDNAQuiz
-        case .archetypeReveal:     step = .pikkitEducation
+        case .archetypeReveal:     step = .betDNAQuiz
+        case .signIn:              step = .archetypeReveal
+        case .pikkitEducation:     step = .signIn
         }
     }
 
@@ -60,9 +69,10 @@ final class OnboardingCoordinator {
     }
 
     /// Skip-from-sample-preview path. Leaves quizResult nil so completion
-    /// won't synthesize an archetype.
+    /// won't synthesize an archetype. Routes to .signIn so quiz-skippers
+    /// still pass through Apple Sign-In before reaching Pikkit + complete.
     func skipQuiz() {
-        step = .pikkitEducation
+        step = .signIn
     }
 
     // MARK: - Completion

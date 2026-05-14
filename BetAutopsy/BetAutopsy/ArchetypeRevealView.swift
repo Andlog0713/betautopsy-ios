@@ -82,7 +82,7 @@ struct ArchetypeRevealView: View {
 
                 Spacer().frame(height: DS.Spacing.lg)
 
-                Button(action: { coordinator.completeOnboarding() }) {
+                Button(action: { coordinator.advance() }) {
                     Text("Continue")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(DS.Color.Text.primary)

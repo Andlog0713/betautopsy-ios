@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		490D37692FB0EEB400825278 /* TelemetryClient in Frameworks */ = {isa = PBXBuildFile; productRef = 490D37682FB0EEB400825278 /* TelemetryClient */; };
 		490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 490D376A2FB0EEB400825278 /* TelemetryDeck */; };
+		4946D5262FB537800048CE03 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 4946D5252FB537800048CE03 /* Sentry */; };
+		4946D5322FB5495A0048CE03 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4946D5312FB5495A0048CE03 /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,8 +43,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4946D5322FB5495A0048CE03 /* Supabase in Frameworks */,
 				490D37692FB0EEB400825278 /* TelemetryClient in Frameworks */,
 				490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */,
+				4946D5262FB537800048CE03 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,6 +57,7 @@
 			isa = PBXGroup;
 			children = (
 				492C26092FB03309001826C5 /* BetAutopsy */,
+				4946D5302FB548DE0048CE03 /* Frameworks */,
 				492C26082FB03309001826C5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -63,6 +68,13 @@
 				492C26072FB03309001826C5 /* BetAutopsy.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4946D5302FB548DE0048CE03 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -87,6 +99,8 @@
 			packageProductDependencies = (
 				490D37682FB0EEB400825278 /* TelemetryClient */,
 				490D376A2FB0EEB400825278 /* TelemetryDeck */,
+				4946D5252FB537800048CE03 /* Sentry */,
+				4946D5312FB5495A0048CE03 /* Supabase */,
 			);
 			productName = BetAutopsy;
 			productReference = 492C26072FB03309001826C5 /* BetAutopsy.app */;
@@ -119,6 +133,7 @@
 			packageReferences = (
 				492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */,
+				4946D5242FB537800048CE03 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 492C26082FB03309001826C5 /* Products */;
@@ -277,6 +292,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BetAutopsy/BetAutopsy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W6A27J9ZHS;
@@ -317,6 +333,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BetAutopsy/BetAutopsy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = W6A27J9ZHS;
@@ -392,6 +409,14 @@
 				minimumVersion = 2.5.1;
 			};
 		};
+		4946D5242FB537800048CE03 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -404,6 +429,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */;
 			productName = TelemetryDeck;
+		};
+		4946D5252FB537800048CE03 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4946D5242FB537800048CE03 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
+		4946D5312FB5495A0048CE03 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

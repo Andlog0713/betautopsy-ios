@@ -82,8 +82,9 @@ private struct OnboardingHost: View {
         case .ageGate:             AgeGateView()
         case .sampleReportPreview: SampleReportPreviewView()
         case .betDNAQuiz:          BetDNAQuizView()
-        case .pikkitEducation:     PikkitEducationView()
         case .archetypeReveal:     ArchetypeRevealView()
+        case .signIn:              AuthView()
+        case .pikkitEducation:     PikkitEducationView()
         case .complete:            Color.clear
         }
     }

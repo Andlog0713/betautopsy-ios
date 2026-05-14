@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Sentry
 
 enum AnalyzeEvent {
     case metrics([String: AnyCodableValue])
@@ -162,14 +163,14 @@ final class AnalyzeClient {
         reportType: String = "snapshot",
         idempotencyKey: String? = nil
     ) async throws -> AsyncThrowingStream<AnalyzeEvent, Error> {
-        guard let jwt = APIConfig.jwt else {
+        guard let token = await APIConfig.bearerToken else {
             throw AnalyzeError.noJWTConfigured
         }
 
         let boundary = "Boundary-\(UUID().uuidString)-\(UUID().uuidString)"
         var request = URLRequest(url: APIConfig.analyzeURL)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(jwt)",
+        request.setValue("Bearer \(token)",
                          forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)",
                          forHTTPHeaderField: "Content-Type")
@@ -192,22 +193,41 @@ final class AnalyzeClient {
         // bytes(for:) returns (URLSession.AsyncBytes, URLResponse) and
         // streams the response, including when httpBody is set on the
         // request. The earlier suggestion to use upload(for:from:) was
-        // incorrect — that variant buffers the response into Data.
+        // incorrect; that variant buffers the response into Data.
         //
         // Wrap the call so its errors share the same mapping logic as
         // mid-stream errors. Without this, an OS cancel (-999) during
         // the pre-stream phase would propagate to UploadFlowCoordinator
         // unmapped and stringify into a 600-char NSError blob.
-        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
-        do {
-            (bytes, response) = try await session.bytes(for: request)
-        } catch {
-            throw Self.mapStreamError(error)
-        }
+        var (bytes, http) = try await fireRequest(request)
 
-        guard let http = response as? HTTPURLResponse else {
-            throw AnalyzeError.streamParseError(
-                detail: "No HTTP response")
+        // 401 retry once. Race-shape: access token expired mid-flight
+        // or auto-refresh hasn't fired yet. Refresh + retry once. If
+        // the retry is also 401, the session is genuinely invalid.
+        if http.statusCode == 401 {
+            try await drainQuietly(bytes)
+
+            let crumb = Breadcrumb(level: .warning, category: "auth")
+            crumb.message = "401 received, refreshing session and retrying"
+            SentrySDK.addBreadcrumb(crumb)
+
+            do {
+                try await SupabaseService.refreshSession()
+            } catch {
+                throw AnalyzeError.unauthenticated
+            }
+            guard let refreshed = await APIConfig.bearerToken else {
+                throw AnalyzeError.noJWTConfigured
+            }
+            request.setValue("Bearer \(refreshed)",
+                             forHTTPHeaderField: "Authorization")
+
+            (bytes, http) = try await fireRequest(request)
+
+            if http.statusCode == 401 {
+                try await drainQuietly(bytes)
+                throw AnalyzeError.unauthenticated
+            }
         }
 
         let contentType = http.value(
@@ -343,6 +363,40 @@ final class AnalyzeClient {
             continuation.onTermination = { _ in
                 task.cancel()
             }
+        }
+    }
+
+    // MARK: - Request helpers (PR-15)
+
+    /// Fires a single request, maps URLSession-layer errors to
+    /// AnalyzeError, and unwraps the response as HTTPURLResponse.
+    /// Used by the initial /analyze call and its 401 retry.
+    private func fireRequest(
+        _ request: URLRequest
+    ) async throws -> (URLSession.AsyncBytes, HTTPURLResponse) {
+        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+        do {
+            (bytes, response) = try await session.bytes(for: request)
+        } catch {
+            throw Self.mapStreamError(error)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw AnalyzeError.streamParseError(
+                detail: "No HTTP response")
+        }
+        return (bytes, http)
+    }
+
+    /// Drains an AsyncBytes stream, swallowing any errors. Used after
+    /// a discarded response (the 401 first attempt) so the underlying
+    /// connection can be released cleanly before the retry.
+    private func drainQuietly(_ bytes: URLSession.AsyncBytes) async throws {
+        do {
+            for try await _ in bytes { /* discard */ }
+        } catch {
+            // Intentionally ignored; the response body we're draining
+            // is from a request whose status code already told us what
+            // we needed to know.
         }
     }
 

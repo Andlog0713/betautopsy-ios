@@ -51,3 +51,30 @@ enum SupabaseService {
         return value
     }
 }
+
+// MARK: - Session token accessors (PR-15)
+
+extension SupabaseService {
+    /// Returns the current Supabase access token (a JWT) if the user
+    /// is authenticated. Returns nil if no session exists or the SDK
+    /// couldn't fetch one. supabase-swift with autoRefreshToken: true
+    /// refreshes the access token transparently when nearing expiry,
+    /// so callers should not need to refresh manually unless they
+    /// observe a 401 response (see AnalyzeClient's retry path).
+    static func currentAccessToken() async -> String? {
+        do {
+            let session = try await shared.auth.session
+            return session.accessToken
+        } catch {
+            return nil
+        }
+    }
+
+    /// Explicit session refresh. Used by AnalyzeClient's 401 retry
+    /// path when the access token expired mid-flight or the auto
+    /// refresh hasn't fired yet. Throws on offline / invalid refresh
+    /// token / etc; callers map to AnalyzeError.unauthenticated.
+    static func refreshSession() async throws {
+        _ = try await shared.auth.refreshSession()
+    }
+}

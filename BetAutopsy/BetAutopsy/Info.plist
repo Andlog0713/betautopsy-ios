@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>SUPABASE_URL</key>
+	<string>https://eekubnadizmtuhnxzcig.supabase.co</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>PASTE_REAL_KEY_HERE</string>
+	<key>SENTRY_DSN</key>
+	<string>https://818d42a66510c32a0b94aafdf2e0c9e6@o4511186679365632.ingest.us.sentry.io/4511384997396480</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>JetBrainsMono-Regular.ttf</string>
@@ -14,7 +20,5 @@
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>BETAUTOPSY_JWT</key>
-	<string>PASTE_SUPABASE_JWT_HERE</string>
 </dict>
 </plist>

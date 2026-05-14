@@ -2,12 +2,13 @@
 //  APIConfig.swift
 //  BetAutopsy
 //
-//  Base URL + JWT loader. JWT is read from Info.plist key
-//  BETAUTOPSY_JWT, which is a placeholder in git. Andrew pastes a
-//  real Supabase access token locally before testing.
+//  Base URL + bearer token accessor. The bearer is now sourced from
+//  the active Supabase session (PR-15), not from a manually-pasted
+//  Info.plist value. Auto-refresh is handled by supabase-swift.
 //
 
 import Foundation
+import Sentry
 
 enum APIConfig {
     // api subdomain: canonical API host (architecture Stage 1). Apex
@@ -17,22 +18,27 @@ enum APIConfig {
     // redirect chain and preserves the Bearer token.
     nonisolated static let baseURL = URL(string: "https://api.betautopsy.com")!
 
-    nonisolated static var jwt: String? {
-        guard let value = Bundle.main.object(forInfoDictionaryKey:
-            "BETAUTOPSY_JWT") as? String,
-              !value.isEmpty,
-              value != "PASTE_SUPABASE_JWT_HERE",
-              value != "$(BETAUTOPSY_JWT)"
-        else {
-            #if DEBUG
-            print("BETAUTOPSY_JWT not set in Info.plist. Real API calls will fail with 401.")
-            #endif
-            return nil
-        }
-        return value
-    }
-
     nonisolated static var analyzeURL: URL {
         baseURL.appendingPathComponent("api/analyze")
+    }
+
+    /// Returns a fresh Supabase access token (JWT) for the
+    /// authenticated user. Returns nil if the user is not
+    /// authenticated. If the user IS authenticated but no session is
+    /// available (bug-shape, e.g. Keychain race after sign-in), logs
+    /// a Sentry breadcrumb and returns nil.
+    static var bearerToken: String? {
+        get async {
+            guard AuthState.shared.isAuthenticated else {
+                return nil
+            }
+            let token = await SupabaseService.currentAccessToken()
+            if token == nil {
+                let crumb = Breadcrumb(level: .error, category: "auth")
+                crumb.message = "Bearer fetch returned nil for authenticated user"
+                SentrySDK.addBreadcrumb(crumb)
+            }
+            return token
+        }
     }
 }

@@ -12,6 +12,8 @@ struct BetAutopsyApp: App {
 
     init() {
         Self.runArchetypeV2toV3MigrationIfNeeded()
+        // Sentry first so subsequent SDK init errors get captured.
+        SentryService.start()
         Analytics.initialize()
     }
 
@@ -48,6 +50,12 @@ struct BetAutopsyApp: App {
             RootTabView()
                 .preferredColorScheme(.dark)
                 .environment(coordinator)
+                .task {
+                    // Silently sign the user out if Apple has revoked
+                    // the credential since last launch. No-op if not
+                    // authenticated.
+                    await AppleSignInCoordinator.checkCredentialState()
+                }
                 .fullScreenCover(isPresented: onboardingPresented) {
                     OnboardingHost()
                         .environment(coordinator)

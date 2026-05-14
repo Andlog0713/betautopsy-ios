@@ -20,6 +20,7 @@ import Foundation
 import AuthenticationServices
 import CryptoKit
 import Supabase
+import Sentry
 
 @Observable
 @MainActor
@@ -62,6 +63,11 @@ final class AppleSignInCoordinator {
         let rawNonce = randomNonceString()
         currentRawNonce = rawNonce
         request.nonce = sha256(rawNonce)
+
+        let crumb = Breadcrumb(level: .info, category: "auth")
+        crumb.message = "Apple Sign-In started"
+        SentrySDK.addBreadcrumb(crumb)
+
         Analytics.signal("auth.apple.started")
         state = .signingIn
     }
@@ -83,6 +89,7 @@ final class AppleSignInCoordinator {
                 kind = .userCanceled
             } else {
                 kind = classify(error: error)
+                captureToSentry(error: error, kind: kind)
             }
             fail(kind)
         }
@@ -153,7 +160,20 @@ final class AppleSignInCoordinator {
             currentRawNonce = nil
         } catch {
             let kind = classify(error: error)
+            captureToSentry(error: error, kind: kind)
             fail(kind)
+        }
+    }
+
+    /// Sends the error to Sentry with a stable failure_source tag and
+    /// the mapped error_kind extra. No PII; error messages may contain
+    /// it, but Sentry's beforeSend hook scrubs Authorization headers
+    /// from network breadcrumbs, and error types should not include PII
+    /// by construction.
+    private func captureToSentry(error: Error, kind: ErrorKind) {
+        SentrySDK.capture(error: error) { scope in
+            scope.setTag(value: "apple_signin", key: "failure_source")
+            scope.setExtra(value: kind.rawValue, key: "error_kind")
         }
     }
 

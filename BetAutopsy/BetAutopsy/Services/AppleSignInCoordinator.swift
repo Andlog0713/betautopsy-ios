@@ -69,12 +69,12 @@ final class AppleSignInCoordinator {
         SentrySDK.addBreadcrumb(crumb)
 
         Analytics.signal("auth.apple.started")
-        state = .signingIn
     }
 
     /// Handles the SignInWithAppleButton onCompletion result. Performs
     /// the Supabase exchange and updates AuthState on success.
     func handleAuthorizationResult(_ result: Result<ASAuthorization, Error>) async {
+        state = .signingIn
         switch result {
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {

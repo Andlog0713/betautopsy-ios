@@ -2,7 +2,8 @@
 //  PikkitEducationView.swift
 //  BetAutopsy
 //
-//  Step 4: explain Pikkit + deep-link to install. No analytics yet.
+//  Step 6: explain Pikkit + deep-link to install. No analytics yet.
+//  Migrated to V3 in PR-V12.
 //
 
 import SwiftUI
@@ -15,25 +16,26 @@ struct PikkitEducationView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
                 VStack(spacing: DS.Spacing.md) {
                     Text("ONE MORE STEP")
-                        .font(.custom("JetBrainsMono-Regular", size: 11))
-                        .tracking(11 * 0.15)
-                        .foregroundStyle(DS.Color.Text.tertiary)
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(11 * 0.18)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
 
                     Text("Connect your bet history.")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .font(.system(size: 24, weight: .bold))
+                        .tracking(-24 * 0.015)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                         .multilineTextAlignment(.center)
 
                     Text("BetAutopsy reads your bet history from Pikkit, which imports from every major sportsbook and DFS platform. Pikkit's 7-day free trial includes CSV export: that's all you need to upload your bets here. We never touch your sportsbook accounts.")
-                        .font(.system(size: 15))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .font(DS.Font.V3.bodyRegular)
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(3)
                         .padding(.horizontal, DS.Spacing.md)
@@ -45,9 +47,9 @@ struct PikkitEducationView: View {
                     .padding(.top, DS.Spacing.xl)
 
                 Text("TAKES 5 MINUTES · ONE UPLOAD PER REPORT")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(10 * 0.18)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.top, DS.Spacing.md)
 
                 Spacer()
@@ -63,35 +65,36 @@ struct PikkitEducationView: View {
         HStack(spacing: DS.Spacing.md) {
             ZStack {
                 RoundedRectangle(cornerRadius: DS.Radius.tile)
-                    .fill(DS.Color.Surface.raised)
+                    .fill(DS.Color.V3.surfaceRaised)
                     .frame(width: 60, height: 60)
                     .overlay(
                         RoundedRectangle(cornerRadius: DS.Radius.tile)
-                            .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                            .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
                     )
 
                 Text("PIKKIT")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .tracking(11 * 0.18)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
             }
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
                 Text("Pikkit")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .font(DS.Font.V3.buttonLabel)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
 
                 Text("Imports from 30+ sportsbooks")
-                    .font(.system(size: 13))
-                    .foregroundStyle(DS.Color.Text.secondary)
+                    .font(DS.Font.V3.captionLabel)
+                    .foregroundStyle(DS.Color.V3.textSecondary)
             }
 
             Spacer()
         }
         .padding(DS.Spacing.md)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
             RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
         )
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
     }
@@ -103,17 +106,17 @@ struct PikkitEducationView: View {
                 proceedAfterPikkit()
             }) {
                 Text("Open Pikkit")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .font(DS.Font.V3.buttonLabel)
+                    .foregroundStyle(DS.Color.V3.primaryFillText)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(DS.Color.Accent.luminol)
+                    .background(DS.Color.V3.primaryFill)
                     .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
             }
 
             Text("Pikkit is a separate app. BetAutopsy has no affiliation with their billing.")
                 .font(.system(size: 12))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(2)
                 .padding(.horizontal, DS.Spacing.md)
@@ -121,7 +124,7 @@ struct PikkitEducationView: View {
             Button(action: { proceedAfterPikkit() }) {
                 Text("Skip for now")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
         }
     }

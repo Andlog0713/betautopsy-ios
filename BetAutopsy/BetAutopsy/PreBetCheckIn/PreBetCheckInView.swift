@@ -31,6 +31,10 @@ struct PreBetCheckInView: View {
             VStack(spacing: 0) {
                 headerBar
 
+                if let err = coordinator.lastError {
+                    errorBanner(err)
+                }
+
                 Group {
                     switch coordinator.phase {
                     case .input:
@@ -211,6 +215,32 @@ struct PreBetCheckInView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .disabled(!canSubmit)
+    }
+
+    // MARK: - Error banner
+
+    @ViewBuilder
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.Severity.red)
+            Text(message)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(DS.Color.V3.Severity.red.opacity(0.12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(DS.Color.V3.Severity.red.opacity(0.45), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
     }
 
     // MARK: - Scoring

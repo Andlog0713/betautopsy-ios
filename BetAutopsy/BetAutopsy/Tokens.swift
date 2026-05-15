@@ -190,3 +190,25 @@ extension DS {
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────
+// V3 additions for the onboarding cascade pilot (PR-V12).
+// Additive only — V2 namespace untouched.
+// ─────────────────────────────────────────────────────────────────
+
+extension DS.Color.V3 {
+    static let canvasGradient = LinearGradient(
+        colors: [canvasGradientStart, canvasGradientEnd],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    static let primaryFill     = SwiftUI.Color(hex: "#FFFFFF")
+    static let primaryFillText = SwiftUI.Color(hex: "#131A20")
+}
+
+extension DS.Font.V3 {
+    static let bodyLarge    = SwiftUI.Font.system(size: 17, weight: .regular)
+    static let bodyRegular  = SwiftUI.Font.system(size: 15, weight: .regular)
+    static let buttonLabel  = SwiftUI.Font.system(size: 16, weight: .semibold)
+    static let captionLabel = SwiftUI.Font.system(size: 13, weight: .regular)
+}

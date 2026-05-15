@@ -2,7 +2,9 @@
 //  AgeGateView.swift
 //  BetAutopsy
 //
-//  Step 1 of onboarding: confirm 21+. Underage = soft block, no path forward.
+//  Step 1 of onboarding: confirm 18+. Underage = soft block, no path forward.
+//  Migrated to V3 in PR-V12. Gradient canvas, SF Pro system fonts, white-fill
+//  primary CTA, no serif on the soft-block message.
 //
 
 import SwiftUI
@@ -13,7 +15,7 @@ struct AgeGateView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             if underageBlocked {
                 blockedState
@@ -30,20 +32,20 @@ struct AgeGateView: View {
             Spacer()
 
             Text("BETAUTOPSY")
-                .font(.custom("JetBrainsMono-Regular", size: 11))
-                .tracking(11 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .font(.system(size: 11, weight: .bold))
+                .tracking(11 * 0.18)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Text("You must be 18 or older to use BetAutopsy.")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .font(DS.Font.V3.sectionTitle)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.top, DS.Spacing.lg)
                 .padding(.horizontal, DS.Spacing.lg)
 
             Text("BetAutopsy is for adults who legally use sportsbooks, daily fantasy apps, or prediction markets. We analyze your bet history to identify behavioral patterns.")
-                .font(.system(size: 14))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .padding(.top, DS.Spacing.md)
@@ -54,23 +56,23 @@ struct AgeGateView: View {
             VStack(spacing: DS.Spacing.sm) {
                 Button(action: { coordinator.advance() }) {
                     Text("I'm 18 or older")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .font(DS.Font.V3.buttonLabel)
+                        .foregroundStyle(DS.Color.V3.primaryFillText)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(DS.Color.Accent.luminol)
+                        .background(DS.Color.V3.primaryFill)
                         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
                 }
 
                 Button(action: { underageBlocked = true }) {
                     Text("I'm under 18")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(DS.Color.Text.tertiary)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .overlay(
                             RoundedRectangle(cornerRadius: DS.Radius.card)
-                                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
                         )
                 }
             }
@@ -84,19 +86,19 @@ struct AgeGateView: View {
     private var blockedState: some View {
         VStack(spacing: DS.Spacing.md) {
             Text("BETAUTOPSY")
-                .font(.custom("JetBrainsMono-Regular", size: 11))
-                .tracking(11 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .font(.system(size: 11, weight: .bold))
+                .tracking(11 * 0.18)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Text("Come back when you're 18.")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .font(DS.Font.V3.sectionTitle)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.top, DS.Spacing.lg)
 
             Text("BetAutopsy stays for when you're ready.")
-                .font(.custom("Georgia-Italic", size: 17))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .font(DS.Font.V3.bodyLarge)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, DS.Spacing.lg)

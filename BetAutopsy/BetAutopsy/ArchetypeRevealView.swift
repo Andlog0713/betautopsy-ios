@@ -2,9 +2,15 @@
 //  ArchetypeRevealView.swift
 //  BetAutopsy
 //
-//  Step 5: render the computed archetype from coordinator.quizResult.
+//  Step 4: render the computed archetype from coordinator.quizResult.
 //  Animation timing matches PR-2 sequence: 0–800ms underline reveal,
 //  200/600 name, 800/400 description, 1100/400 stats, 1400/400 CTA.
+//  Choreography preserved through the PR-V12 V3 migration.
+//
+//  V3 identity decision (Option A, locked May 15 2026): archetype color
+//  stays on the underline, the name itself, and the stat-value tints.
+//  Description loses italic Georgia warmth — the colored name + underline
+//  now carry the identity weight that the italic verdict used to.
 //
 
 import SwiftUI
@@ -20,7 +26,7 @@ struct ArchetypeRevealView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             if let result = coordinator.quizResult {
                 revealLayout(for: result)
@@ -37,17 +43,17 @@ struct ArchetypeRevealView: View {
         GeometryReader { geo in
             VStack(spacing: 0) {
                 Text("YOUR ARCHETYPE")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(10 * 0.18)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.top, 48)
 
                 Spacer().frame(height: 80)
 
                 Text(result.archetype.name)
                     .font(.system(size: 36, weight: .bold))
-                    .tracking(36 * 0.02)
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .tracking(-36 * 0.015)
+                    .foregroundStyle(result.archetype.color)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, DS.Spacing.xl)
                     .opacity(nameVisible ? 1 : 0)
@@ -63,8 +69,8 @@ struct ArchetypeRevealView: View {
                 Spacer().frame(height: DS.Spacing.xl)
 
                 Text(result.archetype.description)
-                    .font(.custom("Georgia-Italic", size: 17))
-                    .foregroundStyle(DS.Color.Text.secondary)
+                    .font(DS.Font.V3.bodyLarge)
+                    .foregroundStyle(DS.Color.V3.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
                     .padding(.horizontal, DS.Spacing.xl)
@@ -85,12 +91,12 @@ struct ArchetypeRevealView: View {
                 Button(action: { coordinator.advance() }) {
                     Text("Continue")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .overlay(
                             RoundedRectangle(cornerRadius: DS.Radius.card)
-                                .stroke(DS.Color.Accent.luminol, lineWidth: 1)
+                                .stroke(DS.Color.V3.ctaText, lineWidth: 1)
                         )
                 }
                 .padding(.horizontal, DS.Spacing.lg)
@@ -104,12 +110,12 @@ struct ArchetypeRevealView: View {
     private func statBlock(label: String, value: String, tint: Color) -> some View {
         VStack(spacing: DS.Spacing.xs) {
             Text(label)
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(10 * 0.18)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Text(value)
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 24, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(tint)
         }
@@ -119,11 +125,11 @@ struct ArchetypeRevealView: View {
     private var fallbackLoading: some View {
         VStack(spacing: DS.Spacing.md) {
             ProgressView()
-                .tint(DS.Color.Text.tertiary)
+                .tint(DS.Color.V3.textTertiary)
             Text("CALCULATING")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(10 * 0.18)
+                .foregroundStyle(DS.Color.V3.textTertiary)
         }
     }
 

@@ -7,9 +7,12 @@
 //  answer, the coordinator computes the archetype and we advance to reveal.
 //
 //  Per-question style:
-//    .default → 22pt semibold title + stacked option rows with radio
-//    .bold    → 28pt bold title (Inter Display fallback to .system) + rows
-//    .slider  → 22pt semibold title + horizontal 5-segment strip
+//    .default → 22pt section-title + stacked option rows with radio
+//    .bold    → 28pt bold title + rows
+//    .slider  → 22pt section-title + horizontal 5-segment strip
+//
+//  Migrated to V3 in PR-V12. Selection accent shifted from luminol (#6B5BFF)
+//  to V3.ctaText (#8B86E8) — slightly bluer, softer.
 //
 
 import SwiftUI
@@ -25,7 +28,7 @@ struct BetDNAQuizView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: DS.Spacing.lg) {
                 progressBar
@@ -39,8 +42,8 @@ struct BetDNAQuizView: View {
 
                 if let subtext = question.subtext {
                     Text(subtext)
-                        .font(.custom("Georgia-Italic", size: 14))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,17 +73,17 @@ struct BetDNAQuizView: View {
     }
 
     private func progressColor(for index: Int) -> Color {
-        if index < currentIndex { return DS.Color.Accent.luminol }
-        if index == currentIndex { return DS.Color.Accent.luminolSoft }
-        return DS.Color.Surface.raised
+        if index < currentIndex { return DS.Color.V3.ctaText }
+        if index == currentIndex { return DS.Color.V3.ctaText.opacity(0.6) }
+        return DS.Color.V3.surfaceRaised
     }
 
     private var counter: some View {
         Text("QUESTION \(currentIndex + 1) OF \(questions.count)")
-            .font(.custom("JetBrainsMono-Regular", size: 10))
+            .font(.system(size: 10, weight: .semibold))
             .monospacedDigit()
-            .tracking(10 * 0.15)
-            .foregroundStyle(DS.Color.Text.tertiary)
+            .tracking(10 * 0.18)
+            .foregroundStyle(DS.Color.V3.textTertiary)
     }
 
     // MARK: - Title (per style)
@@ -90,14 +93,15 @@ struct BetDNAQuizView: View {
         switch question.style {
         case .default, .slider:
             Text(question.question)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .font(DS.Font.V3.sectionTitle)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.leading)
                 .lineSpacing(4)
         case .bold:
             Text(question.question)
                 .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .tracking(-28 * 0.015)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.leading)
                 .lineSpacing(4)
         }
@@ -124,16 +128,16 @@ struct BetDNAQuizView: View {
 
                 HStack {
                     Text("EASY")
-                        .font(.custom("JetBrainsMono-Regular", size: 10))
-                        .tracking(10 * 0.15)
-                        .foregroundStyle(DS.Color.Text.tertiary)
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(10 * 0.18)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
 
                     Spacer()
 
                     Text("RUINS MY WEEK")
-                        .font(.custom("JetBrainsMono-Regular", size: 10))
-                        .tracking(10 * 0.15)
-                        .foregroundStyle(DS.Color.Text.tertiary)
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(10 * 0.18)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
                 }
             }
         }
@@ -149,7 +153,7 @@ struct BetDNAQuizView: View {
 
                 Text(option.label)
                     .font(.system(size: 16))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineSpacing(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -157,11 +161,11 @@ struct BetDNAQuizView: View {
             }
             .padding(DS.Spacing.md)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-            .background(isSelected ? DS.Color.Surface.raised : DS.Color.Surface.card)
+            .background(isSelected ? DS.Color.V3.surfaceRaised : DS.Color.V3.surfaceCard)
             .overlay(
                 RoundedRectangle(cornerRadius: DS.Radius.card)
                     .stroke(
-                        isSelected ? DS.Color.Accent.luminol : DS.Color.Border.subtle,
+                        isSelected ? DS.Color.V3.ctaText : DS.Color.V3.borderSubtle,
                         lineWidth: isSelected ? 1 : DS.Stroke.hairline
                     )
             )
@@ -174,20 +178,20 @@ struct BetDNAQuizView: View {
     private func radio(selected: Bool) -> some View {
         ZStack {
             Circle()
-                .stroke(selected ? DS.Color.Accent.luminol : DS.Color.Border.subtle, lineWidth: 1)
+                .stroke(selected ? DS.Color.V3.ctaText : DS.Color.V3.borderSubtle, lineWidth: 1)
                 .frame(width: 14, height: 14)
 
             if selected {
                 Circle()
-                    .fill(DS.Color.Accent.luminol)
+                    .fill(DS.Color.V3.ctaText)
                     .frame(width: 14, height: 14)
 
                 Circle()
-                    .fill(DS.Color.Surface.card)
+                    .fill(DS.Color.V3.surfaceCard)
                     .frame(width: 10, height: 10)
 
                 Circle()
-                    .fill(DS.Color.Accent.luminol)
+                    .fill(DS.Color.V3.ctaText)
                     .frame(width: 6, height: 6)
             }
         }
@@ -200,16 +204,16 @@ struct BetDNAQuizView: View {
         let isSelected = selectedValue == option.value
         return Button(action: { select(option) }) {
             Text(option.label)
-                .font(.custom("JetBrainsMono-Medium", size: 16))
+                .font(.system(size: 16, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(isSelected ? DS.Color.Text.primary : DS.Color.Text.secondary)
+                .foregroundStyle(isSelected ? DS.Color.V3.textPrimary : DS.Color.V3.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(isSelected ? DS.Color.Accent.luminol : DS.Color.Surface.card)
+                .background(isSelected ? DS.Color.V3.ctaText : DS.Color.V3.surfaceCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: DS.Radius.tile)
                         .stroke(
-                            isSelected ? Color.clear : DS.Color.Border.subtle,
+                            isSelected ? Color.clear : DS.Color.V3.borderSubtle,
                             lineWidth: DS.Stroke.hairline
                         )
                 )

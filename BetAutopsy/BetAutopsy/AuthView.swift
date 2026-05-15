@@ -7,9 +7,9 @@
 //  exchange in onCompletion via the coordinator. ProgressView replaces
 //  the button while the Apple sheet + Supabase round-trip are in flight.
 //
-//  V2 chrome (custom Inter fonts, DS.Color V2 tokens, DS.Spacing) is
-//  intentionally preserved here. AuthView's V2 retirement lives in
-//  sprint row 35f5964c-daf2-81fb.
+//  Migrated to V3 in PR-V12. BAChromeLabel ("CASE FILE ACCESS") is shared
+//  with other surfaces and retains V2 chrome styling here — its migration
+//  belongs to a follow-up Components.swift PR, not this onboarding pilot.
 //
 
 import SwiftUI
@@ -23,7 +23,7 @@ struct AuthView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
@@ -32,12 +32,13 @@ struct AuthView: View {
                     BAChromeLabel("CASE FILE ACCESS")
 
                     Text("BetAutopsy")
-                        .font(.custom("Inter-Bold", size: 40))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .font(.system(size: 40, weight: .bold))
+                        .tracking(-40 * 0.015)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
 
                     Text("Behavioral analysis for sports bettors. Upload your history. See what's costing you.")
-                        .font(.custom("Inter-Regular", size: 15))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .font(DS.Font.V3.bodyRegular)
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -52,12 +53,12 @@ struct AuthView: View {
 
                     HStack(spacing: DS.Spacing.xs) {
                         Text("Problem gambling?")
-                            .font(.custom("Inter-Regular", size: 13))
-                            .foregroundStyle(DS.Color.Text.tertiary)
+                            .font(DS.Font.V3.captionLabel)
+                            .foregroundStyle(DS.Color.V3.textTertiary)
 
                         Text("Call 1-800-GAMBLER")
-                            .font(.custom("Inter-Regular", size: 13))
-                            .foregroundStyle(DS.Color.Accent.luminolSoft)
+                            .font(DS.Font.V3.captionLabel)
+                            .foregroundStyle(DS.Color.V3.ctaText)
                     }
                     .padding(.top, DS.Spacing.sm)
                 }
@@ -82,7 +83,7 @@ struct AuthView: View {
         if coordinator.state == .signingIn {
             ProgressView()
                 .progressViewStyle(.circular)
-                .tint(DS.Color.Text.primary)
+                .tint(DS.Color.V3.textPrimary)
                 .frame(maxWidth: 375, maxHeight: 52)
         } else {
             SignInWithAppleButton(

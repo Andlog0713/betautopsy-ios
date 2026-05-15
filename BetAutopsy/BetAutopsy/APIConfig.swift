@@ -26,6 +26,10 @@ enum APIConfig {
         baseURL.appendingPathComponent("api/check-in")
     }
 
+    nonisolated static var outcomeURL: URL {
+        baseURL.appendingPathComponent("api/check-in/outcome")
+    }
+
     /// Returns a fresh Supabase access token (JWT) for the
     /// authenticated user. Returns nil if the user is not
     /// authenticated. If the user IS authenticated but no session is

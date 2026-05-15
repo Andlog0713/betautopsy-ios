@@ -317,24 +317,28 @@ struct PreBetCheckInView: View {
     }
 
     private func primaryCTA(_ recommendation: PreBetRecommendation) -> some View {
-        let (title, tint, signal): (String, Color, String)
+        let (title, tint, signal, outcome): (String, Color, String, CheckInOutcome)
         switch recommendation {
         case .waitThirty:
-            title  = "Wait 30 min"
-            tint   = DS.Color.V3.Severity.yellow
-            signal = "prebet.waited"
+            title   = "Wait 30 min"
+            tint    = DS.Color.V3.Severity.yellow
+            signal  = "prebet.waited"
+            outcome = .waited
         case .placeBet:
-            title  = "Go place it"
-            tint   = DS.Color.V3.Severity.green
-            signal = "prebet.placed_bet"
+            title   = "Go place it"
+            tint    = DS.Color.V3.Severity.green
+            signal  = "prebet.placed_bet"
+            outcome = .placedBet
         case .placeAnyway:
-            title  = "Place anyway"
-            tint   = DS.Color.V3.textSecondary
-            signal = "prebet.placed_anyway"
+            title   = "Place anyway"
+            tint    = DS.Color.V3.textSecondary
+            signal  = "prebet.placed_anyway"
+            outcome = .placedAnyway
         }
 
         return Button {
             Analytics.signal(signal)
+            coordinator.submitOutcome(outcome)
             dismiss()
         } label: {
             Text(title)
@@ -350,6 +354,7 @@ struct PreBetCheckInView: View {
     private var secondaryCTA: some View {
         Button {
             Analytics.signal("prebet.placed_anyway")
+            coordinator.submitOutcome(.placedAnyway)
             dismiss()
         } label: {
             Text("Place anyway")

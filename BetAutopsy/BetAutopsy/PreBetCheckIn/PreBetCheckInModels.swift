@@ -117,8 +117,23 @@ enum PreBetRecommendation: String, Codable {
 }
 
 struct PreBetCheckInResponse: Codable {
+    /// Server-assigned id for this check-in. Required for outcome
+    /// posting via POST /api/check-in/outcome. Always present on
+    /// 200 responses from backend Phase 3 (merged 495b2936).
+    let checkInId: String
     let betQualityScore: Int
     let flags: [PreBetCheckInFlag]
     let recommendation: PreBetRecommendation
     let summary: String
+}
+
+enum CheckInOutcome: String, Codable {
+    case placedAnyway = "placed_anyway"
+    case waited       = "waited"
+    case placedBet    = "placed_bet"
+}
+
+struct CheckInOutcomeRequest: Codable {
+    let checkInId: String
+    let outcome: CheckInOutcome
 }

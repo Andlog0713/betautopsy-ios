@@ -58,6 +58,67 @@ final class PreBetCheckInClient {
         }
     }
 
+    /// Posts the user's decision (placed_anyway / waited / placed_bet)
+    /// against an existing check-in. Fire-and-forget at the call site
+    /// (the coordinator wraps this in a Task and only routes failures
+    /// to telemetry, never to the UI). No 401-refresh-retry: if the
+    /// Bearer expired in the seconds between score and outcome, that's
+    /// a rare loss captured in telemetry.
+    ///
+    /// 404 is mapped to `.invalidRequest("Check-in not found")` rather
+    /// than a dedicated case — keeps the shared error type lean and the
+    /// telemetry error_kind grouping stable across endpoints.
+    func submitOutcome(checkInId: String, outcome: CheckInOutcome) async throws {
+        guard let token = await APIConfig.bearerToken else {
+            throw PreBetCheckInError.unauthorized
+        }
+
+        var urlRequest = URLRequest(url: APIConfig.outcomeURL, timeoutInterval: 10)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = CheckInOutcomeRequest(checkInId: checkInId, outcome: outcome)
+        do {
+            urlRequest.httpBody = try encoder.encode(body)
+        } catch {
+            throw PreBetCheckInError.encodingError(error)
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: urlRequest)
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            throw urlError
+        } catch let urlError as URLError {
+            throw PreBetCheckInError.networkError(urlError)
+        } catch {
+            throw PreBetCheckInError.networkError(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw PreBetCheckInError.unexpectedStatus(-1)
+        }
+
+        switch http.statusCode {
+        case 200:
+            return
+        case 400:
+            let message = (try? decoder.decode([String: String].self, from: data))?["error"]
+                          ?? "Bad request."
+            throw PreBetCheckInError.invalidRequest(message)
+        case 401:
+            throw PreBetCheckInError.unauthorized
+        case 404:
+            throw PreBetCheckInError.invalidRequest("Check-in not found")
+        case 500...599:
+            throw PreBetCheckInError.serverError(http.statusCode)
+        default:
+            throw PreBetCheckInError.unexpectedStatus(http.statusCode)
+        }
+    }
+
     private func attemptScore(_ request: PreBetCheckInRequest) async throws -> PreBetCheckInResponse {
         guard let token = await APIConfig.bearerToken else {
             throw PreBetCheckInError.unauthorized

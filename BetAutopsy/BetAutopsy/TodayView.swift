@@ -21,6 +21,8 @@ struct TodayView: View {
     @AppStorage("userEmotionScore")      private var userEmotionScore: Int = 0
     @AppStorage("userDisciplineScore")   private var userDisciplineScore: Int = 0
 
+    @State private var showingCheckIn = false
+
     private var hasArchetype: Bool { !userArchetype.isEmpty }
 
     private var archetypeColor: Color {
@@ -57,15 +59,59 @@ struct TodayView: View {
                     verdict
                         .padding(.horizontal, 32)
 
-                    rangeCard
+                    aboutToBetCard
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
+
+                    rangeCard
+                        .padding(.horizontal, 16)
 
                     Spacer(minLength: 32)
                 }
                 .frame(maxWidth: .infinity)
             }
         }
+        .sheet(isPresented: $showingCheckIn) {
+            PreBetCheckInView()
+                .preferredColorScheme(.dark)
+        }
+    }
+
+    // MARK: - About to bet CTA
+
+    private var aboutToBetCard: some View {
+        Button {
+            showingCheckIn = true
+        } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("About to bet")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                    Text("Check this bet before you place it.")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.ctaText)
+                    .frame(width: 36, height: 36)
+                    .background(DS.Color.V3.surfaceRaised)
+                    .clipShape(Circle())
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS.Color.V3.surfaceCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(DS.Color.V3.ctaText.opacity(0.5), lineWidth: 0.75)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Case header

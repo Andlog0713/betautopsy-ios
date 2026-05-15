@@ -44,6 +44,7 @@ struct PreBetCheckInView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .onAppear { Analytics.signal("prebet.viewed") }
         #if DEBUG
         .confirmationDialog(
             "Debug time override",
@@ -110,6 +111,21 @@ struct PreBetCheckInView: View {
     }
     #endif
 
+    private static func stakeBucket(_ stake: Decimal) -> String {
+        switch stake {
+        case ..<25:     return "lt_25"
+        case 25..<100:  return "25_100"
+        case 100..<500: return "100_500"
+        default:        return "500_plus"
+        }
+    }
+
+    private static func oddsBucket(_ odds: Int) -> String {
+        if odds < 0 { return "favorite" }
+        if odds < 200 { return "small_dog" }
+        return "big_dog"
+    }
+
     // MARK: - Input form
 
     private var inputForm: some View {
@@ -175,6 +191,15 @@ struct PreBetCheckInView: View {
 
     private var submitButton: some View {
         Button {
+            Analytics.signal(
+                "prebet.submitted",
+                parameters: [
+                    "sport":        coordinator.sport.rawValue,
+                    "stake_bucket": Self.stakeBucket(coordinator.stake),
+                    "odds_bucket":  Self.oddsBucket(coordinator.odds),
+                    "bet_type":     coordinator.betType.rawValue
+                ]
+            )
             Task { await coordinator.submit() }
         } label: {
             Text("Check before I bet")
@@ -262,20 +287,24 @@ struct PreBetCheckInView: View {
     }
 
     private func primaryCTA(_ recommendation: PreBetRecommendation) -> some View {
-        let (title, tint): (String, Color)
+        let (title, tint, signal): (String, Color, String)
         switch recommendation {
         case .waitThirty:
-            title = "Wait 30 min"
-            tint = DS.Color.V3.Severity.yellow
+            title  = "Wait 30 min"
+            tint   = DS.Color.V3.Severity.yellow
+            signal = "prebet.waited"
         case .placeBet:
-            title = "Go place it"
-            tint = DS.Color.V3.Severity.green
+            title  = "Go place it"
+            tint   = DS.Color.V3.Severity.green
+            signal = "prebet.placed_bet"
         case .placeAnyway:
-            title = "Place anyway"
-            tint = DS.Color.V3.textSecondary
+            title  = "Place anyway"
+            tint   = DS.Color.V3.textSecondary
+            signal = "prebet.placed_anyway"
         }
 
         return Button {
+            Analytics.signal(signal)
             dismiss()
         } label: {
             Text(title)
@@ -290,6 +319,7 @@ struct PreBetCheckInView: View {
 
     private var secondaryCTA: some View {
         Button {
+            Analytics.signal("prebet.placed_anyway")
             dismiss()
         } label: {
             Text("Place anyway")

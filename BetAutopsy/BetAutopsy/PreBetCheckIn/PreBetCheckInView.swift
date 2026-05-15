@@ -1,2 +1,458 @@
+//
+//  PreBetCheckInView.swift
+//  BetAutopsy
+//
+//  Pre-bet check-in modal. Three states driven by
+//  PreBetCheckInCoordinator.phase: input form -> scoring loader ->
+//  result with flags + CTAs. Presented as a .sheet from TodayView's
+//  "About to bet" CTA card (added in the same Phase 1 PR).
+//
+//  V3 tokens only. Severity colors use the existing
+//  DS.Color.V3.Severity.zoneColor helper.
+//
+//  Telemetry signals are wired in the TodayView-CTA commit alongside
+//  the launch surface, not here. This file is pure UI + flow.
+//
+
 import SwiftUI
-// PreBetCheckIn: three-state UI (input form, scoring loader, result with flags + CTAs). Phase 1 stub, content filled in subsequent commits.
+
+struct PreBetCheckInView: View {
+    @State private var coordinator = PreBetCheckInCoordinator()
+    @Environment(\.dismiss) private var dismiss
+
+    #if DEBUG
+    @State private var showDebugMenu = false
+    #endif
+
+    var body: some View {
+        ZStack {
+            canvasGradient.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                headerBar
+
+                Group {
+                    switch coordinator.phase {
+                    case .input:
+                        inputForm
+                    case .scoring:
+                        scoringState
+                    case .result(let response):
+                        resultView(response)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        #if DEBUG
+        .confirmationDialog(
+            "Debug time override",
+            isPresented: $showDebugMenu,
+            titleVisibility: .visible
+        ) {
+            Button("Real time (clear override)") {
+                coordinator.debugNowOverride = nil
+            }
+            Button("Force midnight (late-night flag)") {
+                coordinator.debugNowOverride = Self.todayAt(hour: 0)
+            }
+            Button("Force noon (clean window)") {
+                coordinator.debugNowOverride = Self.todayAt(hour: 12)
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        #endif
+    }
+
+    private var canvasGradient: LinearGradient {
+        LinearGradient(
+            colors: [DS.Color.V3.canvasGradientStart, DS.Color.V3.canvasGradientEnd],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+
+    // MARK: - Header
+
+    private var headerBar: some View {
+        HStack {
+            Text("About to bet")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                #if DEBUG
+                .onTapGesture(count: 4) { showDebugMenu = true }
+                #endif
+
+            Spacer()
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(DS.Color.V3.surfaceCard)
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
+    #if DEBUG
+    private static func todayAt(hour: Int) -> Date {
+        let cal = Calendar.current
+        var comp = cal.dateComponents([.year, .month, .day], from: Date())
+        comp.hour = hour
+        comp.minute = 0
+        return cal.date(from: comp) ?? Date()
+    }
+    #endif
+
+    // MARK: - Input form
+
+    private var inputForm: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                FieldRow(label: "Sport") {
+                    Menu {
+                        ForEach(Sport.allCases, id: \.self) { s in
+                            Button(s.displayName) { coordinator.sport = s }
+                        }
+                    } label: {
+                        menuLabel(coordinator.sport.displayName)
+                    }
+                }
+
+                FieldRow(label: "Bet type") {
+                    Menu {
+                        ForEach(BetType.allCases, id: \.self) { t in
+                            Button(t.displayName) { coordinator.betType = t }
+                        }
+                    } label: {
+                        menuLabel(coordinator.betType.displayName)
+                    }
+                }
+
+                StakeField(stake: $coordinator.stake)
+
+                OddsField(odds: $coordinator.odds)
+
+                Spacer(minLength: 16)
+
+                submitButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private func menuLabel(_ text: String) -> some View {
+        HStack {
+            Text(text)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+            Spacer()
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textTertiary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var canSubmit: Bool {
+        coordinator.stake > 0 && coordinator.odds != 0
+    }
+
+    private var submitButton: some View {
+        Button {
+            Task { await coordinator.submit() }
+        } label: {
+            Text("Check before I bet")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(canSubmit ? DS.Color.V3.canvasGradientEnd : DS.Color.V3.textTertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(canSubmit ? DS.Color.V3.ctaText : DS.Color.V3.surfaceRaised)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .disabled(!canSubmit)
+    }
+
+    // MARK: - Scoring
+
+    private var scoringState: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .tint(DS.Color.V3.ctaText)
+                .scaleEffect(1.2)
+            Text("Reading your patterns…")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+        }
+    }
+
+    // MARK: - Result
+
+    @ViewBuilder
+    private func resultView(_ response: PreBetCheckInResponse) -> some View {
+        let scoreColor = DS.Color.V3.Severity.zoneColor(
+            forScore: response.betQualityScore,
+            higherIsWorse: false
+        )
+
+        ScrollView {
+            VStack(spacing: 24) {
+                scoreHero(response: response, color: scoreColor)
+
+                Text(response.summary)
+                    .font(.custom("Georgia-Italic", size: 16))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                if !response.flags.isEmpty {
+                    VStack(spacing: 10) {
+                        ForEach(response.flags) { flag in
+                            FlagRow(flag: flag)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+
+                VStack(spacing: 10) {
+                    primaryCTA(response.recommendation)
+                    secondaryCTA
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                Spacer(minLength: 24)
+            }
+            .padding(.top, 12)
+        }
+    }
+
+    private func scoreHero(response: PreBetCheckInResponse, color: Color) -> some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(response.betQualityScore)")
+                    .font(.system(size: 72, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(color)
+                Text("/100")
+                    .font(.system(size: 22, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+            }
+            Text("BET QUALITY")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+        }
+    }
+
+    private func primaryCTA(_ recommendation: PreBetRecommendation) -> some View {
+        let (title, tint): (String, Color)
+        switch recommendation {
+        case .waitThirty:
+            title = "Wait 30 min"
+            tint = DS.Color.V3.Severity.yellow
+        case .placeBet:
+            title = "Go place it"
+            tint = DS.Color.V3.Severity.green
+        case .placeAnyway:
+            title = "Place anyway"
+            tint = DS.Color.V3.textSecondary
+        }
+
+        return Button {
+            dismiss()
+        } label: {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.canvasGradientEnd)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(tint)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private var secondaryCTA: some View {
+        Button {
+            dismiss()
+        } label: {
+            Text("Place anyway")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+                )
+        }
+    }
+}
+
+// MARK: - FieldRow
+
+private struct FieldRow<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+            content()
+        }
+    }
+}
+
+// MARK: - StakeField
+
+private struct StakeField: View {
+    @Binding var stake: Decimal
+    @State private var text: String = ""
+
+    var body: some View {
+        FieldRow(label: "Stake") {
+            HStack(spacing: 8) {
+                Text("$")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                TextField("0", text: $text)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 18, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .onChange(of: text) { _, new in
+                        if let d = Decimal(string: new), d >= 0 {
+                            stake = d
+                        } else if new.isEmpty {
+                            stake = 0
+                        }
+                    }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(DS.Color.V3.surfaceCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
+// MARK: - OddsField
+
+private struct OddsField: View {
+    @Binding var odds: Int
+    @State private var magnitudeText: String = "110"
+    @State private var isFavorite: Bool = true
+
+    var body: some View {
+        FieldRow(label: "Odds (american)") {
+            HStack(spacing: 8) {
+                Button {
+                    isFavorite.toggle()
+                    syncOdds()
+                } label: {
+                    Text(isFavorite ? "−" : "+")
+                        .font(.system(size: 20, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(DS.Color.V3.surfaceRaised)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                TextField("110", text: $magnitudeText)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 18, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .onChange(of: magnitudeText) { _, _ in syncOdds() }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(DS.Color.V3.surfaceCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .onAppear { syncOdds() }
+        }
+    }
+
+    private func syncOdds() {
+        let magnitude = Int(magnitudeText) ?? 0
+        odds = isFavorite ? -magnitude : magnitude
+    }
+}
+
+// MARK: - FlagRow
+
+private struct FlagRow: View {
+    let flag: PreBetCheckInFlag
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(severityColor)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(flag.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                Text(flag.detail)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var severityColor: Color {
+        switch flag.severity {
+        case .high:   return DS.Color.V3.Severity.red
+        case .medium: return DS.Color.V3.Severity.orange
+        case .low:    return DS.Color.V3.Severity.yellow
+        case .info:   return DS.Color.V3.Severity.gray
+        }
+    }
+}
+
+#if DEBUG
+#Preview("Input") {
+    PreBetCheckInView()
+        .preferredColorScheme(.dark)
+}
+#endif

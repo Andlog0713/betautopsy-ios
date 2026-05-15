@@ -66,6 +66,29 @@ struct PreBetCheckInRequest: Codable {
     let odds: Int
     let betType: BetType
     let placedAt: Date
+    let localHour: Int
+}
+
+extension PreBetCheckInRequest {
+    /// 5-param convenience init: derives `localHour` from `placedAt`
+    /// via `Calendar.current.component(.hour, ...)`. Production code
+    /// uses this. The 6-param synthesized memberwise init stays
+    /// available (declaring this init in an extension does not
+    /// suppress synthesis) so DEBUG paths can pass an explicit
+    /// `localHour` without disturbing `placedAt` — important because
+    /// `placedAt` is what backend uses for recency calculations,
+    /// while `localHour` is only the user's wall-clock hour for the
+    /// late-night flag heuristic.
+    init(sport: Sport, stake: Decimal, odds: Int, betType: BetType, placedAt: Date) {
+        self.init(
+            sport: sport,
+            stake: stake,
+            odds: odds,
+            betType: betType,
+            placedAt: placedAt,
+            localHour: Calendar.current.component(.hour, from: placedAt)
+        )
+    }
 }
 
 enum FlagSeverity: String, Codable {
@@ -76,7 +99,12 @@ enum FlagSeverity: String, Codable {
 }
 
 struct PreBetCheckInFlag: Codable, Identifiable {
-    let id: UUID
+    /// Opaque server-assigned id. Was `UUID` in Phase 1 when the
+    /// mocked scorer produced one per call; backend may emit any
+    /// stable string form (canonical UUID, nanoid, base36, etc.), so
+    /// the iOS client treats it as opaque and only uses it for
+    /// SwiftUI `Identifiable` conformance.
+    let id: String
     let severity: FlagSeverity
     let title: String
     let detail: String

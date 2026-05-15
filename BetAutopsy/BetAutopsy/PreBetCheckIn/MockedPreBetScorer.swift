@@ -32,7 +32,7 @@ struct MockedPreBetScorer {
 
         if isLateNight {
             flags.append(.init(
-                id: UUID(),
+                id: UUID().uuidString,
                 severity: .high,
                 title: "Late-night betting",
                 detail: "Sample insight. Your historical ROI in this time window has trended negative. Real engine analysis lands Phase 2."
@@ -42,7 +42,7 @@ struct MockedPreBetScorer {
 
         if isLargeStake {
             flags.append(.init(
-                id: UUID(),
+                id: UUID().uuidString,
                 severity: .medium,
                 title: "Above your usual stake",
                 detail: "Sample insight. This stake is larger than your typical pattern. Real engine analysis lands Phase 2."
@@ -52,7 +52,7 @@ struct MockedPreBetScorer {
 
         if isParlay {
             flags.append(.init(
-                id: UUID(),
+                id: UUID().uuidString,
                 severity: .medium,
                 title: "Parlay session",
                 detail: "Sample insight. Your parlay ROI has historically trailed your straight-bet ROI. Real engine analysis lands Phase 2."

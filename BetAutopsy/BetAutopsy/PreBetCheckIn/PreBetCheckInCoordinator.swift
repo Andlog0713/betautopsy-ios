@@ -114,4 +114,53 @@ final class PreBetCheckInCoordinator {
         odds = -110
         lastError = nil
     }
+
+    /// Fires the user's CTA decision against /api/check-in/outcome.
+    /// Synchronous from the call site (no await), the network round-
+    /// trip happens inside a detached Task. Failures are silent at
+    /// the UI level and surface only via telemetry — outcome posting
+    /// is a behavioral-data capture, not a UX-critical request.
+    ///
+    /// Captures `checkInId` locally before the Task closure because
+    /// dismiss() runs synchronously after this method on the CTA
+    /// path; the sheet starts tearing down and the coordinator's
+    /// `phase` is no longer guaranteed reachable from inside the
+    /// Task. Local capture pins the value.
+    func submitOutcome(_ outcome: CheckInOutcome) {
+        guard case .result(let response) = phase else { return }
+        let checkInId = response.checkInId
+
+        Task {
+            do {
+                try await PreBetCheckInClient.shared.submitOutcome(
+                    checkInId: checkInId,
+                    outcome: outcome
+                )
+                Analytics.signal(
+                    "prebet.outcome_posted",
+                    parameters: ["outcome": outcome.rawValue]
+                )
+            } catch is CancellationError {
+                return
+            } catch let urlError as URLError where urlError.code == .cancelled {
+                return
+            } catch let error as PreBetCheckInError {
+                Analytics.signal(
+                    "prebet.outcome_failed",
+                    parameters: [
+                        "outcome":    outcome.rawValue,
+                        "error_kind": String(describing: error)
+                    ]
+                )
+            } catch {
+                Analytics.signal(
+                    "prebet.outcome_failed",
+                    parameters: [
+                        "outcome":    outcome.rawValue,
+                        "error_kind": "unknown"
+                    ]
+                )
+            }
+        }
+    }
 }

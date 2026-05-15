@@ -71,6 +71,13 @@ struct ChapterTheVerdictView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
+                if let whatChanged = report.analysis.whatChanged {
+                    Spacer().frame(height: 24)
+
+                    WhatChangedCard(whatChanged: whatChanged)
+                        .padding(.horizontal, 16)
+                }
+
                 if !topDamages.isEmpty {
                     Spacer().frame(height: 24)
 

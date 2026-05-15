@@ -461,6 +461,52 @@ struct BettingArchetypeData: Codable {
     }
 }
 
+// MARK: - Longitudinal memory (PR-WHATCHANGED)
+//
+// Optional diff payload comparing this report to the user's previous
+// report. Omitted entirely by the backend on first reports; iOS treats
+// the entire whatChanged field as optional and renders nothing when nil.
+
+struct ArchetypeChange: Codable {
+    let from: String
+    let to: String
+}
+
+enum BetIQDirection: String, Codable {
+    case improved
+    case regressed
+    case stable
+}
+
+struct BetIQDelta: Codable {
+    let from: Int
+    let to: Int
+    let direction: BetIQDirection
+}
+
+enum ImpactConfidence: String, Codable {
+    case high
+    case medium
+    case low
+}
+
+struct ImpactDelta: Codable, Identifiable {
+    var id: String { biasName }
+    let biasName: String
+    let previousImpact: Double
+    let currentImpact: Double
+    let deltaPercent: Int
+    let confidence: ImpactConfidence
+}
+
+struct WhatChanged: Codable {
+    let previousReportDate: String
+    let daysSincePrevious: Int
+    let archetypeChange: ArchetypeChange?
+    let betIQDelta: BetIQDelta?
+    let topImpactDeltas: [ImpactDelta]?
+}
+
 // MARK: - Top-level analysis
 
 struct AutopsyAnalysis: Codable {
@@ -491,6 +537,7 @@ struct AutopsyAnalysis: Codable {
     let quizArchetype: String?
     let snapshotTeaser: SnapshotTeaser?
     let snapshotCounts: SnapshotCounts?
+    let whatChanged: WhatChanged?
 
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
@@ -506,7 +553,8 @@ struct AutopsyAnalysis: Codable {
          contradictions: [Contradiction]?, bettingArchetype: BettingArchetypeData?,
          quizArchetype: String?,
          snapshotTeaser: SnapshotTeaser? = nil,
-         snapshotCounts: SnapshotCounts? = nil) {
+         snapshotCounts: SnapshotCounts? = nil,
+         whatChanged: WhatChanged? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -534,6 +582,7 @@ struct AutopsyAnalysis: Codable {
         self.quizArchetype = quizArchetype
         self.snapshotTeaser = snapshotTeaser
         self.snapshotCounts = snapshotCounts
+        self.whatChanged = whatChanged
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -551,6 +600,7 @@ struct AutopsyAnalysis: Codable {
         // match.
         case snapshotTeaser = "_snapshotTeaser"
         case snapshotCounts = "_snapshotCounts"
+        case whatChanged
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -589,6 +639,7 @@ struct AutopsyAnalysis: Codable {
         self.quizArchetype        = try? c.decode(String.self, forKey: .quizArchetype)
         self.snapshotTeaser       = try? c.decode(SnapshotTeaser.self, forKey: .snapshotTeaser)
         self.snapshotCounts       = try? c.decode(SnapshotCounts.self, forKey: .snapshotCounts)
+        self.whatChanged          = try? c.decode(WhatChanged.self, forKey: .whatChanged)
     }
 }
 

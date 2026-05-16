@@ -17,12 +17,10 @@
 //  Sign-out clears pendingToken defensively (prevent cross-user re-POST
 //  on a relaunch). A proper backend deactivate endpoint is v1.1 work.
 //
-//  This commit ships state-only. POST wiring lands in Commit 3 when
-//  DeviceTokenClient arrives.
-//
 
 import Foundation
 import Observation
+import Sentry
 
 @Observable
 final class PushTokenStore {
@@ -31,21 +29,48 @@ final class PushTokenStore {
 
     private(set) var pendingToken: String?
 
-    /// Stores the latest hex token from APNs. POST wiring added in
-    /// Commit 3 alongside DeviceTokenClient.
+    /// Stores the latest hex token from APNs. If the user is already
+    /// authenticated when this fires, dispatches the POST immediately.
+    /// Otherwise the token waits in pendingToken until
+    /// AppleSignInCoordinator calls flushIfPending() after sign-in.
     func register(token: String) {
         pendingToken = token
+        if AuthState.shared.isAuthenticated {
+            Task { await postToken(token) }
+        }
     }
 
     /// Called from AppleSignInCoordinator after setAuthenticated.
-    /// POST wiring added in Commit 3.
+    /// Fires the POST if a token was stashed by a prior APNs callback
+    /// that fired before sign-in completed.
     func flushIfPending() {
-        // No-op in Commit 2. Becomes a network POST in Commit 3.
+        guard let token = pendingToken else { return }
+        Task { await postToken(token) }
     }
 
     /// Called from AuthState.signOut to prevent cross-user token
-    /// re-POST under a different account on the same device.
+    /// re-POST under a different account on the same device. Does NOT
+    /// call any backend deactivate endpoint — that ships as v1.1
+    /// security work.
     func clearPendingToken() {
         pendingToken = nil
+    }
+
+    /// Fire-and-forget POST. Backend is idempotent (upsert on
+    /// user_id + token), so retries on transient failure are safe to
+    /// skip in v1 — the next APNs callback or sign-in flush will
+    /// re-attempt.
+    private func postToken(_ token: String) async {
+        do {
+            try await DeviceTokenClient.shared.register(token: token)
+            let crumb = Breadcrumb(level: .info, category: "push")
+            crumb.message = "Device token registered"
+            SentrySDK.addBreadcrumb(crumb)
+        } catch {
+            SentrySDK.capture(error: error) { scope in
+                scope.setTag(value: "push", key: "kind")
+                scope.setTag(value: "device_token_register", key: "failure_source")
+            }
+        }
     }
 }

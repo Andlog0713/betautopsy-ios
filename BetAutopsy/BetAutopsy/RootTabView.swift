@@ -40,6 +40,9 @@ struct RootTabView: View {
                 }
         }
         .tint(DS.Color.Accent.luminolSoft)
+        .overlay(alignment: .bottom) {
+            UndoToast()
+        }
         .fullScreenCover(item: Binding(
             get: { deepLinkRouter.presentingReport },
             set: { newValue in if newValue == nil { deepLinkRouter.dismissed() } }

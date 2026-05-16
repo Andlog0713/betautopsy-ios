@@ -8,15 +8,14 @@
 //
 //  Responsibilities:
 //    - Set UNUserNotificationCenter.current().delegate = self at launch
+//    - Cold-start deep-link parse from launchOptions[.remoteNotification]
+//      BEFORE returning, so a force-quit-app tap doesn't lose the
+//      report_id while iOS consumes the tap during launch
 //    - Convert APNs device token Data → 64-char lowercase hex and hand
 //      to PushTokenStore.shared.register(token:)
 //    - Foreground presentation options [.banner, .sound, .list]
-//    - Sentry breadcrumb on every callback (tagged kind=push) so prod
-//      auth races are debuggable without an attached console
-//
-//  Cold-start deep-link parse of launchOptions[.remoteNotification] and
-//  the actual didReceive userInfo parse land in Commit 5 once
-//  DeepLinkRouter exists. This commit ships AppDelegate scaffolding only.
+//    - Parse didReceive userInfo, dispatch to DeepLinkRouter
+//    - Sentry breadcrumb on every callback (tagged kind=push)
 //
 
 import UIKit
@@ -31,8 +30,14 @@ final class BetAutopsyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
-        // Cold-start deep-link parse of launchOptions[.remoteNotification]
-        // is wired in Commit 5 once DeepLinkRouter exists.
+        // Cold-start deep link: if the app was launched by a notification
+        // tap (force-quit state), iOS consumes the tap during launch and
+        // userNotificationCenter(_:didReceive:) may not fire. The userInfo
+        // is delivered via launchOptions instead — parse and stash here
+        // BEFORE returning so RootTabView's .task picks it up after auth.
+        if let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
+            parseAndStashReportId(userInfo: userInfo)
+        }
 
         return true
     }
@@ -80,17 +85,40 @@ final class BetAutopsyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
         completionHandler([.banner, .sound, .list])
     }
 
-    /// User tapped a notification. Full parse + DeepLinkRouter dispatch
-    /// land in Commit 5. For now: Sentry breadcrumb and complete.
+    /// User tapped a notification while app is active or backgrounded.
+    /// (Cold-start taps land in didFinishLaunchingWithOptions instead.)
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        parseAndStashReportId(userInfo: response.notification.request.content.userInfo)
+        completionHandler()
+    }
+
+    // MARK: - userInfo parse + dispatch
+
+    /// Reads betautopsy.kind + betautopsy.report_id from a notification
+    /// userInfo dictionary. APNs delivers these as flat top-level keys
+    /// with literal dots in the key name (not nested objects). On a
+    /// "heated_session" kind with a report_id present, stashes the id
+    /// into DeepLinkRouter.shared.pendingReportId for RootTabView to
+    /// consume after auth completes.
+    private func parseAndStashReportId(userInfo: [AnyHashable: Any]) {
+        guard let kind = userInfo["betautopsy.kind"] as? String,
+              kind == "heated_session",
+              let reportId = userInfo["betautopsy.report_id"] as? String
+        else {
+            let crumb = Breadcrumb(level: .warning, category: "push")
+            crumb.message = "Notification userInfo missing expected betautopsy keys"
+            SentrySDK.addBreadcrumb(crumb)
+            return
+        }
+
         let crumb = Breadcrumb(level: .info, category: "push")
-        crumb.message = "Notification tap received"
+        crumb.message = "Deep link captured for report \(reportId)"
         SentrySDK.addBreadcrumb(crumb)
 
-        completionHandler()
+        DeepLinkRouter.shared.pendingReportId = reportId
     }
 }

@@ -13,6 +13,7 @@ struct RootTabView: View {
     @Environment(OnboardingCoordinator.self) private var coordinator
     @State private var uploadCoordinator = UploadFlowCoordinator()
     @State private var reportStore = ReportStore()
+    @State private var deepLinkRouter = DeepLinkRouter.shared
 
     init() {
         configureTabBarAppearance()
@@ -39,6 +40,20 @@ struct RootTabView: View {
                 }
         }
         .tint(DS.Color.Accent.luminolSoft)
+        .fullScreenCover(item: Binding(
+            get: { deepLinkRouter.presentingReport },
+            set: { newValue in if newValue == nil { deepLinkRouter.dismissed() } }
+        )) { report in
+            ReportView(report: report)
+        }
+        .task {
+            await deepLinkRouter.consume()
+        }
+        .onChange(of: AuthState.shared.isAuthenticated) { _, isAuth in
+            if isAuth {
+                Task { await deepLinkRouter.consume() }
+            }
+        }
     }
 
     private var todayTab: some View {

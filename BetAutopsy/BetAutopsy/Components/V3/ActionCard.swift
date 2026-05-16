@@ -41,6 +41,16 @@ struct ActionCard: View {
 
     let action: Action
 
+    /// Whether this card is in a completed state. Drives the checkbox
+    /// fill; ignored unless `onCheckoffTap` is non-nil and the card is
+    /// non-aggregate.
+    var isCompleted: Bool = false
+
+    /// Callback when the checkbox is tapped. Nil means no checkbox is
+    /// rendered (aggregate cards always skip the checkbox regardless
+    /// of this value).
+    var onCheckoffTap: (() -> Void)? = nil
+
     private var strokeColor: Color {
         action.isAggregate
             ? DS.Color.V3.textPrimary.opacity(0.4)
@@ -68,32 +78,43 @@ struct ActionCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !action.isAggregate && !action.tiedToFinding.isEmpty {
-                Text(action.tiedToFinding)
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(DS.Color.V3.textTertiary)
+        HStack(alignment: .top, spacing: 12) {
+            if !action.isAggregate, let onTap = onCheckoffTap {
+                checkbox(onTap: onTap)
+                    .padding(.top, 2)
             }
 
-            Text(action.title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(DS.Color.V3.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                if !action.isAggregate && !action.tiedToFinding.isEmpty {
+                    Text(action.tiedToFinding)
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                }
 
-            Text(action.projectedImpact)
-                .font(.system(size: 14, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .padding(.top, 4)
+                Text(action.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .strikethrough(isCompleted && !action.isAggregate,
+                                   color: DS.Color.V3.textTertiary)
+                    .opacity(isCompleted && !action.isAggregate ? 0.6 : 1)
 
-            if !action.isAggregate && !action.difficulty.isEmpty {
-                Text(action.difficulty)
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(DS.Color.V3.textTertiary)
+                Text(action.projectedImpact)
+                    .font(.system(size: 14, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(DS.Color.V3.textSecondary)
                     .padding(.top, 4)
+
+                if !action.isAggregate && !action.difficulty.isEmpty {
+                    Text(action.difficulty)
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .padding(.top, 4)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 16)
@@ -106,6 +127,37 @@ struct ActionCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
+        .accessibilityAddTraits(onCheckoffTap == nil ? [] : .isButton)
+    }
+
+    @ViewBuilder
+    private func checkbox(onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(isCompleted
+                          ? DS.Color.V3.Severity.green.opacity(0.18)
+                          : Color.clear)
+                    .frame(width: 22, height: 22)
+
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .stroke(isCompleted
+                            ? DS.Color.V3.Severity.green
+                            : DS.Color.V3.textTertiary,
+                            lineWidth: 1.5)
+                    .frame(width: 22, height: 22)
+
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(DS.Color.V3.Severity.green)
+                }
+            }
+            .frame(width: 44, height: 44, alignment: .center)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isCompleted ? "Marked done. Tap to reset." : "Mark done.")
     }
 }
 

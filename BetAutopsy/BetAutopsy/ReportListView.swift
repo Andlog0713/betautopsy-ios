@@ -21,6 +21,7 @@ struct ReportListView: View {
 
     @State private var showingPicker = false
     @State private var presentedReport: AutopsyReport?
+    @State private var checkoffStore = ActionCheckoffStore.shared
 
     var body: some View {
         ZStack {
@@ -42,11 +43,14 @@ struct ReportListView: View {
                     }
 
                     VStack(spacing: DS.Spacing.md) {
-                        ForEach(store.displayedReports) { report in
+                        ForEach(Array(store.displayedReports.enumerated()), id: \.element.id) { idx, report in
                             Button {
                                 presentedReport = report
                             } label: {
-                                reportCard(report)
+                                reportCard(
+                                    report,
+                                    showProgressRing: idx == 0 && !store.reports.isEmpty
+                                )
                             }
                             .buttonStyle(.plain)
                         }
@@ -85,6 +89,16 @@ struct ReportListView: View {
         }
         .onChange(of: coordinatorStateKey) { _, _ in
             handleStateChange()
+        }
+        .task(id: store.reports.first?.id) {
+            if let mostRecentId = store.reports.first?.id {
+                await checkoffStore.load(reportId: mostRecentId)
+            }
+        }
+        .onChange(of: AuthState.shared.isAuthenticated) { _, isAuth in
+            if isAuth, let mostRecentId = store.reports.first?.id {
+                Task { await checkoffStore.load(reportId: mostRecentId) }
+            }
         }
     }
 
@@ -130,8 +144,10 @@ struct ReportListView: View {
 
     // MARK: - Report card
 
-    private func reportCard(_ report: AutopsyReport) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func reportCard(_ report: AutopsyReport, showProgressRing: Bool) -> some View {
+        let ringTotal = min(6, report.analysis.recommendations.count)
+        let renderRing = showProgressRing && ringTotal > 0
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Text("CASE \(report.caseNumber)")
                     .font(.custom("JetBrainsMono-Regular", size: 10))
@@ -145,10 +161,12 @@ struct ReportListView: View {
 
                 Spacer()
 
-                Text("TAP TO READ")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Accent.luminolSoft)
+                if !renderRing {
+                    Text("TAP TO READ")
+                        .font(.custom("JetBrainsMono-Regular", size: 10))
+                        .tracking(10 * 0.15)
+                        .foregroundStyle(DS.Color.Accent.luminolSoft)
+                }
             }
 
             Text(report.analysis.bettingArchetype?.name ?? "Report")
@@ -177,6 +195,16 @@ struct ReportListView: View {
             RoundedRectangle(cornerRadius: DS.Radius.card)
                 .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
         )
+        .overlay(alignment: .topTrailing) {
+            if renderRing {
+                ProgressRing(
+                    completed: checkoffStore.completedCount(forReportId: report.id),
+                    total: ringTotal
+                )
+                .padding(.top, 10)
+                .padding(.trailing, 12)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
     }
 

@@ -34,6 +34,10 @@ enum APIConfig {
         baseURL.appendingPathComponent("api/device-tokens")
     }
 
+    nonisolated static var actionCheckoffsURL: URL {
+        baseURL.appendingPathComponent("api/action-checkoffs")
+    }
+
     /// Per-call URL builder for GET /api/reports/:id. Percent-encodes
     /// the id defensively even though canonical UUIDs are path-safe.
     nonisolated static func reportFetchURL(id: String) -> URL {

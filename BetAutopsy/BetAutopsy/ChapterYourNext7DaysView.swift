@@ -28,8 +28,10 @@ struct ChapterYourNext7DaysView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingPaywall: Bool = false
     @State private var showingPushPrompt: Bool = false
+    @State private var checkoffStore = ActionCheckoffStore.shared
 
-    private struct RankedAction {
+    private struct RankedAction: Identifiable {
+        var id: Int { recommendation.id }
         let recommendation: Recommendation
         let parsedDollars: Int
     }
@@ -40,18 +42,6 @@ struct ChapterYourNext7DaysView: View {
             .sorted { $0.parsedDollars > $1.parsedDollars }
             .prefix(6)
             .map { $0 }
-    }
-
-    private var topActionCards: [ActionCard.Action] {
-        rankedActions.map { ranked in
-            ActionCard.Action(
-                title: ranked.recommendation.title,
-                tiedToFinding: "FROM YOUR DIAGNOSIS",
-                projectedImpact: projectedImpactLabel(ranked.parsedDollars),
-                difficulty: difficultyCaps(ranked.recommendation.difficulty),
-                isAggregate: false
-            )
-        }
     }
 
     private var aggregateAction: ActionCard.Action? {
@@ -78,11 +68,11 @@ struct ChapterYourNext7DaysView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                if !topActionCards.isEmpty {
+                if !rankedActions.isEmpty {
                     Spacer().frame(height: 24)
                     VStack(spacing: 12) {
-                        ForEach(topActionCards) { a in
-                            ActionCard(action: a)
+                        ForEach(rankedActions) { ranked in
+                            checkoffActionCard(for: ranked)
                         }
                         if let agg = aggregateAction {
                             ActionCard(action: agg)
@@ -119,6 +109,35 @@ struct ChapterYourNext7DaysView: View {
         .onAppear {
             evaluatePushPrompt()
         }
+        .task(id: report.id) {
+            await checkoffStore.load(reportId: report.id)
+        }
+    }
+
+    /// Renders a ranked recommendation as an ActionCard wired to the
+    /// ActionCheckoffStore. The recommendation_id format matches
+    /// the backend contract: "${report_id}:${priority}".
+    @ViewBuilder
+    private func checkoffActionCard(for ranked: RankedAction) -> some View {
+        let recId = "\(report.id):\(ranked.recommendation.priority)"
+        let isCompleted = checkoffStore.completed(for: recId)
+        ActionCard(
+            action: ActionCard.Action(
+                title: ranked.recommendation.title,
+                tiedToFinding: "FROM YOUR DIAGNOSIS",
+                projectedImpact: projectedImpactLabel(ranked.parsedDollars),
+                difficulty: difficultyCaps(ranked.recommendation.difficulty),
+                isAggregate: false
+            ),
+            isCompleted: isCompleted,
+            onCheckoffTap: {
+                checkoffStore.flip(
+                    recommendationId: recId,
+                    reportId: report.id,
+                    to: !isCompleted
+                )
+            }
+        )
     }
 
     /// One-shot push permission gate. The "asked" flag is set by

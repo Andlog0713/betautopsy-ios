@@ -67,6 +67,7 @@ final class AuthState {
         self.isAuthenticated = false
         UserDefaults.standard.removeObject(forKey: Self.userKey)
         UserDefaults.standard.set(false, forKey: Self.authStateKey)
+        PushTokenStore.shared.clearPendingToken()
     }
 
     private func loadFromStorage() {

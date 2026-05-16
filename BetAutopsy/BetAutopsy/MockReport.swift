@@ -12,7 +12,7 @@ import Foundation
 enum MockReport {
     static var heatedBettor: AutopsyReport {
         AutopsyReport(
-            id: "rpt_mock_0247",
+            id: "00000000-0000-4000-8000-000000000001",
             caseNumber: "0247",
             reportType: "full",
             betCountAnalyzed: 247,

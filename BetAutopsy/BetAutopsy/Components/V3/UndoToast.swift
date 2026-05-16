@@ -95,8 +95,7 @@ struct UndoToast: View {
         }
 
         let scheduled = flip.id
-        dismissTask = Task { [weak store = self.store] in
-            _ = store // capture to keep observation alive; no direct use
+        dismissTask = Task {
             try? await Task.sleep(for: Self.dismissDelay)
             if Task.isCancelled { return }
             await MainActor.run {

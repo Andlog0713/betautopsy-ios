@@ -138,6 +138,20 @@ final class ActionCheckoffStore {
         }
     }
 
+    /// Called from AuthState.signOut. Wipes the in-memory dict and any
+    /// per-report UserDefaults cache entries so a different user signing
+    /// in on the same device starts clean. Mirrors PushTokenStore's
+    /// clearPendingToken defensive sign-out pattern.
+    func clearAll() {
+        states = [:]
+        lastFlip = nil
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys
+        where key.hasPrefix("betautopsy.checkoffs.") {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     // MARK: - Cache (per-report UserDefaults blob)
 
     private static func cacheKey(reportId: String) -> String {

@@ -154,6 +154,7 @@ final class AppleSignInCoordinator {
                 lastSignedInAt: now
             )
             AuthState.shared.setAuthenticated(user: user)
+            PushTokenStore.shared.flushIfPending()
 
             Analytics.signal("auth.apple.succeeded")
             state = .succeeded

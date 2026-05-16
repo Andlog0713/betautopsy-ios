@@ -27,6 +27,7 @@ struct ChapterYourNext7DaysView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showingPaywall: Bool = false
+    @State private var showingPushPrompt: Bool = false
 
     private struct RankedAction {
         let recommendation: Recommendation
@@ -111,6 +112,22 @@ struct ChapterYourNext7DaysView: View {
         .background(canvasGradient.ignoresSafeArea())
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
+        }
+        .fullScreenCover(isPresented: $showingPushPrompt) {
+            PushPermissionView()
+        }
+        .onAppear {
+            evaluatePushPrompt()
+        }
+    }
+
+    /// One-shot push permission gate. The "asked" flag is set by
+    /// PushPermissionView on either Allow or Maybe Later, so this
+    /// branch fires at most once per device install.
+    private func evaluatePushPrompt() {
+        let asked = UserDefaults.standard.bool(forKey: "betautopsy.push_permission_asked")
+        if !asked {
+            showingPushPrompt = true
         }
     }
 

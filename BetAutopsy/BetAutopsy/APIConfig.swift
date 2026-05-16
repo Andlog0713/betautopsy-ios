@@ -30,6 +30,17 @@ enum APIConfig {
         baseURL.appendingPathComponent("api/check-in/outcome")
     }
 
+    nonisolated static var deviceTokensURL: URL {
+        baseURL.appendingPathComponent("api/device-tokens")
+    }
+
+    /// Per-call URL builder for GET /api/reports/:id. Percent-encodes
+    /// the id defensively even though canonical UUIDs are path-safe.
+    nonisolated static func reportFetchURL(id: String) -> URL {
+        let safe = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return baseURL.appendingPathComponent("api/reports/\(safe)")
+    }
+
     /// Returns a fresh Supabase access token (JWT) for the
     /// authenticated user. Returns nil if the user is not
     /// authenticated. If the user IS authenticated but no session is

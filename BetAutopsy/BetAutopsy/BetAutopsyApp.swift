@@ -7,6 +7,7 @@ import SwiftUI
 
 @main
 struct BetAutopsyApp: App {
+    @UIApplicationDelegateAdaptor(BetAutopsyAppDelegate.self) private var appDelegate
     @State private var coordinator = OnboardingCoordinator()
     @AppStorage("onboardingComplete") private var onboardingComplete = false
 

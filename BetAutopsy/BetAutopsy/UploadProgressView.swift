@@ -17,13 +17,13 @@ struct UploadProgressView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Text("CASE FILE IN PROGRESS")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .regular).monospacedDigit())
                     .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.top, 60)
 
                 Spacer()
@@ -47,25 +47,25 @@ struct UploadProgressView: View {
 
         case .uploading:
             VStack(spacing: DS.Spacing.lg) {
-                ProgressView().tint(DS.Color.Accent.luminol)
+                ProgressView().tint(DS.Color.V3.iconStroke)
                 Text("UPLOADING YOUR CSV")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
+                    .font(.system(size: 11, weight: .regular).monospacedDigit())
                     .tracking(11 * 0.18)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
 
         case .streaming(let metricsReceived):
             VStack(spacing: DS.Spacing.lg) {
-                ProgressView().tint(DS.Color.Accent.luminol)
+                ProgressView().tint(DS.Color.V3.iconStroke)
                 if metricsReceived {
                     Text("Reading your patterns...")
-                        .font(.custom("Georgia-Italic", size: 17))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .font(.system(size: 17, weight: .regular).italic())
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .multilineTextAlignment(.center)
                 } else {
                     Text("Analyzing your bets...")
                         .font(.system(size: 16))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                 }
             }
 
@@ -73,18 +73,18 @@ struct UploadProgressView: View {
             VStack(spacing: DS.Spacing.md) {
                 Image(systemName: "checkmark")
                     .font(.system(size: 32))
-                    .foregroundStyle(DS.Color.Semantic.win)
+                    .foregroundStyle(DS.Color.V3.Severity.green)
                 Text("DONE")
-                    .font(.custom("JetBrainsMono-Regular", size: 11))
+                    .font(.system(size: 11, weight: .regular).monospacedDigit())
                     .tracking(11 * 0.18)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
 
         case .failed(let error):
             VStack(spacing: DS.Spacing.lg) {
                 Text(error.errorDescription ?? "Something went wrong.")
                     .font(.system(size: 16))
-                    .foregroundStyle(DS.Color.Semantic.blood)
+                    .foregroundStyle(DS.Color.V3.Severity.red)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, DS.Spacing.xl)
 
@@ -92,10 +92,10 @@ struct UploadProgressView: View {
                     Button(action: onRetry) {
                         Text("Try again")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(DS.Color.Text.primary)
+                            .foregroundStyle(DS.Color.V3.primaryFillText)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(DS.Color.Accent.luminol)
+                            .background(DS.Color.V3.primaryFill)
                             .clipShape(RoundedRectangle(
                                 cornerRadius: DS.Radius.card))
                     }
@@ -109,7 +109,7 @@ struct UploadProgressView: View {
         Button(action: onCancel) {
             Text(isFailed ? "Close" : "Cancel")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
         }
     }
 

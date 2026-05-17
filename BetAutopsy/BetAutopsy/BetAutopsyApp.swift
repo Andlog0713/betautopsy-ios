@@ -56,6 +56,11 @@ struct BetAutopsyApp: App {
                     // the credential since last launch. No-op if not
                     // authenticated.
                     await AppleSignInCoordinator.checkCredentialState()
+
+                    // Cold-start RC login for a restored Supabase
+                    // session. No-op if not authenticated, idempotent
+                    // on repeat launches via lastLoggedInUserId.
+                    await RevenueCatStore.shared.loginIfAuthenticated()
                 }
                 .fullScreenCover(isPresented: onboardingPresented) {
                     OnboardingHost()

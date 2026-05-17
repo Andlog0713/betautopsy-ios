@@ -77,4 +77,18 @@ extension SupabaseService {
     static func refreshSession() async throws {
         _ = try await shared.auth.refreshSession()
     }
+
+    /// Returns the Supabase auth.uid() as a lowercase UUID string, or
+    /// nil if no session exists. Used by RevenueCatStore to set the
+    /// RC appUserID — the webhook joins iap_transactions rows on this
+    /// value, so the local User.appleUserID (Apple's identifier) would
+    /// not work here.
+    static func currentUserId() async -> String? {
+        do {
+            let session = try await shared.auth.session
+            return session.user.id.uuidString.lowercased()
+        } catch {
+            return nil
+        }
+    }
 }

@@ -25,7 +25,7 @@ struct ReportListView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -34,7 +34,7 @@ struct ReportListView: View {
 
                     Text("Your behavioral diagnostics")
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                         .padding(.top, DS.Spacing.xs)
 
                     if store.showMockPlaceholder {
@@ -60,7 +60,7 @@ struct ReportListView: View {
 
                     Text("More reports unlock after each weekly upload.")
                         .font(.system(size: 14))
-                        .foregroundStyle(DS.Color.Text.secondary)
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.top, DS.Spacing.xl)
                 }
@@ -107,9 +107,9 @@ struct ReportListView: View {
     private var headerRow: some View {
         HStack {
             Text("AUTOPSY REPORTS")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
+                .font(.system(size: 10, weight: .regular).monospacedDigit())
                 .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Spacer()
 
@@ -117,7 +117,7 @@ struct ReportListView: View {
                 Button(action: { showingPicker = true }) {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(DS.Color.Accent.luminolSoft)
+                        .foregroundStyle(DS.Color.V3.ctaText)
                         .frame(width: 32, height: 32)
                 }
             }
@@ -134,10 +134,10 @@ struct ReportListView: View {
                 Text("Upload CSV")
                     .font(.system(size: 16, weight: .semibold))
             }
-            .foregroundStyle(DS.Color.Text.primary)
+            .foregroundStyle(DS.Color.V3.primaryFillText)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(DS.Color.Accent.luminol)
+            .background(DS.Color.V3.primaryFill)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
         }
     }
@@ -150,39 +150,39 @@ struct ReportListView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Text("CASE \(report.caseNumber)")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .regular).monospacedDigit())
                     .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
 
                 if report.reportType == "snapshot" {
                     LabelChip(text: "FREE SNAPSHOT",
-                              color: DS.Color.Accent.luminolSoft)
+                              color: DS.Color.V3.Severity.gray)
                 }
 
                 Spacer()
 
                 if !renderRing {
                     Text("TAP TO READ")
-                        .font(.custom("JetBrainsMono-Regular", size: 10))
+                        .font(.system(size: 10, weight: .regular).monospacedDigit())
                         .tracking(10 * 0.15)
-                        .foregroundStyle(DS.Color.Accent.luminolSoft)
+                        .foregroundStyle(DS.Color.V3.ctaText)
                 }
             }
 
             Text(report.analysis.bettingArchetype?.name ?? "Report")
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .padding(.top, DS.Spacing.sm)
 
             Text("\(report.betCountAnalyzed) bets analyzed")
-                .font(.custom("JetBrainsMono-Regular", size: 13))
+                .font(.system(size: 13, weight: .regular).monospacedDigit())
                 .monospacedDigit()
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .padding(.top, 2)
 
             Text("Your impatience cost you \(formatCurrency(abs(report.analysis.summary.totalProfit))) since November.")
-                .font(.custom("Georgia-Italic", size: 14))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .font(.system(size: 14, weight: .regular).italic())
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .lineSpacing(3)
                 .multilineTextAlignment(.leading)
                 .padding(.top, DS.Spacing.md)
@@ -190,10 +190,10 @@ struct ReportListView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(DS.Spacing.md)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
             RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
         )
         .overlay(alignment: .topTrailing) {
             if renderRing {

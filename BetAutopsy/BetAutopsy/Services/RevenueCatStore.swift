@@ -42,6 +42,16 @@ final class RevenueCatStore {
     private(set) var isLoading: Bool = false
     private(set) var lastPurchaseError: String?
 
+    /// True while pollForUpgradedReport is running. PaywallView swaps
+    /// the CTA for a "Preparing your full report..." spinner during
+    /// this window.
+    private(set) var isPollingForUpgrade: Bool = false
+
+    /// Surfaced on timeout (and on terminal poll failures like an
+    /// expired refresh token). PaywallView renders this via the same
+    /// inline error path as lastPurchaseError.
+    private(set) var lastPollError: String?
+
     // MARK: - Internal state
 
     /// Guards login() against repeated calls for the same Supabase uid.
@@ -184,11 +194,12 @@ final class RevenueCatStore {
 
     // MARK: - Error surface mutators
 
-    /// Clears any previously surfaced purchase error. Called by
-    /// PaywallView on appear so leftover messages from a prior sheet
-    /// presentation don't render on a fresh open.
+    /// Clears any previously surfaced purchase or poll error. Called
+    /// by PaywallView on appear so leftover messages from a prior
+    /// sheet presentation don't render on a fresh open.
     func clearError() {
         lastPurchaseError = nil
+        lastPollError = nil
     }
 
     /// Surfaces an error message to PaywallView without going through
@@ -229,6 +240,169 @@ final class RevenueCatStore {
         }
     }
 
+}
+
+// MARK: - Post-purchase polling
+
+extension RevenueCatStore {
+    /// After a successful Purchases.purchase, the RC webhook receives
+    /// the transaction, reads the pending_report_unlock_id subscriber
+    /// attribute, and creates a child row in autopsy_reports with
+    /// report_type='full' and upgraded_from_snapshot_id pointing back
+    /// at the snapshot. Webhook completion is asynchronous (waitUntil
+    /// + processUpgrade), so iOS polls GET /api/reports?upgraded_from=
+    /// every 3 seconds until the child row appears or the timeout
+    /// elapses.
+    ///
+    /// On success: returns the materialized full report. PaywallView
+    /// upserts it into ReportStore and dismisses.
+    ///
+    /// On timeout: sets lastPollError to the "preparing your full
+    /// report" message and returns nil. PaywallView holds the message
+    /// visible briefly, then dismisses.
+    ///
+    /// On terminal auth failure (refresh fails after 401): sets
+    /// lastPollError to a sign-in message and returns nil.
+    ///
+    /// Transient network/decode failures are swallowed per-attempt
+    /// (Sentry breadcrumb) and polling continues until timeout.
+    func pollForUpgradedReport(
+        snapshotReportId: String,
+        timeoutSec: Int = 90
+    ) async -> AutopsyReport? {
+        isPollingForUpgrade = true
+        lastPollError = nil
+        defer { isPollingForUpgrade = false }
+
+        let pollInterval: TimeInterval = 3
+        let start = Date()
+        var attempt = 0
+
+        while Date().timeIntervalSince(start) < TimeInterval(timeoutSec) {
+            attempt += 1
+
+            let crumb = Breadcrumb(level: .info, category: "iap")
+            crumb.message = "Poll attempt \(attempt)"
+            crumb.data = [
+                "snapshotReportId": snapshotReportId,
+                "elapsed": Date().timeIntervalSince(start)
+            ]
+            SentrySDK.addBreadcrumb(crumb)
+
+            do {
+                if let report = try await Self.attemptPollFetch(snapshotReportId: snapshotReportId) {
+                    let okCrumb = Breadcrumb(level: .info, category: "iap")
+                    okCrumb.message = "Upgraded report materialized"
+                    okCrumb.data = ["attempt": attempt]
+                    SentrySDK.addBreadcrumb(okCrumb)
+                    return report
+                }
+            } catch PollError.unauthorized {
+                do {
+                    try await SupabaseService.refreshSession()
+                    if let report = try? await Self.attemptPollFetch(snapshotReportId: snapshotReportId) {
+                        return report
+                    }
+                } catch {
+                    lastPollError = "Sign in expired. Try again from the dashboard."
+                    SentrySDK.capture(error: error) { scope in
+                        scope.setTag(value: "iap", key: "kind")
+                        scope.setTag(value: "rc_poll_refresh", key: "failure_source")
+                    }
+                    return nil
+                }
+            } catch let urlError as URLError where urlError.code == .cancelled {
+                return nil
+            } catch {
+                let warn = Breadcrumb(level: .warning, category: "iap")
+                warn.message = "Poll attempt \(attempt) failed"
+                warn.data = ["error": String(describing: error)]
+                SentrySDK.addBreadcrumb(warn)
+            }
+
+            try? await Task.sleep(for: .seconds(pollInterval))
+        }
+
+        lastPollError = "Your full report is being prepared. Pull to refresh on the dashboard in a moment."
+        return nil
+    }
+
+    /// Single GET against /api/reports?upgraded_from=X. Returns the
+    /// first (most recent) row if non-empty, nil if the array is
+    /// empty (child not yet materialized), throws on auth or network
+    /// failure.
+    fileprivate static func attemptPollFetch(snapshotReportId: String) async throws -> AutopsyReport? {
+        guard let bearer = await APIConfig.bearerToken else {
+            throw PollError.unauthorized
+        }
+
+        var request = URLRequest(
+            url: APIConfig.reportsListUpgradedFromURL(snapshotId: snapshotReportId),
+            timeoutInterval: 10
+        )
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw PollError.unexpectedStatus(-1)
+        }
+
+        switch http.statusCode {
+        case 200:
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let payload = try decoder.decode(UpgradedListResponse.self, from: data)
+            guard let first = payload.reports.first else { return nil }
+            return makeAutopsyReport(from: first)
+
+        case 401:
+            throw PollError.unauthorized
+
+        default:
+            throw PollError.unexpectedStatus(http.statusCode)
+        }
+    }
+
+    /// Mirrors ReportFetchClient's row-to-AutopsyReport construction so
+    /// the case_number fallback applies consistently. Kept in this file
+    /// per the commit-5 rule (don't touch ReportFetchClient); the
+    /// duplication is ~20 lines and not worth a shared helper module.
+    private static func makeAutopsyReport(from row: UpgradedListResponse.Row) -> AutopsyReport {
+        let caseNumber = row.caseNumber ?? "BA-\(String(row.id.prefix(8)).uppercased())"
+        return AutopsyReport(
+            id: row.id,
+            caseNumber: caseNumber,
+            reportType: row.reportType,
+            betCountAnalyzed: row.betCountAnalyzed,
+            dateRangeStart: row.dateRangeStart,
+            dateRangeEnd: row.dateRangeEnd,
+            createdAt: row.createdAt,
+            analysis: row.reportJson
+        )
+    }
+}
+
+private enum PollError: Error {
+    case unauthorized
+    case unexpectedStatus(Int)
+}
+
+private struct UpgradedListResponse: Decodable {
+    let reports: [Row]
+
+    struct Row: Decodable {
+        let id: String
+        let caseNumber: String?
+        let reportType: String
+        let betCountAnalyzed: Int
+        let dateRangeStart: String?
+        let dateRangeEnd: String?
+        let createdAt: String
+        let reportJson: AutopsyAnalysis
+    }
 }
 
 // MARK: - Result type

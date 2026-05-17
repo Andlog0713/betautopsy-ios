@@ -217,34 +217,13 @@ struct PaywallView: View {
 
     private var bottomCTA: some View {
         VStack(spacing: 8) {
-            if let error = RevenueCatStore.shared.lastPurchaseError {
-                Text(error)
-                    .font(.system(size: 13))
-                    .foregroundStyle(DS.Color.V3.Severity.red)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 4)
-            }
+            inlineErrorLabel
 
-            Button(action: handleBuy) {
-                ZStack {
-                    Text(PaywallCopy.ctaLabel)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(DS.Color.V3.textPrimary)
-                        .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
-
-                    if RevenueCatStore.shared.isLoading {
-                        ProgressView()
-                            .tint(DS.Color.V3.textPrimary)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(DS.Color.V3.ctaText)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+            if RevenueCatStore.shared.isPollingForUpgrade {
+                pollingIndicator
+            } else {
+                buyButton
             }
-            .disabled(RevenueCatStore.shared.isLoading)
 
             Text(PaywallCopy.microcopy)
                 .font(.system(size: 13))
@@ -257,6 +236,59 @@ struct PaywallView: View {
         .padding(.top, 16)
         .padding(.bottom, 24)
         .background(DS.Color.V3.canvasGradientEnd)
+    }
+
+    @ViewBuilder
+    private var inlineErrorLabel: some View {
+        // lastPurchaseError covers RC purchase / restore failures.
+        // lastPollError covers post-purchase polling failures
+        // (timeout or terminal auth). Either may be set; show whichever
+        // is non-nil. Purchase error takes precedence if both somehow
+        // populated in the same session.
+        if let error = RevenueCatStore.shared.lastPurchaseError
+            ?? RevenueCatStore.shared.lastPollError {
+            Text(error)
+                .font(.system(size: 13))
+                .foregroundStyle(DS.Color.V3.Severity.red)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 4)
+        }
+    }
+
+    private var buyButton: some View {
+        Button(action: handleBuy) {
+            ZStack {
+                Text(PaywallCopy.ctaLabel)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
+
+                if RevenueCatStore.shared.isLoading {
+                    ProgressView()
+                        .tint(DS.Color.V3.textPrimary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(DS.Color.V3.ctaText)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(RevenueCatStore.shared.isLoading)
+    }
+
+    private var pollingIndicator: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .tint(DS.Color.V3.textPrimary)
+            Text("Preparing your full report...")
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 56)
     }
 
     // MARK: - IAP handlers
@@ -282,10 +314,28 @@ struct PaywallView: View {
                     package: package,
                     snapshotReportId: snapshotReportId
                 )
-                // userCancelled keeps the sheet open so the user can
-                // retry or use the xmark. Commit 5 replaces this
-                // direct dismiss with the post-purchase polling flow.
-                if !result.userCancelled {
+                if result.userCancelled {
+                    // Sheet stays open so the user can retry or xmark.
+                    return
+                }
+
+                // Poll the backend for the webhook-created full report.
+                // Up to 90s; returns nil on timeout.
+                let newReport = await RevenueCatStore.shared
+                    .pollForUpgradedReport(snapshotReportId: snapshotReportId)
+
+                if let newReport {
+                    ReportStore.shared.upsert(newReport)
+                    dismiss()
+                } else {
+                    // Timeout. lastPollError is now set with the
+                    // "Pull to refresh on the dashboard..." message
+                    // and renders inline via bottomCTA. Hold visible
+                    // for a beat so the user can read it, then close
+                    // the sheet — the dashboard reactive observation
+                    // will pick up the child row on the user's pull
+                    // to refresh.
+                    try? await Task.sleep(for: .seconds(2.5))
                     dismiss()
                 }
             } catch {

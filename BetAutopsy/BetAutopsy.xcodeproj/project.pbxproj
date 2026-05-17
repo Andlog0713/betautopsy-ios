@@ -11,6 +11,7 @@
 		490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 490D376A2FB0EEB400825278 /* TelemetryDeck */; };
 		4946D5262FB537800048CE03 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 4946D5252FB537800048CE03 /* Sentry */; };
 		4946D5322FB5495A0048CE03 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4946D5312FB5495A0048CE03 /* Supabase */; };
+		49FE11872FB965AA000B82AC /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 49FE11862FB965AA000B82AC /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 			files = (
 				4946D5322FB5495A0048CE03 /* Supabase in Frameworks */,
 				490D37692FB0EEB400825278 /* TelemetryClient in Frameworks */,
+				49FE11872FB965AA000B82AC /* RevenueCat in Frameworks */,
 				490D376B2FB0EEB400825278 /* TelemetryDeck in Frameworks */,
 				4946D5262FB537800048CE03 /* Sentry in Frameworks */,
 			);
@@ -101,6 +103,7 @@
 				490D376A2FB0EEB400825278 /* TelemetryDeck */,
 				4946D5252FB537800048CE03 /* Sentry */,
 				4946D5312FB5495A0048CE03 /* Supabase */,
+				49FE11862FB965AA000B82AC /* RevenueCat */,
 			);
 			productName = BetAutopsy;
 			productReference = 492C26072FB03309001826C5 /* BetAutopsy.app */;
@@ -134,6 +137,7 @@
 				492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				490D37672FB0EEB400825278 /* XCRemoteSwiftPackageReference "SwiftSDk" */,
 				4946D5242FB537800048CE03 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				49FE11852FB965AA000B82AC /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 492C26082FB03309001826C5 /* Products */;
@@ -417,6 +421,14 @@
 				minimumVersion = 8.0.0;
 			};
 		};
+		49FE11852FB965AA000B82AC /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.73.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -439,6 +451,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 492C262A2FB03494001826C5 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		49FE11862FB965AA000B82AC /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 49FE11852FB965AA000B82AC /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

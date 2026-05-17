@@ -21,10 +21,10 @@ struct BACard<Content: View>: View {
         content
             .padding(DS.Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DS.Color.Surface.card)
+            .background(DS.Color.V3.surfaceCard)
             .overlay(
                 RoundedRectangle(cornerRadius: DS.Radius.card)
-                    .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                    .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
             )
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
     }
@@ -37,17 +37,17 @@ enum BAButtonStyle {
 
     var background: Color {
         switch self {
-        case .primary:     return DS.Color.Accent.luminol
-        case .secondary:   return DS.Color.Surface.raised
-        case .destructive: return DS.Color.Semantic.blood
+        case .primary:     return DS.Color.V3.primaryFill
+        case .secondary:   return DS.Color.V3.surfaceRaised
+        case .destructive: return DS.Color.V3.Severity.red
         }
     }
 
     var foreground: Color {
         switch self {
-        case .primary:     return DS.Color.Text.primary
-        case .secondary:   return DS.Color.Text.primary
-        case .destructive: return DS.Color.Text.primary
+        case .primary:     return DS.Color.V3.primaryFillText
+        case .secondary:   return DS.Color.V3.textPrimary
+        case .destructive: return DS.Color.V3.textPrimary
         }
     }
 }
@@ -66,7 +66,7 @@ struct BAButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.custom("Inter-SemiBold", size: 15))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(style.foreground)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -87,8 +87,8 @@ struct BAChromeLabel: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(.custom("JetBrainsMono-Medium", size: 11))
-            .foregroundStyle(DS.Color.Text.tertiary)
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .foregroundStyle(DS.Color.V3.textTertiary)
             .tracking(11 * 0.15)
     }
 }
@@ -97,7 +97,7 @@ struct BAChromeLabel: View {
 
 #Preview("Components") {
     ZStack {
-        DS.Color.Surface.canvas.ignoresSafeArea()
+        DS.Color.V3.canvasGradient.ignoresSafeArea()
 
         ScrollView {
             VStack(spacing: DS.Spacing.lg) {
@@ -107,11 +107,11 @@ struct BAChromeLabel: View {
                     VStack(alignment: .leading, spacing: DS.Spacing.sm) {
                         BAChromeLabel("Exhibit A")
                         Text("This is a card.")
-                            .font(.custom("Inter-Regular", size: 15))
-                            .foregroundStyle(DS.Color.Text.primary)
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(DS.Color.V3.textPrimary)
                         Text("Card surface, hairline border.")
-                            .font(.custom("Inter-Regular", size: 13))
-                            .foregroundStyle(DS.Color.Text.secondary)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(DS.Color.V3.textSecondary)
                     }
                 }
 

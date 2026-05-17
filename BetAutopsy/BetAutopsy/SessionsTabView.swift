@@ -33,7 +33,7 @@ struct SessionsTabView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             if sessions.isEmpty {
                 emptyState
@@ -68,13 +68,13 @@ struct SessionsTabView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xs) {
             Text("SESSIONS")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
+                .font(.system(size: 10, weight: .regular).monospacedDigit())
                 .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Text("Recent sessions.")
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
+                .foregroundStyle(DS.Color.V3.textPrimary)
         }
     }
 
@@ -84,60 +84,60 @@ struct SessionsTabView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Text("\(s.date.uppercased()) · \(s.dayOfWeek)")
-                    .font(.custom("JetBrainsMono-Regular", size: 10))
+                    .font(.system(size: 10, weight: .regular).monospacedDigit())
                     .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                 Spacer()
                 ZStack {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(DS.Color.Surface.raised)
+                        .fill(DS.Color.V3.surfaceRaised)
                         .frame(width: 32, height: 32)
                     Text(s.grade)
                         .font(.system(size: 24, weight: .bold))
                         .monospacedDigit()
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                 }
             }
 
             Text("\(s.startTime) to \(s.endTime) · \(s.durationMinutes) min")
                 .font(.system(size: 13))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .padding(.top, 4)
 
             Rectangle()
-                .fill(DS.Color.Border.subtle)
+                .fill(DS.Color.V3.borderSubtle)
                 .frame(height: DS.Stroke.hairline)
                 .padding(.top, 12)
 
             HStack {
                 Text("\(s.bets) bets")
-                    .font(.custom("JetBrainsMono-Regular", size: 13))
+                    .font(.system(size: 13, weight: .regular).monospacedDigit())
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
                 Spacer()
                 Text(formatCurrency(s.profit, signed: true))
-                    .font(.custom("JetBrainsMono-Medium", size: 13))
+                    .font(.system(size: 13, weight: .medium).monospacedDigit())
                     .monospacedDigit()
                     .foregroundStyle(s.profit >= 0
-                                     ? DS.Color.Semantic.win
-                                     : DS.Color.Semantic.blood)
+                                     ? DS.Color.V3.Severity.green
+                                     : DS.Color.V3.Severity.red)
             }
             .padding(.top, 12)
 
             if !s.heatSignals.isEmpty {
                 Text("Heat signals: \(s.heatSignals.joined(separator: ", "))")
-                    .font(.custom("Georgia-Italic", size: 13))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .font(.system(size: 13, weight: .regular).italic())
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.top, 8)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Surface.card)
+        .background(DS.Color.V3.surfaceCard)
         .overlay(
             RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(DS.Color.Border.subtle, lineWidth: DS.Stroke.hairline)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
         )
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
     }
@@ -147,13 +147,13 @@ struct SessionsTabView: View {
     private var emptyState: some View {
         VStack(spacing: DS.Spacing.md) {
             Text("SESSIONS")
-                .font(.custom("JetBrainsMono-Regular", size: 10))
+                .font(.system(size: 10, weight: .regular).monospacedDigit())
                 .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
 
             Text("No sessions on file. Sync from Pikkit or import a CSV to begin.")
                 .font(.system(size: 15))
-                .foregroundStyle(DS.Color.Text.secondary)
+                .foregroundStyle(DS.Color.V3.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .padding(.horizontal, DS.Spacing.xl)

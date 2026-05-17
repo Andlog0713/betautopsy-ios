@@ -62,7 +62,7 @@ struct ChapterYourSportsView: View {
         }
         .background(canvasGradient.ignoresSafeArea())
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(snapshotReportId: report.id)
         }
     }
 

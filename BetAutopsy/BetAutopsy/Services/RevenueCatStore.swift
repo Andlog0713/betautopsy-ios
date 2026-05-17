@@ -182,6 +182,23 @@ final class RevenueCatStore {
         }
     }
 
+    // MARK: - Error surface mutators
+
+    /// Clears any previously surfaced purchase error. Called by
+    /// PaywallView on appear so leftover messages from a prior sheet
+    /// presentation don't render on a fresh open.
+    func clearError() {
+        lastPurchaseError = nil
+    }
+
+    /// Surfaces an error message to PaywallView without going through
+    /// a thrown-error path. Used for view-side precondition failures
+    /// the store doesn't see directly — e.g., the package lookup in
+    /// currentOffering returning nil before purchase() can be called.
+    func setError(_ message: String) {
+        lastPurchaseError = message
+    }
+
     // MARK: - Restore
 
     /// Required by the App Store. RevenueCat dashboard handles dedup

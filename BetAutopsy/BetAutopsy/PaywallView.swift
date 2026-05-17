@@ -18,8 +18,18 @@
 //  TelemetryDeck signals, and mock IAP alert behavior preserved
 //  verbatim.
 //
+//  PR-REVENUECAT-IOS commit 4: surgical IAP wire-in. Mock alert
+//  replaced with real Purchases.purchase + restorePurchases through
+//  RevenueCatStore. snapshotReportId is now a required init param so
+//  the pending_report_unlock_id subscriber attribute can link the
+//  transaction to the right snapshot row in the webhook. All locked
+//  V3 copy, tokens, compliance, age gate, restore link, and footer
+//  links preserved verbatim. Zero visual diff intended on the
+//  happy-path render.
+//
 
 import SwiftUI
+import RevenueCat
 
 // MARK: - Pricing constants
 
@@ -31,14 +41,32 @@ private enum PaywallCopy {
     /// receipt-validation / entitlement path. App Store Connect side
     /// of the rename happens separately.
     static let productID  = "single"
+    /// RC package identifier (Phase 1 dashboard config: offering
+    /// "default" → package "$rc_lifetime" → product "single_report_v1").
+    static let packageIdentifier = "$rc_lifetime"
+    /// RC entitlement identifier (Phase 1 dashboard config). Checked
+    /// against CustomerInfo.entitlements.active after a restore call.
+    static let entitlementIdentifier = "full_report_unlock"
+    /// Restore alert copy. Two messages — one when the SDK reports the
+    /// full_report_unlock entitlement is active after restore (rare
+    /// for a consumable, but possible via family sharing or sandbox
+    /// state), one when no active entitlement was found.
+    static let restoreActiveMessage = "Purchases restored."
+    static let restoreEmptyMessage  = "No active purchases to restore."
+    /// Used when currentOffering is nil at buy time (offerings fetch
+    /// failed silently, or sheet opened before RC could load).
+    static let noOfferingError = "Couldn't load purchase options. Try again."
 }
 
 // MARK: - Paywall sheet
 
 struct PaywallView: View {
+    let snapshotReportId: String
+
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showingMockAlert: Bool = false
+    @State private var showingRestoreAlert: Bool = false
+    @State private var restoreAlertMessage: String = ""
 
     private let privacyURL = URL(string: "https://betautopsy.com/privacy")!
     private let termsURL   = URL(string: "https://betautopsy.com/terms")!
@@ -87,16 +115,26 @@ struct PaywallView: View {
                 bottomCTA
             }
         }
-        .alert("Coming soon", isPresented: $showingMockAlert) {
+        .alert(restoreAlertMessage, isPresented: $showingRestoreAlert) {
             Button("OK", role: .cancel) { }
-        } message: {
-            Text("IAP wires in PR-10.")
         }
         .onAppear {
             Analytics.signal("paywall.viewed")
         }
         .onDisappear {
             Analytics.signal("paywall.dismissed")
+        }
+        .task {
+            // Clear any leftover error from a previous sheet
+            // presentation so the user opens on a clean state.
+            RevenueCatStore.shared.clearError()
+
+            // Fetch offerings if RC hadn't loaded them yet (e.g., the
+            // sheet was triggered before the cold-start login resolved).
+            // Subsequent opens skip this — currentOffering stays cached.
+            if RevenueCatStore.shared.currentOffering == nil {
+                await RevenueCatStore.shared.fetchOfferings()
+            }
         }
     }
 
@@ -179,15 +217,34 @@ struct PaywallView: View {
 
     private var bottomCTA: some View {
         VStack(spacing: 8) {
-            Button(action: handleBuy) {
-                Text(PaywallCopy.ctaLabel)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.V3.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(DS.Color.V3.ctaText)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            if let error = RevenueCatStore.shared.lastPurchaseError {
+                Text(error)
+                    .font(.system(size: 13))
+                    .foregroundStyle(DS.Color.V3.Severity.red)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 4)
             }
+
+            Button(action: handleBuy) {
+                ZStack {
+                    Text(PaywallCopy.ctaLabel)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
+
+                    if RevenueCatStore.shared.isLoading {
+                        ProgressView()
+                            .tint(DS.Color.V3.textPrimary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(DS.Color.V3.ctaText)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .disabled(RevenueCatStore.shared.isLoading)
 
             Text(PaywallCopy.microcopy)
                 .font(.system(size: 13))
@@ -202,28 +259,61 @@ struct PaywallView: View {
         .background(DS.Color.V3.canvasGradientEnd)
     }
 
-    // MARK: - Mocked IAP handlers
+    // MARK: - IAP handlers
 
     private func handleBuy() {
         Analytics.signal(
             "paywall.buy_tapped",
             parameters: ["plan_id": PaywallCopy.productID]
         )
-        #if DEBUG
-        print("[Paywall] Buy tapped for single-report ($19.99).")
-        #endif
-        showingMockAlert = true
+
+        Task {
+            guard let package = RevenueCatStore.shared
+                .currentOffering?
+                .availablePackages
+                .first(where: { $0.identifier == PaywallCopy.packageIdentifier })
+            else {
+                RevenueCatStore.shared.setError(PaywallCopy.noOfferingError)
+                return
+            }
+
+            do {
+                let result = try await RevenueCatStore.shared.purchase(
+                    package: package,
+                    snapshotReportId: snapshotReportId
+                )
+                // userCancelled keeps the sheet open so the user can
+                // retry or use the xmark. Commit 5 replaces this
+                // direct dismiss with the post-purchase polling flow.
+                if !result.userCancelled {
+                    dismiss()
+                }
+            } catch {
+                // lastPurchaseError was already set by the store's
+                // catch. View re-render picks it up via the
+                // bottomCTA error label.
+            }
+        }
     }
 
     private func handleRestore() {
-        #if DEBUG
-        print("[Paywall] Restore Purchases tapped")
-        #endif
-        showingMockAlert = true
+        Task {
+            do {
+                let info = try await RevenueCatStore.shared.restorePurchases()
+                if info.entitlements.active[PaywallCopy.entitlementIdentifier] != nil {
+                    restoreAlertMessage = PaywallCopy.restoreActiveMessage
+                } else {
+                    restoreAlertMessage = PaywallCopy.restoreEmptyMessage
+                }
+                showingRestoreAlert = true
+            } catch {
+                // lastPurchaseError surfaced inline by the store.
+            }
+        }
     }
 }
 
 #Preview {
-    PaywallView()
+    PaywallView(snapshotReportId: "preview-snapshot-id")
         .preferredColorScheme(.dark)
 }

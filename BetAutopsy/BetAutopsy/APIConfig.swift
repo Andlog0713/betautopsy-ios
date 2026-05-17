@@ -45,6 +45,20 @@ enum APIConfig {
         return baseURL.appendingPathComponent("api/reports/\(safe)")
     }
 
+    /// Per-call URL builder for GET /api/reports?upgraded_from=<id>.
+    /// Used by RevenueCatStore.pollForUpgradedReport to detect the
+    /// webhook-created full child row after a purchase. Backend
+    /// returns { reports: [...] } sorted DESC by created_at; empty
+    /// array while the child is still being processed.
+    nonisolated static func reportsListUpgradedFromURL(snapshotId: String) -> URL {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/reports"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [URLQueryItem(name: "upgraded_from", value: snapshotId)]
+        return components.url!
+    }
+
     /// Returns a fresh Supabase access token (JWT) for the
     /// authenticated user. Returns nil if the user is not
     /// authenticated. If the user IS authenticated but no session is

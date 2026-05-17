@@ -152,7 +152,7 @@ struct ChapterYourBiasesView: View {
         }
         .background(canvasGradient.ignoresSafeArea())
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(snapshotReportId: report.id)
         }
     }
 

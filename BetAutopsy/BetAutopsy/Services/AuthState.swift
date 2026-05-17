@@ -69,6 +69,7 @@ final class AuthState {
         UserDefaults.standard.set(false, forKey: Self.authStateKey)
         PushTokenStore.shared.clearPendingToken()
         ActionCheckoffStore.shared.clearAll()
+        Task { await RevenueCatStore.shared.logout() }
     }
 
     private func loadFromStorage() {

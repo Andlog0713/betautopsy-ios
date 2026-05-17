@@ -101,7 +101,7 @@ struct ChapterYourNext7DaysView: View {
         }
         .background(canvasGradient.ignoresSafeArea())
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(snapshotReportId: report.id)
         }
         .fullScreenCover(isPresented: $showingPushPrompt) {
             PushPermissionView()

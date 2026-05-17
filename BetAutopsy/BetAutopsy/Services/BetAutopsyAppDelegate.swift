@@ -20,14 +20,30 @@
 
 import UIKit
 import UserNotifications
+import RevenueCat
 import Sentry
 
 final class BetAutopsyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+
+    /// Public SDK key for RevenueCat. Single source — referenced only
+    /// from didFinishLaunchingWithOptions below. Phase 1 config locked
+    /// in the RevenueCat dashboard (entitlement: full_report_unlock,
+    /// offering: default → $rc_lifetime → single_report_v1).
+    private static let revenueCatPublicAPIKey = "appl_GQMOhnXmOvJBreyHPyegAidajhf"
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Purchases.configure must run before any other RC SDK call.
+        // appUserID is intentionally NOT set here; RevenueCatStore
+        // calls Purchases.shared.logIn(supabaseUserId) from the
+        // sign-in / restored-session hooks (auth restore is async).
+        Purchases.configure(withAPIKey: Self.revenueCatPublicAPIKey)
+        #if DEBUG
+        Purchases.logLevel = .debug
+        #endif
+
         UNUserNotificationCenter.current().delegate = self
 
         // Cold-start deep link: if the app was launched by a notification

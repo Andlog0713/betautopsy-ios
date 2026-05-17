@@ -12,7 +12,7 @@ import UIKit
 struct RootTabView: View {
     @Environment(OnboardingCoordinator.self) private var coordinator
     @State private var uploadCoordinator = UploadFlowCoordinator()
-    @State private var reportStore = ReportStore()
+    @State private var reportStore = ReportStore.shared
     @State private var deepLinkRouter = DeepLinkRouter.shared
 
     init() {

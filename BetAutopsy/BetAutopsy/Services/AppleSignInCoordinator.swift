@@ -156,6 +156,17 @@ final class AppleSignInCoordinator {
             AuthState.shared.setAuthenticated(user: user)
             PushTokenStore.shared.flushIfPending()
 
+            // Fire-and-forget RC login. The Supabase session was just
+            // established by signInWithIdToken above, but we didn't
+            // keep the returned session in scope — and the local User
+            // struct carries appleUserID, not the Supabase auth.uid()
+            // that the webhook needs. Fetch the uid from the session
+            // accessor inside the Task.
+            Task {
+                guard let uid = await SupabaseService.currentUserId() else { return }
+                await RevenueCatStore.shared.login(userId: uid)
+            }
+
             Analytics.signal("auth.apple.succeeded")
             state = .succeeded
             currentRawNonce = nil

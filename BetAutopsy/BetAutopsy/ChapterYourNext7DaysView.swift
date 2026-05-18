@@ -68,6 +68,16 @@ struct ChapterYourNext7DaysView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
+                // Snapshot-mode paywall card appears ABOVE the action items
+                // so the unlock CTA is visible without scrolling past the
+                // teaser content. Full-report mode renders the InsightCallout
+                // at the bottom of the chapter instead.
+                if report.reportType == "snapshot" {
+                    Spacer().frame(height: 24)
+                    snapshotPaywallCard
+                        .padding(.horizontal, 16)
+                }
+
                 if !rankedActions.isEmpty {
                     Spacer().frame(height: 24)
                     VStack(spacing: 12) {
@@ -85,10 +95,7 @@ struct ChapterYourNext7DaysView: View {
 
                 warningSignsSection
 
-                if report.reportType == "snapshot" {
-                    snapshotPaywallCard
-                        .padding(.horizontal, 16)
-                } else if !insightBody.isEmpty {
+                if report.reportType != "snapshot", !insightBody.isEmpty {
                     InsightCallout(
                         text: insightBody,
                         ctaLabel: "SHARE MY FINDINGS",
@@ -211,14 +218,12 @@ struct ChapterYourNext7DaysView: View {
 
             Button(action: handleUnlock) {
                 Text("Read the full report ($19.99).")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .font(DS.Font.V3.buttonLabel)
+                    .foregroundStyle(DS.Color.V3.canvasGradientEnd)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(DS.Color.V3.textPrimary, lineWidth: 1)
-                    )
+                    .frame(height: 50)
+                    .background(DS.Color.Brand.yellow)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
             }
             .padding(.top, 16)
 
@@ -231,10 +236,15 @@ struct ChapterYourNext7DaysView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.V3.surfaceRaised)
+        .background(
+            ZStack {
+                DS.Color.V3.surfaceRaised
+                DS.Color.Brand.yellow.opacity(0.10)
+            }
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(DS.Color.Brand.yellowBorder, lineWidth: 0.5)
+                .stroke(DS.Color.Brand.yellow, lineWidth: 1.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }

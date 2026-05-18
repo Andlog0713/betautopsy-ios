@@ -96,6 +96,43 @@ struct BiasDetected: Codable, Identifiable {
     let estimatedCost: Double
     let fix: String
     let evidenceBetIds: [String]?
+
+    // Engine V2 snapshot side-channel. Each visibility tag may carry:
+    // "visible"          -> full prose, render as-is
+    // "redacted_dollar"  -> engine shipped sentinel zero or $••• prose
+    // "hidden"           -> withhold entirely
+    // Optional + try? on every consumer so older engines without the
+    // tags decode cleanly and current UI behavior is unchanged.
+    let estimatedCostVisibility: String?
+    let evidenceVisibility: String?
+    let descriptionVisibility: String?
+    let fixVisibility: String?
+
+    init(
+        biasName: String,
+        severity: BiasSeverity,
+        description: String,
+        evidence: String,
+        estimatedCost: Double,
+        fix: String,
+        evidenceBetIds: [String]?,
+        estimatedCostVisibility: String? = nil,
+        evidenceVisibility: String? = nil,
+        descriptionVisibility: String? = nil,
+        fixVisibility: String? = nil
+    ) {
+        self.biasName = biasName
+        self.severity = severity
+        self.description = description
+        self.evidence = evidence
+        self.estimatedCost = estimatedCost
+        self.fix = fix
+        self.evidenceBetIds = evidenceBetIds
+        self.estimatedCostVisibility = estimatedCostVisibility
+        self.evidenceVisibility = evidenceVisibility
+        self.descriptionVisibility = descriptionVisibility
+        self.fixVisibility = fixVisibility
+    }
 }
 
 struct StrategicLeak: Codable, Identifiable {
@@ -123,6 +160,30 @@ struct Recommendation: Codable, Identifiable {
     let description: String
     let expectedImprovement: String
     let difficulty: String
+
+    // Engine V2 may populate a numeric cost_savings (positive dollars)
+    // and a cost_savings_visibility tag mirroring the bias pattern.
+    // Both optional — older engines just ship expectedImprovement prose.
+    let costSavings: Double?
+    let costSavingsVisibility: String?
+
+    init(
+        priority: Int,
+        title: String,
+        description: String,
+        expectedImprovement: String,
+        difficulty: String,
+        costSavings: Double? = nil,
+        costSavingsVisibility: String? = nil
+    ) {
+        self.priority = priority
+        self.title = title
+        self.description = description
+        self.expectedImprovement = expectedImprovement
+        self.difficulty = difficulty
+        self.costSavings = costSavings
+        self.costSavingsVisibility = costSavingsVisibility
+    }
 }
 
 struct EmotionBreakdown: Codable {
@@ -367,6 +428,31 @@ struct SportSpecificFinding: Codable, Identifiable {
     let evidence: String
     let estimatedCost: Double?
     let recommendation: String
+
+    // Engine V2 additive visibility tag (see BiasDetected for semantics).
+    let estimatedCostVisibility: String?
+
+    init(
+        findingId: String?,
+        name: String,
+        sport: String,
+        severity: BiasSeverity,
+        description: String,
+        evidence: String,
+        estimatedCost: Double?,
+        recommendation: String,
+        estimatedCostVisibility: String? = nil
+    ) {
+        self.findingId = findingId
+        self.name = name
+        self.sport = sport
+        self.severity = severity
+        self.description = description
+        self.evidence = evidence
+        self.estimatedCost = estimatedCost
+        self.recommendation = recommendation
+        self.estimatedCostVisibility = estimatedCostVisibility
+    }
 }
 
 struct DFSPickCountRow: Codable, Identifiable {

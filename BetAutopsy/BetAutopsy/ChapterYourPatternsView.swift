@@ -93,11 +93,34 @@ struct ChapterYourPatternsView: View {
         return result
     }
 
-    private var insightBody: String {
-        if patternCards.isEmpty {
-            return "Not enough bet history to surface patterns yet."
+    private var isSnapshot: Bool { report.reportType == "snapshot" }
+
+    private var wirePatterns: [BehavioralPattern] {
+        Array(report.analysis.behavioralPatterns.prefix(2))
+    }
+
+    private var patternCount: Int {
+        report.analysis.snapshotCounts?.patterns
+            ?? report.analysis.behavioralPatterns.count
+    }
+
+    private var hasAnyPatterns: Bool {
+        !patternCards.isEmpty || !wirePatterns.isEmpty
+    }
+
+    private var fallbackText: String {
+        if patternCount > 0 {
+            return "Behavioral patterns require deeper analysis. The full report breaks down \(patternCount) detected patterns and their dollar impact."
         }
-        return (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
+        return "Behavioral patterns require deeper analysis. The full report breaks down your detected patterns and their dollar impact."
+    }
+
+    private var insightBody: String {
+        if !hasAnyPatterns {
+            return fallbackText
+        }
+        let exec = (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
+        return exec.isEmpty ? fallbackText : exec
     }
 
     var body: some View {
@@ -107,7 +130,20 @@ struct ChapterYourPatternsView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                if !patternCards.isEmpty {
+                // Snapshot path: prefer wire-shipped behavioral_patterns
+                // (engine V2 scrubs dollars in description, render as-is).
+                // Full path: fall back to client-computed patternCards from
+                // sessions + timing aggregates when behavioral_patterns is
+                // empty, which preserves the rich full-report cadence.
+                if isSnapshot && !wirePatterns.isEmpty {
+                    Spacer().frame(height: 24)
+                    VStack(spacing: 12) {
+                        ForEach(wirePatterns) { p in
+                            wirePatternCard(p)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                } else if !patternCards.isEmpty {
                     Spacer().frame(height: 24)
                     VStack(spacing: 12) {
                         ForEach(patternCards) { p in
@@ -132,6 +168,34 @@ struct ChapterYourPatternsView: View {
             .frame(maxWidth: .infinity)
         }
         .background(canvasGradient.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func wirePatternCard(_ pattern: BehavioralPattern) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(pattern.patternName)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(pattern.description)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .lineSpacing(3)
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(pattern.patternName). \(pattern.description)")
     }
 
     // MARK: - Pattern computations

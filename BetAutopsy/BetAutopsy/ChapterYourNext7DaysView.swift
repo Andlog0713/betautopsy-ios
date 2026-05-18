@@ -34,11 +34,26 @@ struct ChapterYourNext7DaysView: View {
         var id: Int { recommendation.id }
         let recommendation: Recommendation
         let parsedDollars: Int
+        let isLocked: Bool
     }
+
+    private var isSnapshot: Bool { report.reportType == "snapshot" }
 
     private var rankedActions: [RankedAction] {
         report.analysis.recommendations
-            .map { RankedAction(recommendation: $0, parsedDollars: parseDollars($0.expectedImprovement)) }
+            .map { rec -> RankedAction in
+                let costSavings = rec.costSavings.map { Int($0.rounded()) } ?? 0
+                let parsed = parseDollars(rec.expectedImprovement)
+                let dollars = max(costSavings, parsed)
+                let locked = isSnapshot
+                    || rec.costSavingsVisibility == "redacted_dollar"
+                    || dollars <= 0
+                return RankedAction(
+                    recommendation: rec,
+                    parsedDollars: dollars,
+                    isLocked: locked
+                )
+            }
             .sorted { $0.parsedDollars > $1.parsedDollars }
             .prefix(6)
             .map { $0 }
@@ -46,7 +61,14 @@ struct ChapterYourNext7DaysView: View {
 
     private var aggregateAction: ActionCard.Action? {
         guard !rankedActions.isEmpty else { return nil }
-        let sum = rankedActions.reduce(0) { $0 + $1.parsedDollars }
+        // Aggregate only meaningful when we have real per-rec dollars
+        // to sum. If every row is locked, suppress the aggregate row
+        // (we are not going to compose a locked "$N total" lie).
+        let allLocked = rankedActions.allSatisfy { $0.isLocked }
+        guard !allLocked else { return nil }
+        let sum = rankedActions
+            .filter { !$0.isLocked }
+            .reduce(0) { $0 + $1.parsedDollars }
         guard sum > 0 else { return nil }
         return ActionCard.Action(
             title: "IF YOU DID ALL OF THESE",
@@ -130,23 +152,43 @@ struct ChapterYourNext7DaysView: View {
     private func checkoffActionCard(for ranked: RankedAction) -> some View {
         let recId = "\(report.id):\(ranked.recommendation.priority)"
         let isCompleted = checkoffStore.completed(for: recId)
-        ActionCard(
-            action: ActionCard.Action(
-                title: ranked.recommendation.title,
-                tiedToFinding: "FROM YOUR DIAGNOSIS",
-                projectedImpact: projectedImpactLabel(ranked.parsedDollars),
-                difficulty: difficultyCaps(ranked.recommendation.difficulty),
-                isAggregate: false
-            ),
-            isCompleted: isCompleted,
-            onCheckoffTap: {
-                checkoffStore.flip(
-                    recommendationId: recId,
-                    reportId: report.id,
-                    to: !isCompleted
-                )
-            }
+        let projectedImpact: String = ranked.isLocked
+            ? ""
+            : projectedImpactLabel(ranked.parsedDollars)
+        let showsHighestImpactTag = !ranked.isLocked
+            && ranked.parsedDollars == 0
+            && ranked.recommendation.priority == 1
+        let fallback: String? = showsHighestImpactTag ? "HIGHEST IMPACT" : nil
+        let cardAction = ActionCard.Action(
+            title: ranked.recommendation.title,
+            tiedToFinding: "FROM YOUR DIAGNOSIS",
+            projectedImpact: projectedImpact,
+            difficulty: difficultyCaps(ranked.recommendation.difficulty),
+            isAggregate: false,
+            isLockedImpact: ranked.isLocked,
+            impactFallback: fallback
         )
+        let onCheckoff: () -> Void = {
+            checkoffStore.flip(
+                recommendationId: recId,
+                reportId: report.id,
+                to: !isCompleted
+            )
+        }
+        ActionCard(
+            action: cardAction,
+            isCompleted: isCompleted,
+            onCheckoffTap: onCheckoff,
+            onLockedTap: handleLockedTap
+        )
+    }
+
+    private func handleLockedTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch7_locked_dollar"]
+        )
+        showingPaywall = true
     }
 
     /// One-shot push permission gate. The "asked" flag is set by

@@ -16,7 +16,75 @@ Format per entry:
 
 ---
 
-## Branch: claude/ios-snapshot-richer-followup-2
+## Branch: claude/ios-betiq-codable
+
+### Why
+
+iPhone QA on snapshot 24d12db7 (case 0248) reported the Ch 1 hero
+BetIQ ring rendering 0 even though the wire ships
+`report_json.betiq.score = 69`. Bug is purely iOS-side: the
+synthesized Codable on `BetIQResult` collapses to nil on any single
+missing required field, and the Ch 1 view falls back to 0 via
+`report.analysis.betiq?.score ?? 0`.
+
+### Step 0 finding
+
+Decision-tree CASE 1B. `AutopsyAnalysis.betiq` is `BetIQResult?`
+decoded via `try? c.decode(BetIQResult.self, ...)`. `BetIQResult`
+synthesized Codable requires five non-optional fields including a
+nested non-optional `BetIQComponents` (six required Int fields).
+The snapshot wire 24d12db7 almost certainly ships a betiq object
+with `score` populated but with one of `components`, `interpretation`,
+`insufficientData`, or `percentile` missing or null - typical
+LLM-side fields that the deterministic snapshot path skips. Any
+single per-field failure cascades up:
+BetIQComponents decode fails -> BetIQResult decode fails ->
+parent try? collapses to nil -> Ch 1 reads `?? 0` -> hero ring
+renders 0. Same cascade pattern as PR-15's `DetectedSession` fix.
+
+Interactive simulator access from this CC session was not available
+(per PR-15/PR-16 precedent); diagnostic prints were added to
+`ChapterTheVerdictView` body `.onAppear`, the build verified, then
+the prints were stripped before commit.
+
+### What shipped
+
+`BetAutopsy/BetAutopsy/ReportModels.swift` only.
+
+- `BetIQComponents` gains an explicit memberwise init and a tolerant
+  custom `init(from:)`. Every Int field reads via `try?` with a
+  default of 0. A new `static let zero` factory provides an all-zero
+  instance for use as a fallback default elsewhere.
+- `BetIQResult` gains an explicit memberwise init and a tolerant
+  custom `init(from:)`. `score` decodes as Int first, then falls
+  back to rounding a Double if the engine ever ships 69.0, with
+  final fallback 0. `components` falls back to `BetIQComponents.zero`.
+  `percentile` defaults to 0, `interpretation` to "", `insufficientData`
+  to false. No required-field decode can sink the whole BetIQResult
+  any more.
+
+No call-site changes were needed. `ChapterTheVerdictView.swift` still
+reads `report.analysis.betiq?.score ?? 0` and that path now resolves
+to the real wire score for any non-null betiq object.
+
+### Verification
+
+- xcodebuild on iPhone 17 simulator: BUILD SUCCEEDED.
+- `git diff main..HEAD | grep '^+' | grep U+2014` returns zero hits.
+- Simulator interactive walk on snapshot 24d12db7 deferred to Andrew.
+- Step 0 diagnostic prints added, build-verified, stripped before
+  commit.
+
+### Notes / deviations
+
+- The fix follows PR-15's `DetectedSession` precedent: explicit
+  memberwise init + tolerant `init(from:)` with `try?` and neutral
+  defaults on every field. Same shape, just applied to BetIQ.
+- BetIQComponents.zero is a new exposed static. Not used anywhere
+  else today, but kept on the type rather than file-local so a
+  future test or default value can use it.
+
+---
 
 ### Why
 

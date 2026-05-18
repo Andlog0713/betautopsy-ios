@@ -231,7 +231,11 @@ struct ChapterYourNext7DaysView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.Accent.luminol)
+        .background(DS.Color.V3.surfaceRaised)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.Brand.yellowBorder, lineWidth: 0.5)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 

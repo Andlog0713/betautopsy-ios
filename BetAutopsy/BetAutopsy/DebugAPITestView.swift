@@ -30,31 +30,31 @@ struct DebugAPITestView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradientEnd.ignoresSafeArea()
             VStack(spacing: DS.Spacing.lg) {
                 Text("API TEST")
                     .font(.custom("JetBrainsMono-Regular", size: 11))
                     .tracking(11 * 0.18)
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
 
                 Text("Status: \(status)")
                     .font(.custom("JetBrainsMono-Regular", size: 14))
-                    .foregroundStyle(DS.Color.Text.primary)
+                    .foregroundStyle(DS.Color.V3.textPrimary)
 
                 Text("Events received: \(eventCount)")
                     .font(.custom("JetBrainsMono-Regular", size: 13))
                     .monospacedDigit()
-                    .foregroundStyle(DS.Color.Text.secondary)
+                    .foregroundStyle(DS.Color.V3.textSecondary)
 
                 Text("Last: \(lastEvent)")
                     .font(.custom("JetBrainsMono-Regular", size: 12))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .lineLimit(3)
 
                 if let error = error {
                     Text(error)
                         .font(.system(size: 14))
-                        .foregroundStyle(DS.Color.Semantic.blood)
+                        .foregroundStyle(DS.Color.V3.Severity.red)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, DS.Spacing.md)
                 }
@@ -62,10 +62,10 @@ struct DebugAPITestView: View {
                 Button(action: runTest) {
                     Text("Run test request")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(DS.Color.Text.primary)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(DS.Color.Accent.luminol)
+                        .background(DS.Color.Brand.yellow)
                         .clipShape(RoundedRectangle(
                             cornerRadius: DS.Radius.card))
                 }

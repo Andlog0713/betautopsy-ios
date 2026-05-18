@@ -1,52 +1,19 @@
 // ─────────────────────────────────────────────────────────────────
 // BetAutopsy design system tokens.
 //
-// V2 = Luminol (legacy, retirement deferred).
-// V3 = current visual direction (WHOOP-style).
+// V3 visual direction (WHOOP-style) is the only tier. V2 Luminol
+// namespace was retired in V2-RETIREMENT (replaced by V3 + Brand
+// equivalents; severity encoders moved to V3.Severity). Archetype
+// colors live at DS.Color.Archetype (non-versioned, shared).
 //
 // V3 spec: Notion 35e5964c-daf2-819e-9484-de25a4e3af56
-//
-// PR-V1 through PR-V9 migrated the report chapters (Ch 1-7) to V3.
-// PR-V10 closes out by migrating Ch 6, TodayView, and PaywallView.
-// The V2 namespace remains intact in this file because ~15 other
-// consumers (BetDNAQuizView, ReportListView, SessionsTabView, the
-// auth and age-gate flow, ArchetypeRevealView, UploadProgressView,
-// ReportModels severity encoders, Components.swift primitives, etc.)
-// are still on V2. V2 namespace retirement is scoped as a follow-up
-// bundle.
-//
-// Rules:
-//   - V2 namespace remains; additive-only changes here.
-//   - New views consume V3.
-//   - Existing V2 views stay on V2 until their follow-up migration.
+// Brand spec: Notion 3645964c-daf2-8110-bd66-dae2fc6ccad6
 // ─────────────────────────────────────────────────────────────────
 
 import SwiftUI
 
 enum DS {
   enum Color {
-    enum Surface {
-      static let canvas = SwiftUI.Color(hex: 0x14151D)
-      static let card   = SwiftUI.Color(hex: 0x1B1D27)
-      static let raised = SwiftUI.Color(hex: 0x232636)
-    }
-    enum Border {
-      static let subtle = SwiftUI.Color(hex: 0x292B38)
-    }
-    enum Text {
-      static let primary    = SwiftUI.Color(hex: 0xECEDF1)
-      static let secondary  = SwiftUI.Color(hex: 0xA8AABF)
-      static let tertiary   = SwiftUI.Color(hex: 0x74768C)
-      static let quaternary = SwiftUI.Color(hex: 0x3D3F50)
-    }
-    enum Accent {
-      static let luminol     = SwiftUI.Color(hex: 0x6B5BFF)
-      static let luminolSoft = SwiftUI.Color(hex: 0x8B7DFF)
-    }
-    enum Semantic {
-      static let blood = SwiftUI.Color(hex: 0xFF5454)
-      static let win   = SwiftUI.Color(hex: 0x5BFFA8)
-    }
     enum Archetype {
       // V3 archetype color tokens (PR-V11). Hex values preserved from
       // the V2 keys they replaced — only the key names changed. The

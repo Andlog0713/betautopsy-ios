@@ -129,16 +129,21 @@ extension DS.Color {
         // Icon stroke (chevrons, info glyph)
         static let iconStroke = SwiftUI.Color(hex: "#C0C5CE")
 
-        // Insight callout
-        static let insightBorder = SwiftUI.Color(hex: "#7F7ADC").opacity(0.5)
-        static let ctaText       = SwiftUI.Color(hex: "#8B86E8")
+        // Insight callout (PR-9 brand swap).
+        // These names are retained as aliases for backwards compatibility
+        // with ~25 V3 consumers (PR-V-CASCADE-DAY-12). New code should
+        // reference DS.Color.Brand.* directly — see Brand namespace below.
+        static let insightBorder = DS.Color.Brand.yellowBorder
+        static let ctaText       = DS.Color.Brand.yellow
 
         // Severity-driven score colors (V3 rings are severity-colored,
         // NOT archetype-colored — archetype identity moves to typography).
         enum Severity {
             static let red    = SwiftUI.Color(hex: "#FF4D4D")
             static let orange = SwiftUI.Color(hex: "#FF7847")
-            static let yellow = SwiftUI.Color(hex: "#FFCD2C")
+            // PR-9: #FFCD2C → #FFC66D (Darcula amber). Disambiguates
+            // severity caution from brand yellow #FACC15.
+            static let yellow = SwiftUI.Color(hex: "#FFC66D")
             static let green  = SwiftUI.Color(hex: "#00DC82")
             static let gray   = SwiftUI.Color(hex: "#7A7E8B")
 
@@ -211,4 +216,67 @@ extension DS.Font.V3 {
     static let bodyRegular  = SwiftUI.Font.system(size: 15, weight: .regular)
     static let buttonLabel  = SwiftUI.Font.system(size: 16, weight: .semibold)
     static let captionLabel = SwiftUI.Font.system(size: 13, weight: .regular)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Brand identity tokens — permanent, not versioned (PR-9).
+// See Notion 🎨 Brand System v3 — LOCKED
+// (3645964c-daf2-8110-bd66-dae2fc6ccad6).
+//
+// Yellow #FACC15 ladder + transparency steps + interaction states
+// per brand deck §05B (interaction system).
+// ─────────────────────────────────────────────────────────────
+
+extension DS.Color {
+    enum Brand {
+        // Primary brand yellow (solid CTA, wordmark, key text, icons).
+        static let yellow         = SwiftUI.Color(hex: "#FACC15")
+
+        // Interaction states.
+        static let yellowPressed  = SwiftUI.Color(hex: "#E5BA0E")
+        static let yellowDim      = SwiftUI.Color(hex: "#FACC15").opacity(0.35)
+
+        // Transparency ladder for borders, washes, backgrounds.
+        static let yellowBorder   = SwiftUI.Color(hex: "#FACC15").opacity(0.25)
+        static let yellowWash     = SwiftUI.Color(hex: "#FACC15").opacity(0.08)
+
+        // Canvas dark for on-yellow foreground (text + icons against
+        // brand-yellow backgrounds — yellow + white fails contrast).
+        static let canvasDark     = SwiftUI.Color(hex: "#0A0E12")
+    }
+}
+
+extension DS {
+    enum Gradient {
+        /// Ambient canvas — primary app background.
+        static let ambientCanvas = LinearGradient(
+            colors: [
+                SwiftUI.Color(hex: "#131A20"),
+                SwiftUI.Color(hex: "#0A0E12")
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        /// Yellow accent wash — archetype reveal, key callouts, premium moments.
+        static let yellowWash = LinearGradient(
+            colors: [
+                SwiftUI.Color(hex: "#FACC15").opacity(0.08),
+                SwiftUI.Color(hex: "#131A20")
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        /// Spotlight glow — hero element background.
+        static let spotlightGlow = RadialGradient(
+            colors: [
+                SwiftUI.Color(hex: "#FACC15").opacity(0.15),
+                SwiftUI.Color.clear
+            ],
+            center: .center,
+            startRadius: 0,
+            endRadius: 240
+        )
+    }
 }

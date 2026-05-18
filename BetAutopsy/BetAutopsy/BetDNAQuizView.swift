@@ -206,7 +206,7 @@ struct BetDNAQuizView: View {
             Text(option.label)
                 .font(.system(size: 16, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(isSelected ? DS.Color.V3.textPrimary : DS.Color.V3.textSecondary)
+                .foregroundStyle(isSelected ? DS.Color.Brand.canvasDark : DS.Color.V3.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(isSelected ? DS.Color.V3.ctaText : DS.Color.V3.surfaceCard)

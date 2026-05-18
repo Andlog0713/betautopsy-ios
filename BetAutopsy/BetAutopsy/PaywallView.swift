@@ -262,12 +262,12 @@ struct PaywallView: View {
             ZStack {
                 Text(PaywallCopy.ctaLabel)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .foregroundStyle(DS.Color.Brand.canvasDark)
                     .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
 
                 if RevenueCatStore.shared.isLoading {
                     ProgressView()
-                        .tint(DS.Color.V3.textPrimary)
+                        .tint(DS.Color.Brand.canvasDark)
                 }
             }
             .frame(maxWidth: .infinity)

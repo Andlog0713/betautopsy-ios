@@ -2,7 +2,7 @@
 //  InsightCallout.swift
 //  BetAutopsy
 //
-//  V3 insight callout: purple-bordered box, body paragraph,
+//  V3 insight callout: brand-yellow-bordered box, body paragraph,
 //  caps CTA with trailing arrow.
 //
 //  V1 (PR-V1): CTA is inert. The closure is stubbed to a debug print so
@@ -31,11 +31,11 @@ struct InsightCallout: View {
                     Text(ctaLabel.uppercased())
                         .font(DS.Font.V3.ctaText)
                         .tracking(1.4)
-                        .foregroundStyle(DS.Color.V3.ctaText)
+                        .foregroundStyle(DS.Color.Brand.yellow)
 
                     Image(systemName: "arrow.right")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(DS.Color.V3.ctaText)
+                        .foregroundStyle(DS.Color.Brand.yellow)
                 }
             }
             .buttonStyle(.plain)
@@ -46,7 +46,7 @@ struct InsightCallout: View {
         .background(DS.Color.V3.surfaceCard)
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(DS.Color.V3.insightBorder, lineWidth: 1)
+                .stroke(DS.Color.Brand.yellowBorder, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }

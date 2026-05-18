@@ -21,6 +21,11 @@ import SwiftUI
 struct ChapterTheVerdictView: View {
     let report: AutopsyReport
 
+    /// Programmatic chapter advance used by the "READ THE HEATED FILE"
+    /// CTA. Wired from ReportView at TabView construction time. Default
+    /// no-op preserves preview / standalone usage.
+    var onAdvance: () -> Void = {}
+
     private var betIQScore: Int {
         report.analysis.betiq?.score ?? 0
     }
@@ -122,11 +127,7 @@ struct ChapterTheVerdictView: View {
     }
 
     private func handleInsightTap() {
-        // V1 stub: navigation lands in v1.1 cascade.
-        // Use log shape only per repo logging rule.
-        #if DEBUG
-        print("InsightCallout tapped on Chapter 1 (V1 stub).")
-        #endif
+        onAdvance()
     }
 }
 

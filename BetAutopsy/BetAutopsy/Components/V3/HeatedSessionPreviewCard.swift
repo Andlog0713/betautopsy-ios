@@ -77,6 +77,7 @@ struct HeatedSessionPreviewCard: View {
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(1.5)
                         .foregroundStyle(DS.Color.V3.Severity.red)
+                        .fixedSize(horizontal: true, vertical: false)
                     LockedDollarBar(width: 140, onTap: onLockedTap)
                 }
             }
@@ -97,99 +98,29 @@ struct HeatedSessionPreviewCard: View {
     }
 }
 
-/// Pill-style heat-signal chips. Wraps if too wide for the row by laying
-/// chips out into rows of cumulative width <= the container width.
+/// Heat-signal rows. Each signal renders on its own full-width row with
+/// a red dot bullet so the full sentence stays readable. Replaces the
+/// prior horizontal flow layout, which truncated mid-word on long
+/// signals like "Stakes more than doubled while chasing losses".
 struct FlowChips: View {
     let signals: [String]
 
     var body: some View {
-        FlexibleChipLayout(spacing: 6, runSpacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(signals.enumerated()), id: \.offset) { _, signal in
-                chip(signal)
+                HStack(alignment: .top, spacing: 8) {
+                    Circle()
+                        .fill(DS.Color.V3.Severity.red.opacity(0.7))
+                        .frame(width: 4, height: 4)
+                        .padding(.top, 6)
+                    Text(signal)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-    }
-
-    private func chip(_ raw: String) -> some View {
-        let label = truncate(raw)
-        return Text(label.uppercased())
-            .font(.system(size: 10, weight: .semibold))
-            .tracking(0.9)
-            .foregroundStyle(DS.Color.V3.textSecondary)
-            .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .overlay(
-                Capsule()
-                    .stroke(DS.Color.V3.borderSubtle, lineWidth: 1)
-            )
-    }
-
-    private func truncate(_ raw: String) -> String {
-        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.count <= 30 { return s }
-        let cut = s.index(s.startIndex, offsetBy: 28)
-        return String(s[..<cut]) + "\u{2026}"
-    }
-}
-
-/// Two-row flow layout. SwiftUI Layout protocol makes this concise:
-/// each subview is placed left-to-right until the cumulative width
-/// would exceed the container, then a new row starts.
-private struct FlexibleChipLayout: Layout {
-    let spacing: CGFloat
-    let runSpacing: CGFloat
-
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        let result = layout(maxWidth: maxWidth, subviews: subviews)
-        return CGSize(width: result.width, height: result.height)
-    }
-
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        let positions = layout(maxWidth: bounds.width, subviews: subviews).positions
-        for (i, sub) in subviews.enumerated() {
-            let pos = positions[i]
-            sub.place(
-                at: CGPoint(x: bounds.minX + pos.x, y: bounds.minY + pos.y),
-                proposal: .unspecified
-            )
-        }
-    }
-
-    private func layout(
-        maxWidth: CGFloat,
-        subviews: Subviews
-    ) -> (width: CGFloat, height: CGFloat, positions: [CGPoint]) {
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var widestRow: CGFloat = 0
-
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                widestRow = max(widestRow, x - spacing)
-                x = 0
-                y += rowHeight + runSpacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        widestRow = max(widestRow, x - spacing)
-        return (widestRow, y + rowHeight, positions)
     }
 }
 

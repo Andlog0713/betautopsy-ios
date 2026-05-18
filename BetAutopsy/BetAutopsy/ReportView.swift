@@ -24,11 +24,17 @@ struct ReportView: View {
                 topBar
                 ZStack(alignment: .bottom) {
                     TabView(selection: $currentIndex) {
-                        ChapterTheVerdictView(report: report).tag(0)
+                        ChapterTheVerdictView(
+                            report: report,
+                            onAdvance: { advanceToChapter(1) }
+                        ).tag(0)
                         ChapterYourMindView(report: report).tag(1)
                         ChapterYourDisciplineView(report: report).tag(2)
                         ChapterYourBiasesView(report: report).tag(3)
-                        ChapterYourPatternsView(report: report).tag(4)
+                        ChapterYourPatternsView(
+                            report: report,
+                            onAdvance: { advanceToChapter(5) }
+                        ).tag(4)
                         ChapterYourSportsView(report: report).tag(5)
                         ChapterYourNext7DaysView(report: report).tag(6)
                     }
@@ -38,6 +44,17 @@ struct ReportView: View {
                         .padding(.bottom, DS.Spacing.lg)
                 }
             }
+        }
+    }
+
+    /// Programmatic chapter advance used by chapter-bridging InsightCallout
+    /// CTAs (Ch 1 "READ THE HEATED FILE", Ch 5 "SEE THE SPORT BREAKDOWN").
+    /// Animation matches the TabView's default page transition so a CTA
+    /// tap looks like the user swiped.
+    private func advanceToChapter(_ index: Int) {
+        let clamped = max(0, min(6, index))
+        withAnimation(.easeInOut(duration: 0.25)) {
+            currentIndex = clamped
         }
     }
 

@@ -98,7 +98,7 @@ struct ChapterTheVerdictView: View {
 
                 InsightCallout(
                     text: insightBody,
-                    ctaLabel: "READ THE TILT FILE",
+                    ctaLabel: "READ THE HEATED FILE",
                     onTap: handleInsightTap
                 )
                 .padding(.horizontal, 16)

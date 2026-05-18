@@ -16,7 +16,118 @@ Format per entry:
 
 ---
 
-## Branch: claude/ios-snapshot-richer
+## Branch: claude/ios-snapshot-richer-followup
+
+### Why
+
+iPhone QA on snapshot 24d12db7-0025-4c0e-bde6-e0a015b97f6c (case 0248,
+5000 bets, 453 sessions / 218 heated) on top of e9f5158 surfaced four
+follow-up gaps from the original snapshot-richer PR. Two P0 conversion
+blockers (Ch 2 not rendering at all; Ch 1 CTA still reads "TILT") plus
+two finish-quality fixes (locked-dollar bar context labels; Ch 4
+4th legacy bias card cleanup).
+
+### Step 0 finding (root cause of Fix A)
+
+Decision-tree CASE 3/4 cascade. Wire ships `isHeated: true` and a
+4-string `heatSignals` array on 3 of 218 heated sessions for snapshot
+24d12db7. Most heated sessions ship `heatSignals: []` or null on
+fields like `gradeReasons`. Synthesized Codable on `DetectedSession`
+treats every field as required; a single per-field shape mismatch
+(null for a non-optional `[String]`, or a numeric arriving as a
+different type) fails the whole element decode, which fails the
+`[DetectedSession]` array decode, which collapses
+`sessionDetection` to nil via the `try?` wrap in
+`AutopsyAnalysis.init(from:)`. Result on iOS: `sessionDetection?.sessions`
+reads nil, `heatedSessions` is empty, `previewSession` is nil,
+`snapshotHeatedSection` returns `EmptyView()`.
+
+Because I cannot run snapshot 24d12db7 interactively from this
+session (it requires Andrew's auth + upload), I applied a tolerant
+custom `init(from:)` for `DetectedSession` that decodes every field
+with `try?` and a neutral default. This covers CASE 2/3/4 of the
+brief's decision tree simultaneously and is defensively correct
+even if the actual cause is something else in that decision tree.
+
+### What shipped
+
+**Fix A (P0) - Ch 2 HeatedSessionPreviewCard now renders**
+
+- `BetAutopsy/ReportModels.swift` - `DetectedSession` gains a custom
+  tolerant `init(from:)` with explicit CodingKeys. Every field reads
+  via `try?` with a neutral default (`""` for strings, `0` for
+  numerics, `false` for `Bool`, `[]` for `[String]`). A single
+  per-field shape mismatch no longer collapses the whole sessions
+  array.
+- Step 0 diagnostic prints added to ChapterYourMindView body
+  `.onAppear` were stripped before commit per brief.
+
+**Fix B (P0) - Ch 1 CTA renamed**
+
+- `BetAutopsy/ChapterTheVerdictView.swift:101` - `ctaLabel` parameter
+  changed from "READ THE TILT FILE" to "READ THE HEATED FILE".
+- `BetAutopsy/Components/V3/InsightCallout.swift:59` - preview
+  string updated for consistency (not user-facing at runtime, but
+  shows in Xcode canvas previews).
+
+**Fix C (P1) - LockedDollarBar context labels**
+
+- `BetAutopsy/Components/V3/BiasRow.swift` - the locked branch wraps
+  `LockedDollarBar(width: 110)` in an HStack(spacing: 8) with an
+  "EST. COST" caps label (10pt semibold, tracking 1.5,
+  DS.Color.V3.Severity.red) prepended.
+- `BetAutopsy/Components/V3/HeatedSessionPreviewCard.swift` - the
+  "<N> bets" / LockedDollarBar row wraps the LockedDollarBar in an
+  HStack(spacing: 8) with a "LOST" caps label prepended.
+- Ch 6 BY DAY tiles, Ch 6 sport-finding ESTIMATED COST, and Ch 7
+  ActionCard projectedImpact were intentionally left untouched
+  (BY DAY tile is too narrow for a label; the other two already
+  carry their own context).
+
+**Fix D (P2) - Ch 4 4th bias legacy cleanup**
+
+- `BetAutopsy/ChapterYourBiasesView.swift` - the PR-7.5 Phase 2
+  WithheldBiasTeaserCard rendering block in `body` (snapshot mode)
+  was removed. With three real bias cards above that show evidence
+  + LockedDollarBar, the legacy "Read this in your full report"
+  redaction-rectangle card was visually redundant and confusing
+  (read as a 4th bias in low-quality treatment). The
+  WithheldBiasTeaserCard private type at the bottom of the file
+  is retained for now (zero consumers, but kept for one cycle in
+  case full mode wants a similar treatment back).
+
+### Verification
+
+- `xcodebuild -scheme BetAutopsy -destination 'platform=iOS Simulator,name=iPhone 17' build`
+  succeeds. Re-run after stripping diagnostic prints: still succeeds.
+- `git diff main..HEAD -- BetAutopsy/ | grep '^+' | grep U+2014`
+  returns zero hits. (Pre-existing em-dashes in unrelated comment
+  lines from PR-9 / PR-V-CASCADE-DAY-12 / PR-7.5 are out of scope
+  for this PR and were not touched.)
+- `grep -rn "TILT FILE" BetAutopsy/` returns zero hits post-fix.
+- `grep -rn "READ THE HEATED FILE" BetAutopsy/` returns exactly two
+  hits (the Ch 1 CTA call site + the InsightCallout preview string).
+- Simulator interactive walkthrough on snapshot 24d12db7 deferred
+  to Andrew (requires authenticated Supabase fetch this session
+  cannot perform). Andrew runs the 11-item QA checklist.
+
+### Notes / deviations
+
+- Tolerant decoder pattern was applied to `DetectedSession` only.
+  Other types in the wire model (`OddsBucket`, `TimingBucket`,
+  `BehavioralPattern`, etc.) still rely on synthesized Codable.
+  If similar render gaps surface for other snapshot chapters,
+  the same tolerant pattern should be ported.
+- "EST. COST" label width on iPhone 17 (393pt screen): bias name
+  "STAKE VOLATILITY" + spacer + "EST. COST" label + 8pt + 110pt
+  LockedDollarBar + chevron should fit. If Andrew sees overflow on
+  the longest bias names, the LockedDollarBar can drop to 90pt
+  without a model change.
+- Em-dashes in pre-existing comments (Tokens.swift, ReportListView.swift,
+  PaywallView.swift, AnalyzeClient.swift, etc.) were not touched.
+  This PR's diff adds zero em-dashes.
+
+---
 
 ### Why
 

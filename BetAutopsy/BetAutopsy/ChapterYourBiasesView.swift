@@ -108,21 +108,15 @@ struct ChapterYourBiasesView: View {
                         .padding(.horizontal, 16)
                 }
 
-                // PR-7.5 Phase 2 snapshot teaser: render after the bias
-                // list when in snapshot mode. Triggers the paywall.
-                if report.reportType == "snapshot",
-                   let teaser = report.analysis.snapshotTeaser,
-                   let firstTeaser = teaser.biasNames.first {
-                    Spacer().frame(height: 12)
-                    WithheldBiasTeaserCard(teaserBias: firstTeaser) {
-                        Analytics.signal(
-                            "paywall.triggered",
-                            parameters: ["source": "bias_teaser_card"]
-                        )
-                        showingPaywall = true
-                    }
-                    .padding(.horizontal, 16)
-                }
+                // iOS-PR-SNAPSHOT-RICHER-FOLLOWUP: the PR-7.5 Phase 2
+                // WithheldBiasTeaserCard rendered a 4th legacy bias
+                // ("Read this in your full report") below the 3-bias
+                // container in snapshot mode. The new 3-bias display
+                // with first-sentence evidence + LockedDollarBar
+                // already carries that story; the legacy teaser was
+                // visual redundancy. The WithheldBiasTeaserCard private
+                // type is retained at file bottom for now in case full
+                // mode ever wants it back; it has zero consumers today.
 
                 if !pertinentNegatives.isEmpty {
                     Spacer().frame(height: 28)

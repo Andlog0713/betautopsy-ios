@@ -21,6 +21,12 @@ struct AuthView: View {
     @State private var errorMessage: String? = nil
     @State private var showingError: Bool = false
 
+    @State private var tapCount: Int = 0
+    @State private var lastTapTime: Date = .distantPast
+    @State private var showingReviewerSheet: Bool = false
+    @State private var showingSampleReport: Bool = false
+    @State private var showingGlossary: Bool = false
+
     var body: some View {
         ZStack {
             DS.Color.V3.canvasGradient.ignoresSafeArea()
@@ -35,6 +41,9 @@ struct AuthView: View {
                     .padding(.top, 48)
                     .padding(.bottom, 32)
                     .accessibilityLabel("BetAutopsy")
+                    .onTapGesture {
+                        registerReviewerTap()
+                    }
 
                 VStack(alignment: .leading, spacing: DS.Spacing.md) {
                     BAChromeLabel("CASE FILE ACCESS")
@@ -54,6 +63,13 @@ struct AuthView: View {
                     signInControl
                         .padding(.horizontal, DS.Spacing.lg)
 
+                    Button("See a Sample Report") {
+                        showingSampleReport = true
+                    }
+                    .font(DS.Font.V3.captionLabel)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .padding(.top, DS.Spacing.md)
+
                     HStack(spacing: DS.Spacing.xs) {
                         Text("Problem gambling?")
                             .font(DS.Font.V3.captionLabel)
@@ -64,6 +80,18 @@ struct AuthView: View {
                             .foregroundStyle(DS.Color.V3.ctaText)
                     }
                     .padding(.top, DS.Spacing.sm)
+
+                    HStack(spacing: DS.Spacing.xs) {
+                        Text("Read about")
+                            .font(DS.Font.V3.captionLabel)
+                            .foregroundStyle(DS.Color.V3.textTertiary)
+
+                        Button("Behavioral Patterns") {
+                            showingGlossary = true
+                        }
+                        .font(DS.Font.V3.captionLabel)
+                        .foregroundStyle(DS.Color.Brand.yellow)
+                    }
                 }
                 .padding(.bottom, DS.Spacing.xxl)
             }
@@ -78,6 +106,43 @@ struct AuthView: View {
             Button("OK", role: .cancel) { }
         } message: { message in
             Text(message)
+        }
+        .sheet(isPresented: $showingReviewerSheet) {
+            ReviewerBypassSheet(onSuccess: {
+                showingSampleReport = true
+            })
+            .preferredColorScheme(.dark)
+        }
+        .sheet(isPresented: $showingSampleReport) {
+            SampleReportPreviewView(previewDismiss: {
+                showingSampleReport = false
+            })
+            .environment(onboardingCoordinator)
+            .preferredColorScheme(.dark)
+        }
+        .sheet(isPresented: $showingGlossary) {
+            NavigationStack {
+                GlossaryView()
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    /// 5-taps-in-3-seconds gesture on the lockup. When the threshold is
+    /// reached, present ReviewerBypassSheet. Reset window opens whenever
+    /// the gap between taps exceeds 3s. Local-only; no analytics emit so
+    /// the bypass leaves no fingerprint in TelemetryDeck.
+    private func registerReviewerTap() {
+        let now = Date()
+        if now.timeIntervalSince(lastTapTime) > 3.0 {
+            tapCount = 1
+        } else {
+            tapCount += 1
+        }
+        lastTapTime = now
+        if tapCount >= 5 {
+            showingReviewerSheet = true
+            tapCount = 0
         }
     }
 

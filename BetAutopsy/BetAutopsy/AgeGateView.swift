@@ -54,6 +54,13 @@ struct AgeGateView: View {
                 .padding(.top, DS.Spacing.lg)
                 .padding(.horizontal, DS.Spacing.lg)
 
+            Text("Sports betting age varies by state. 21+ where required by law.")
+                .font(.system(size: 12))
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.top, DS.Spacing.xs)
+                .padding(.horizontal, DS.Spacing.lg)
+
             Text("BetAutopsy is for adults who legally use sportsbooks, daily fantasy apps, or prediction markets. We analyze your bet history to identify behavioral patterns.")
                 .font(DS.Font.V3.bodyRegular)
                 .foregroundStyle(DS.Color.V3.textSecondary)

@@ -22,6 +22,7 @@ struct TodayView: View {
     @AppStorage("userDisciplineScore")   private var userDisciplineScore: Int = 0
 
     @State private var showingCheckIn = false
+    @State private var showingSettings = false
 
     private var hasArchetype: Bool { !userArchetype.isEmpty }
 
@@ -71,8 +72,24 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                }
+                .accessibilityLabel("Settings")
+            }
+        }
         .sheet(isPresented: $showingCheckIn) {
             PreBetCheckInView()
+                .preferredColorScheme(.dark)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
                 .preferredColorScheme(.dark)
         }
     }

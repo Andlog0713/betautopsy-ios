@@ -12,6 +12,13 @@ import SwiftUI
 struct SampleReportPreviewView: View {
     @Environment(OnboardingCoordinator.self) private var coordinator
 
+    /// Optional closure that, when non-nil, switches the view into
+    /// preview-sheet mode: bottom actions collapse to a single Done
+    /// button that calls this closure instead of advancing onboarding.
+    /// Used by AuthView reviewer paths (5-tap bypass + Sample Report
+    /// button). Default nil preserves the linear onboarding step.
+    var previewDismiss: (() -> Void)? = nil
+
     var body: some View {
         ZStack {
             DS.Color.V3.canvasGradient.ignoresSafeArea()
@@ -117,28 +124,47 @@ struct SampleReportPreviewView: View {
 
     // MARK: - Bottom actions
 
+    @ViewBuilder
     private var bottomActions: some View {
-        VStack(spacing: DS.Spacing.md) {
-            Button(action: { coordinator.advance() }) {
-                Text("Start your assessment")
-                    .font(DS.Font.V3.buttonLabel)
-                    .foregroundStyle(DS.Color.V3.primaryFillText)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(DS.Color.V3.primaryFill)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+        if let dismiss = previewDismiss {
+            VStack(spacing: DS.Spacing.md) {
+                Button(action: dismiss) {
+                    Text("Done")
+                        .font(DS.Font.V3.buttonLabel)
+                        .foregroundStyle(DS.Color.V3.primaryFillText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(DS.Color.V3.primaryFill)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+                }
             }
+            .padding(.horizontal, DS.Spacing.lg)
+            .padding(.top, DS.Spacing.sm)
+            .padding(.bottom, DS.Spacing.lg)
+            .background(DS.Color.V3.canvasGradientEnd)
+        } else {
+            VStack(spacing: DS.Spacing.md) {
+                Button(action: { coordinator.advance() }) {
+                    Text("Start your assessment")
+                        .font(DS.Font.V3.buttonLabel)
+                        .foregroundStyle(DS.Color.V3.primaryFillText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(DS.Color.V3.primaryFill)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+                }
 
-            Button(action: { coordinator.skipQuiz() }) {
-                Text("Skip preview")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(DS.Color.V3.textTertiary)
+                Button(action: { coordinator.skipQuiz() }) {
+                    Text("Skip preview")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                }
             }
+            .padding(.horizontal, DS.Spacing.lg)
+            .padding(.top, DS.Spacing.sm)
+            .padding(.bottom, DS.Spacing.lg)
+            .background(DS.Color.V3.canvasGradientEnd)
         }
-        .padding(.horizontal, DS.Spacing.lg)
-        .padding(.top, DS.Spacing.sm)
-        .padding(.bottom, DS.Spacing.lg)
-        .background(DS.Color.V3.canvasGradientEnd)
     }
 }
 

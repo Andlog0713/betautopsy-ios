@@ -83,6 +83,8 @@ struct ChapterYourNext7DaysView: View {
 
                 Spacer().frame(height: 24)
 
+                warningSignsSection
+
                 if report.reportType == "snapshot" {
                     snapshotPaywallCard
                         .padding(.horizontal, 16)
@@ -147,6 +149,46 @@ struct ChapterYourNext7DaysView: View {
         let asked = UserDefaults.standard.bool(forKey: "betautopsy.push_permission_asked")
         if !asked {
             showingPushPrompt = true
+        }
+    }
+
+    /// Warning Signs section (PR-9 Apple compliance Phase 2). Mounted
+    /// before snapshotPaywallCard/InsightCallout so it appears in both
+    /// full-report and snapshot modes. Backs the pre-emptive reviewer
+    /// response in APPLE_REVIEW_COMPLIANCE.md §12.
+    private var warningSignsSection: some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.md) {
+            BAChromeLabel("WARNING SIGNS")
+
+            Text("Watch for these patterns in your own behavior:")
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textSecondary)
+
+            VStack(alignment: .leading, spacing: DS.Spacing.sm) {
+                warningSignRow("Chasing losses with bigger stakes")
+                warningSignRow("Betting later at night than usual")
+                warningSignRow("Hiding bets or losses from family")
+                warningSignRow("Borrowing money to bet")
+                warningSignRow("Betting to escape stress or sadness")
+                warningSignRow("Lying about how much you've lost")
+            }
+
+            ResponsibleUseLink()
+                .padding(.top, DS.Spacing.md)
+        }
+        .padding(.vertical, DS.Spacing.xl)
+        .padding(.horizontal, DS.Spacing.lg)
+    }
+
+    @ViewBuilder
+    private func warningSignRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: DS.Spacing.xs) {
+            Text("\u{2022}")
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textSecondary)
+            Text(text)
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textPrimary)
         }
     }
 

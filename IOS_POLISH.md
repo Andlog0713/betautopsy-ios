@@ -16,7 +16,106 @@ Format per entry:
 
 ---
 
-## Branch: claude/ios-snapshot-richer-followup
+## Branch: claude/ios-snapshot-richer-followup-2
+
+### Why
+
+iPhone QA after PR-15 (commit 451a4b2) on snapshot 24d12db7 surfaced
+five further gaps. Two P0: "LOST" wrapping mid-word on the Ch 2 card,
+heat-signal chips truncating mid-word. Three P1: Ch 1 "READ THE
+HEATED FILE" tap is dead (was never wired), Ch 5 copy "behavioral
+patterns require deeper analysis" reads like it's blaming the user
+for thin bet data, Ch 5 "SEE THE SPORT BREAKDOWN" tap is dead (same
+unwired pattern as Ch 1).
+
+### Step 0 finding (PageStack mechanism)
+
+`ChapterNavigator.swift` source comment explicitly says
+"V1 (PR-V1): chevrons + info are DECORATIVE. No tap targets.
+Wired-up navigation is a v1.1 cascade item." Chapter advance is
+handled instead by `ReportView`'s `TabView(selection: $currentIndex)`.
+The CTAs in this PR wire to a new `onAdvance: () -> Void` closure
+on `ChapterTheVerdictView` and `ChapterYourPatternsView`, which
+`ReportView` passes at TabView construction time and which sets
+`currentIndex` to the target tag inside a `withAnimation(.easeInOut)`
+block so the transition matches a swipe.
+
+### What shipped
+
+**Fix A (P0) - Ch 2 LOST label wrap**
+
+`BetAutopsy/Components/V3/HeatedSessionPreviewCard.swift` - the
+`Text("LOST")` modifier chain gains
+`.fixedSize(horizontal: true, vertical: false)` so the single
+4-letter word never breaks across two lines when its HStack column
+is squeezed by a wide bet-count + LockedDollarBar(width: 140) pair.
+
+**Fix B (P0) - Ch 2 heat-signal chip layout**
+
+`BetAutopsy/Components/V3/HeatedSessionPreviewCard.swift` - the
+`FlowChips` view was rewritten from a custom `FlexibleChipLayout`
+(horizontal flow with `.lineLimit(1)` clamp + tail truncation) to
+a plain `VStack(alignment: .leading, spacing: 6)`. Each heat signal
+now renders on its own full-width row with a 4pt red dot bullet and
+the body text uses `.fixedSize(horizontal: false, vertical: true)`
+so a long signal like "Stakes more than doubled while chasing losses"
+wraps naturally to a second line instead of truncating mid-word.
+The `FlexibleChipLayout` Layout-protocol struct was deleted (zero
+remaining consumers).
+
+**Fix C (P1) - Ch 1 CTA wired**
+
+`BetAutopsy/ChapterTheVerdictView.swift` - `ChapterTheVerdictView`
+gains `var onAdvance: () -> Void = {}`. `handleInsightTap()` now
+calls `onAdvance()` instead of the prior `#if DEBUG print(...)`
+stub. `BetAutopsy/ReportView.swift` passes
+`{ advanceToChapter(1) }` at the Ch 1 call site. New private
+`advanceToChapter(_ index: Int)` in ReportView clamps the target
+to 0...6 and sets `currentIndex` inside a 0.25s easeInOut
+animation. Default `onAdvance: () -> Void = {}` keeps the
+`#Preview` block working standalone.
+
+**Fix D (P1) - Ch 5 copy rewrite**
+
+`BetAutopsy/ChapterYourPatternsView.swift` - `fallbackText` rewritten.
+With a known count: "You've got N detected behavioral patterns. The
+full report names them and shows what they cost you." Without a
+count: "Pattern analysis lives in the full report. Unlock to see
+your detected patterns and what they cost you." Both forms lead with
+what the user already has or is going to get, not what the engine
+needs from them.
+
+**Fix E (P1) - Ch 5 CTA wired**
+
+`BetAutopsy/ChapterYourPatternsView.swift` - same `onAdvance`
+closure pattern as Fix C. ReportView passes
+`{ advanceToChapter(5) }` (Ch 6's tag index). "SEE THE SPORT
+BREAKDOWN" now advances to Ch 6, honoring the label.
+
+### Verification
+
+- `xcodebuild -scheme BetAutopsy -destination 'platform=iOS Simulator,name=iPhone 17' build`
+  succeeds.
+- `git diff main..HEAD | grep '^+' | grep U+2014` returns zero hits.
+- `grep -rn "require deeper analysis" BetAutopsy/` returns zero hits.
+- `grep -rn "READ THE TILT FILE" BetAutopsy/` returns zero hits
+  (still gone from PR-15).
+- Simulator interactive walkthrough deferred to Andrew (snapshot
+  24d12db7 requires authenticated Supabase fetch this session cannot
+  perform).
+
+### Notes / deviations
+
+- The brief assumed ChapterNavigator's `>` arrow already advanced
+  pages; source comments confirm it has always been decorative. The
+  `onAdvance` closure pattern matches the brief's preferred option
+  ("If ChapterNavigator's > arrow uses a closure prop"), so the
+  architectural intent is preserved even though the > arrow itself
+  is still cosmetic. If a future PR wires the > arrow into the same
+  pattern, it can call the same `advanceToChapter` helper in
+  ReportView.
+
+---
 
 ### Why
 

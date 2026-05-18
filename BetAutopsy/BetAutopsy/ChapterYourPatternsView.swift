@@ -21,6 +21,11 @@ import SwiftUI
 struct ChapterYourPatternsView: View {
     let report: AutopsyReport
 
+    /// Programmatic chapter advance used by the "SEE THE SPORT BREAKDOWN"
+    /// CTA. Wired from ReportView at TabView construction time. Default
+    /// no-op preserves preview / standalone usage.
+    var onAdvance: () -> Void = {}
+
     private var sessions: [DetectedSession] {
         report.analysis.sessionDetection?.sessions ?? []
     }
@@ -110,9 +115,9 @@ struct ChapterYourPatternsView: View {
 
     private var fallbackText: String {
         if patternCount > 0 {
-            return "Behavioral patterns require deeper analysis. The full report breaks down \(patternCount) detected patterns and their dollar impact."
+            return "You've got \(patternCount) detected behavioral patterns. The full report names them and shows what they cost you."
         }
-        return "Behavioral patterns require deeper analysis. The full report breaks down your detected patterns and their dollar impact."
+        return "Pattern analysis lives in the full report. Unlock to see your detected patterns and what they cost you."
     }
 
     private var insightBody: String {
@@ -319,9 +324,7 @@ struct ChapterYourPatternsView: View {
     }
 
     private func handleInsightTap() {
-        #if DEBUG
-        print("InsightCallout tapped on Chapter 5 (V1 stub).")
-        #endif
+        onAdvance()
     }
 }
 

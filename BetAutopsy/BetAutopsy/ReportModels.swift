@@ -3,7 +3,7 @@
 //  BetAutopsy
 //
 //  Canonical Codable shapes for AutopsyAnalysis + report wrappers.
-//  Shared chapter chrome (ChapterHeader, SeverityChip, LabelChip).
+//  Shared chapter chrome (SeverityChip, LabelChip).
 //  Formatting helpers (formatCurrency, formatPct).
 //
 
@@ -26,10 +26,10 @@ enum BiasSeverity: String, Codable {
 
     var color: Color {
         switch self {
-        case .critical: return DS.Color.Semantic.blood
-        case .high:     return DS.Color.Semantic.blood.opacity(0.85)
-        case .medium:   return DS.Color.Accent.luminol
-        case .low:      return DS.Color.Text.tertiary
+        case .critical: return DS.Color.V3.Severity.red
+        case .high:     return DS.Color.V3.Severity.red.opacity(0.85)
+        case .medium:   return DS.Color.V3.Severity.yellow
+        case .low:      return DS.Color.V3.Severity.gray
         }
     }
 
@@ -54,9 +54,9 @@ enum BankrollHealth: String, Codable {
     }
     var color: Color {
         switch self {
-        case .healthy: return DS.Color.Semantic.win
-        case .caution: return DS.Color.Accent.luminol
-        case .danger:  return DS.Color.Semantic.blood
+        case .healthy: return DS.Color.V3.Severity.green
+        case .caution: return DS.Color.V3.Severity.yellow
+        case .danger:  return DS.Color.V3.Severity.red
         }
     }
 }
@@ -65,11 +65,11 @@ enum BetClassification: String, Codable {
     case disciplined, emotional, chasing, impulsive, neutral
     var color: Color {
         switch self {
-        case .disciplined: return DS.Color.Semantic.win
-        case .emotional:   return DS.Color.Accent.luminol
-        case .chasing:     return DS.Color.Semantic.blood
-        case .impulsive:   return DS.Color.Semantic.blood.opacity(0.85)
-        case .neutral:     return DS.Color.Text.tertiary
+        case .disciplined: return DS.Color.V3.Severity.green
+        case .emotional:   return DS.Color.V3.Severity.yellow
+        case .chasing:     return DS.Color.V3.Severity.red
+        case .impulsive:   return DS.Color.V3.Severity.red.opacity(0.85)
+        case .neutral:     return DS.Color.V3.Severity.gray
         }
     }
     var label: String { rawValue.uppercased() }
@@ -717,47 +717,3 @@ struct LabelChip: View {
     }
 }
 
-struct ChapterHeader: View {
-    let chipText: String
-    let alertChip: (text: String, color: Color)?
-    let title: String
-    let pullQuote: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                LabelChip(text: chipText, color: DS.Color.Text.tertiary, bgOpacity: 0.0)
-                    .background(DS.Color.Surface.raised)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tile))
-
-                if let alert = alertChip {
-                    LabelChip(text: alert.text, color: alert.color)
-                }
-            }
-
-            Text(title)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(DS.Color.Text.primary)
-                .multilineTextAlignment(.leading)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 16)
-
-            if let quote = pullQuote {
-                HStack(alignment: .top, spacing: 12) {
-                    Rectangle()
-                        .fill(DS.Color.Accent.luminol)
-                        .frame(width: 2)
-
-                    Text(quote)
-                        .font(.custom("Georgia-Italic", size: 16))
-                        .foregroundStyle(DS.Color.Text.secondary)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.top, 16)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}

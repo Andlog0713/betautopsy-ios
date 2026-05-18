@@ -63,7 +63,7 @@ struct RootTabView: View {
         NavigationStack {
             TodayView()
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(DS.Color.Surface.canvas, for: .navigationBar)
+                .toolbarBackground(DS.Color.V3.canvasGradientEnd, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar {
                     #if DEBUG
@@ -72,7 +72,7 @@ struct RootTabView: View {
                             Text("RESET")
                                 .font(.custom("JetBrainsMono-Regular", size: 10))
                                 .tracking(10 * 0.15)
-                                .foregroundStyle(DS.Color.Text.tertiary)
+                                .foregroundStyle(DS.Color.V3.textTertiary)
                         }
                     }
                     #endif
@@ -83,9 +83,9 @@ struct RootTabView: View {
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(DS.Color.Surface.canvas)
+        appearance.backgroundColor = UIColor(DS.Color.V3.canvasGradientEnd)
 
-        let inactive = UIColor(DS.Color.Text.tertiary)
+        let inactive = UIColor(DS.Color.V3.textTertiary)
         let active   = UIColor(DS.Color.Brand.yellow)
 
         for itemAppearance in [

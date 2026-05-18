@@ -18,7 +18,7 @@ struct ReportView: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
@@ -46,12 +46,12 @@ struct ReportView: View {
             Text("CASE \(report.caseNumber) · CHAPTER \(currentIndex + 1) OF 7")
                 .font(.custom("JetBrainsMono-Regular", size: 10))
                 .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
             Spacer()
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DS.Color.Text.tertiary)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
                     .frame(width: 44, height: 44)
             }
         }
@@ -64,8 +64,8 @@ struct ReportView: View {
             ForEach(0..<7, id: \.self) { i in
                 Capsule()
                     .fill(i == currentIndex
-                          ? DS.Color.Accent.luminol
-                          : DS.Color.Text.tertiary.opacity(0.4))
+                          ? DS.Color.Brand.yellow
+                          : DS.Color.V3.textTertiary.opacity(0.4))
                     .frame(width: i == currentIndex ? 14 : 4, height: 4)
                     .animation(.easeOut(duration: 0.2), value: currentIndex)
             }
@@ -78,11 +78,11 @@ struct ChapterPlaceholder: View {
 
     var body: some View {
         ZStack {
-            DS.Color.Surface.canvas.ignoresSafeArea()
+            DS.Color.V3.canvasGradient.ignoresSafeArea()
             Text(label)
                 .font(.custom("JetBrainsMono-Regular", size: 14))
                 .tracking(14 * 0.15)
-                .foregroundStyle(DS.Color.Text.tertiary)
+                .foregroundStyle(DS.Color.V3.textTertiary)
         }
     }
 }

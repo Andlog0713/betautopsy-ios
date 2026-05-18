@@ -39,7 +39,7 @@ struct RootTabView: View {
                     Label("Reports", systemImage: "doc.text")
                 }
         }
-        .tint(DS.Color.Accent.luminolSoft)
+        .tint(DS.Color.Brand.yellow)
         .overlay(alignment: .bottom) {
             UndoToast()
         }
@@ -86,7 +86,7 @@ struct RootTabView: View {
         appearance.backgroundColor = UIColor(DS.Color.Surface.canvas)
 
         let inactive = UIColor(DS.Color.Text.tertiary)
-        let active   = UIColor(DS.Color.Accent.luminolSoft)
+        let active   = UIColor(DS.Color.Brand.yellow)
 
         for itemAppearance in [
             appearance.stackedLayoutAppearance,

@@ -72,7 +72,13 @@ struct HeatedSessionPreviewCard: View {
 
                 Spacer()
 
-                LockedDollarBar(width: 140, onTap: onLockedTap)
+                HStack(spacing: 8) {
+                    Text("LOST")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.Severity.red)
+                    LockedDollarBar(width: 140, onTap: onLockedTap)
+                }
             }
 
             if !session.heatSignals.isEmpty {

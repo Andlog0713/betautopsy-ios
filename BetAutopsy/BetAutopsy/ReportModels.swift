@@ -325,6 +325,94 @@ struct DetectedSession: Codable, Identifiable {
     let gradeReasons: [String]
     let isHeated: Bool
     let heatSignals: [String]
+
+    init(
+        id: String,
+        date: String,
+        dayOfWeek: String,
+        startTime: String,
+        endTime: String,
+        durationMinutes: Int,
+        bets: Int,
+        wins: Int,
+        losses: Int,
+        pushes: Int,
+        staked: Double,
+        profit: Double,
+        roi: Double,
+        avgStake: Double,
+        stakeEscalation: Double,
+        betsPerHour: Double,
+        chaseCount: Int,
+        lateNight: Bool,
+        grade: String,
+        gradeReasons: [String],
+        isHeated: Bool,
+        heatSignals: [String]
+    ) {
+        self.id = id
+        self.date = date
+        self.dayOfWeek = dayOfWeek
+        self.startTime = startTime
+        self.endTime = endTime
+        self.durationMinutes = durationMinutes
+        self.bets = bets
+        self.wins = wins
+        self.losses = losses
+        self.pushes = pushes
+        self.staked = staked
+        self.profit = profit
+        self.roi = roi
+        self.avgStake = avgStake
+        self.stakeEscalation = stakeEscalation
+        self.betsPerHour = betsPerHour
+        self.chaseCount = chaseCount
+        self.lateNight = lateNight
+        self.grade = grade
+        self.gradeReasons = gradeReasons
+        self.isHeated = isHeated
+        self.heatSignals = heatSignals
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, date, dayOfWeek, startTime, endTime
+        case durationMinutes, bets, wins, losses, pushes
+        case staked, profit, roi, avgStake, stakeEscalation
+        case betsPerHour, chaseCount, lateNight, grade
+        case gradeReasons, isHeated, heatSignals
+    }
+
+    /// Tolerant decoder. Every field uses try? with a neutral default so
+    /// a single per-field shape mismatch (e.g. wire ships null for an
+    /// array, or a numeric arrives as a string) does not collapse the
+    /// whole [DetectedSession] decode and through it sessionDetection
+    /// itself. Was the root cause of Ch 2 not rendering on snapshot
+    /// 24d12db7-style payloads.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id              = (try? c.decode(String.self,   forKey: .id))              ?? ""
+        self.date            = (try? c.decode(String.self,   forKey: .date))            ?? ""
+        self.dayOfWeek       = (try? c.decode(String.self,   forKey: .dayOfWeek))       ?? ""
+        self.startTime       = (try? c.decode(String.self,   forKey: .startTime))       ?? ""
+        self.endTime         = (try? c.decode(String.self,   forKey: .endTime))         ?? ""
+        self.durationMinutes = (try? c.decode(Int.self,      forKey: .durationMinutes)) ?? 0
+        self.bets            = (try? c.decode(Int.self,      forKey: .bets))            ?? 0
+        self.wins            = (try? c.decode(Int.self,      forKey: .wins))            ?? 0
+        self.losses          = (try? c.decode(Int.self,      forKey: .losses))          ?? 0
+        self.pushes          = (try? c.decode(Int.self,      forKey: .pushes))          ?? 0
+        self.staked          = (try? c.decode(Double.self,   forKey: .staked))          ?? 0
+        self.profit          = (try? c.decode(Double.self,   forKey: .profit))          ?? 0
+        self.roi             = (try? c.decode(Double.self,   forKey: .roi))             ?? 0
+        self.avgStake        = (try? c.decode(Double.self,   forKey: .avgStake))        ?? 0
+        self.stakeEscalation = (try? c.decode(Double.self,   forKey: .stakeEscalation)) ?? 0
+        self.betsPerHour     = (try? c.decode(Double.self,   forKey: .betsPerHour))     ?? 0
+        self.chaseCount      = (try? c.decode(Int.self,      forKey: .chaseCount))      ?? 0
+        self.lateNight       = (try? c.decode(Bool.self,     forKey: .lateNight))       ?? false
+        self.grade           = (try? c.decode(String.self,   forKey: .grade))           ?? ""
+        self.gradeReasons    = (try? c.decode([String].self, forKey: .gradeReasons))    ?? []
+        self.isHeated        = (try? c.decode(Bool.self,     forKey: .isHeated))        ?? false
+        self.heatSignals     = (try? c.decode([String].self, forKey: .heatSignals))     ?? []
+    }
 }
 
 struct SessionGradeDistribution: Codable, Identifiable {

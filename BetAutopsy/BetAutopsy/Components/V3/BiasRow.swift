@@ -87,7 +87,13 @@ struct BiasRow: View {
                 Spacer()
 
                 if bias.isLockedCost {
-                    LockedDollarBar(width: 110, onTap: { onLockedTap?() })
+                    HStack(spacing: 8) {
+                        Text("EST. COST")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.5)
+                            .foregroundStyle(DS.Color.V3.Severity.red)
+                        LockedDollarBar(width: 110, onTap: { onLockedTap?() })
+                    }
                 } else {
                     Text("-$\(bias.costAbs)")
                         .font(DS.Font.V3.rowValue)

@@ -22,7 +22,7 @@
                             </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="LSC-sa-001"/>
-                        <color key="backgroundColor" red="0.41960784313725491" green="0.35686274509803922" blue="1.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.03921568627450980" green="0.05490196078431372" blue="0.07058823529411764" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="LSC-lb-001" firstAttribute="centerX" secondItem="LSC-vw-001" secondAttribute="centerX" id="LSC-cn-001"/>
                             <constraint firstItem="LSC-lb-001" firstAttribute="centerY" secondItem="LSC-vw-001" secondAttribute="centerY" id="LSC-cn-002"/>

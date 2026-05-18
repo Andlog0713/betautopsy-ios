@@ -26,26 +26,42 @@ struct ChapterYourBiasesView: View {
 
     @State private var showingPaywall: Bool = false
 
+    private var isSnapshot: Bool { report.reportType == "snapshot" }
+
+    /// Snapshot mode: top 3 by severity (engine V2 sorts desc on the
+    /// wire). Full mode: filter to estimatedCost > 0 sorted by cost
+    /// (existing behavior).
     private var materialBiases: [BiasDetected] {
-        report.analysis.biasesDetected
+        if isSnapshot {
+            return Array(
+                report.analysis.biasesDetected
+                    .sorted { $0.severity.sortOrder > $1.severity.sortOrder }
+                    .prefix(3)
+            )
+        }
+        return report.analysis.biasesDetected
             .filter { $0.estimatedCost > 0 }
             .sorted { $0.estimatedCost > $1.estimatedCost }
     }
 
     private var maxCost: Double {
-        materialBiases.first?.estimatedCost ?? 1
+        materialBiases.map { $0.estimatedCost }.max() ?? 1
     }
 
     private var biasRows: [BiasRow.Bias] {
         // With only one material bias, the relative-cost bar reduces
         // to full width regardless of severity, which visually
         // contradicts the severity label. Fall back to a severity-
-        // anchored fixed width in that case. Temporary defensive fix:
-        // engine bias-floor work in v1.1 should keep materialBiases
-        // count >= 3 in production.
-        let useFixedWidths = materialBiases.count == 1
+        // anchored fixed width in that case. Engine V2 ships zero
+        // estimatedCost in snapshot mode, so always use severity widths
+        // there too.
+        let useFixedWidths = isSnapshot || materialBiases.count == 1
         return materialBiases.map { bias in
-            BiasRow.Bias(
+            let lockedCost = isSnapshot
+                || bias.estimatedCostVisibility == "redacted_dollar"
+                || bias.estimatedCost == 0
+            let evidenceVisible = bias.evidenceVisibility != "hidden"
+            return BiasRow.Bias(
                 biasName: bias.biasName.uppercased(),
                 costAbs: Int(abs(bias.estimatedCost).rounded()),
                 severityLabel: severityCaps(bias.severity),
@@ -54,8 +70,10 @@ struct ChapterYourBiasesView: View {
                     ? fixedSeverityWidth(bias.severity)
                     : (maxCost > 0 ? abs(bias.estimatedCost) / maxCost : 0),
                 evidence: bias.evidence,
+                evidenceVisible: evidenceVisible,
                 translation: bias.description,
-                fix: bias.fix
+                fix: bias.fix,
+                isLockedCost: lockedCost
             )
         }
     }
@@ -159,8 +177,7 @@ struct ChapterYourBiasesView: View {
     private var biasCard: some View {
         VStack(spacing: 0) {
             ForEach(Array(biasRows.enumerated()), id: \.element.id) { index, row in
-                BiasRow(bias: row)
-                    .padding(.horizontal, 16)
+                biasRowView(for: row)
                 if index < biasRows.count - 1 {
                     V3Divider()
                         .padding(.horizontal, 16)
@@ -174,6 +191,20 @@ struct ChapterYourBiasesView: View {
                 .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func biasRowView(for row: BiasRow.Bias) -> some View {
+        BiasRow(bias: row, onLockedTap: handleBiasCostTap)
+            .padding(.horizontal, 16)
+    }
+
+    private func handleBiasCostTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch4_bias_locked_cost"]
+        )
+        showingPaywall = true
     }
 
     private var canvasGradient: LinearGradient {

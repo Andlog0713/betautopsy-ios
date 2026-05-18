@@ -166,6 +166,8 @@ struct ChapterYourSportsView: View {
         }
     }
 
+    private var isSnapshot: Bool { report.reportType == "snapshot" }
+
     private func dayTile(_ day: TimingBucket) -> some View {
         let tint: Color = day.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red
         let tintOpacity = min(0.25, abs(day.roi) / 100)
@@ -181,14 +183,26 @@ struct ChapterYourSportsView: View {
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(1.5)
                     .foregroundStyle(DS.Color.V3.textPrimary)
-                Text(formatCurrency(day.profit, signed: true))
-                    .font(.system(size: 13, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textPrimary)
+                if isSnapshot {
+                    LockedDollarBar(width: 56, onTap: handleDollarTap)
+                } else {
+                    Text(formatCurrency(day.profit, signed: true))
+                        .font(.system(size: 13, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                }
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 64)
+    }
+
+    private func handleDollarTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch6_locked_dollar"]
+        )
+        showingPaywall = true
     }
 
     // MARK: - Odds buckets
@@ -353,7 +367,24 @@ struct ChapterYourSportsView: View {
                 .padding(.top, 8)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let cost = f.estimatedCost {
+            // Engine V2 ships estimatedCost = 0 + visibility "redacted_dollar"
+            // in snapshot mode. Render the locked bar in that case (or
+            // when the wire still ships nil); otherwise format the real
+            // dollar amount.
+            let lockedCost = isSnapshot
+                || f.estimatedCostVisibility == "redacted_dollar"
+                || f.estimatedCost == nil
+                || (f.estimatedCost ?? 0) == 0
+            if lockedCost {
+                HStack(spacing: 8) {
+                    Text("ESTIMATED COST")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.Severity.red)
+                    LockedDollarBar(width: 110, onTap: handleDollarTap)
+                }
+                .padding(.top, 8)
+            } else if let cost = f.estimatedCost {
                 Text("ESTIMATED COST \(formatCurrency(cost))")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()

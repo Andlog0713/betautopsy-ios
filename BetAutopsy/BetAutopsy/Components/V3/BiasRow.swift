@@ -3,8 +3,14 @@
 //  BetAutopsy
 //
 //  V3 expandable bias row. Used in Chapter 4 (The Bias Sheet). Tap to
-//  expand; reveals evidence, translation, and fix. Custom @State
-//  expansion (NOT DisclosureGroup) for precise animation control.
+//  expand; reveals translation and fix. Custom @State expansion
+//  (NOT DisclosureGroup) for precise animation control.
+//
+//  Snapshot mode passes isLockedCost=true and onLockedTap; the row
+//  renders a LockedDollarBar in place of the signed dollar value. The
+//  evidence first-sentence renders inline in collapsed view when present
+//  (engine V2 scrubs dollars to $... so it is safe to show), with full
+//  evidence and the rest of the body inside the expanded view.
 //
 //  NOT card-wrapped at component level. The CHAPTER VIEW wraps multiple
 //  BiasRows in one container card with V3Divider between rows.
@@ -15,14 +21,16 @@ import SwiftUI
 struct BiasRow: View {
     struct Bias: Identifiable, Hashable {
         let id: UUID
-        let biasName: String       // caps display
-        let costAbs: Int           // positive int dollars
-        let severityLabel: String  // "CRITICAL"/"HIGH"/"MEDIUM"/"LOW"
-        let severityColor: Color   // resolved by chapter
-        let widthRatio: Double     // 0...1
+        let biasName: String         // caps display
+        let costAbs: Int             // positive int dollars; ignored when isLockedCost
+        let severityLabel: String    // "CRITICAL"/"HIGH"/"MEDIUM"/"LOW"
+        let severityColor: Color     // resolved by chapter
+        let widthRatio: Double       // 0...1
         let evidence: String?
+        let evidenceVisible: Bool    // default true; false hides inline evidence
         let translation: String?
         let fix: String?
+        let isLockedCost: Bool       // snapshot mode -> LockedDollarBar replaces "-$N"
 
         init(
             biasName: String,
@@ -31,8 +39,10 @@ struct BiasRow: View {
             severityColor: Color,
             widthRatio: Double,
             evidence: String? = nil,
+            evidenceVisible: Bool = true,
             translation: String? = nil,
-            fix: String? = nil
+            fix: String? = nil,
+            isLockedCost: Bool = false
         ) {
             self.id = UUID()
             self.biasName = biasName
@@ -41,13 +51,30 @@ struct BiasRow: View {
             self.severityColor = severityColor
             self.widthRatio = widthRatio
             self.evidence = evidence
+            self.evidenceVisible = evidenceVisible
             self.translation = translation
             self.fix = fix
+            self.isLockedCost = isLockedCost
         }
     }
 
     let bias: Bias
+
+    /// Called when the LockedDollarBar is tapped. No-op when the row is
+    /// not in locked-cost mode.
+    var onLockedTap: (() -> Void)? = nil
+
     @State private var expanded: Bool = false
+
+    private var evidenceFirstSentence: String? {
+        guard bias.evidenceVisible,
+              let raw = bias.evidence?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else {
+            return nil
+        }
+        let firstSentence = raw.firstSentences(1)
+        return firstSentence.isEmpty ? raw : firstSentence
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -59,10 +86,14 @@ struct BiasRow: View {
 
                 Spacer()
 
-                Text("-$\(bias.costAbs)")
-                    .font(DS.Font.V3.rowValue)
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.Severity.red)
+                if bias.isLockedCost {
+                    LockedDollarBar(width: 110, onTap: { onLockedTap?() })
+                } else {
+                    Text("-$\(bias.costAbs)")
+                        .font(DS.Font.V3.rowValue)
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.Severity.red)
+                }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
@@ -91,11 +122,18 @@ struct BiasRow: View {
                 .tracking(1.0)
                 .foregroundStyle(bias.severityColor)
 
+            if let evidenceText = evidenceFirstSentence {
+                Text(evidenceText)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .lineSpacing(2)
+                    .padding(.top, 2)
+            }
+
             if expanded {
                 VStack(alignment: .leading, spacing: 10) {
-                    if let evidence = bias.evidence, !evidence.isEmpty {
-                        labeled("EVIDENCE", body: evidence)
-                    }
                     if let translation = bias.translation, !translation.isEmpty {
                         labeled("TRANSLATION", body: translation)
                     }
@@ -115,9 +153,19 @@ struct BiasRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(bias.biasName). Cost: \(bias.costAbs) dollars. Severity: \(bias.severityLabel). Tap to expand or collapse details."
-        )
+        .accessibilityLabel(accessibilityDescription)
+    }
+
+    private var accessibilityDescription: String {
+        var parts: [String] = ["\(bias.biasName)"]
+        if bias.isLockedCost {
+            parts.append("Estimated cost locked.")
+        } else {
+            parts.append("Cost: \(bias.costAbs) dollars")
+        }
+        parts.append("Severity: \(bias.severityLabel)")
+        parts.append("Tap to expand or collapse details.")
+        return parts.joined(separator: ". ")
     }
 
     @ViewBuilder
@@ -151,10 +199,12 @@ struct BiasRow: View {
         V3Divider()
         BiasRow(bias: BiasRow.Bias(
             biasName: "PARLAY ADDICTION",
-            costAbs: 290,
-            severityLabel: "MEDIUM",
-            severityColor: DS.Color.V3.Severity.yellow,
-            widthRatio: 0.16
+            costAbs: 0,
+            severityLabel: "HIGH",
+            severityColor: DS.Color.V3.Severity.red.opacity(0.85),
+            widthRatio: 0.66,
+            evidence: "31% of your wagers were parlays of 3+ legs. Win rate on those: 6.2%.",
+            isLockedCost: true
         ))
     }
     .padding(.vertical, 2)

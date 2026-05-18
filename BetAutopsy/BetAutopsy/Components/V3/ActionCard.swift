@@ -19,16 +19,20 @@ struct ActionCard: View {
         let id: UUID
         let title: String           // sentence case for actions; caps for aggregate
         let tiedToFinding: String   // caps; empty for aggregate
-        let projectedImpact: String // formatted dollar string
+        let projectedImpact: String // formatted dollar string; ignored when isLockedImpact
         let difficulty: String      // "EASY"/"MODERATE"/"HARD"; empty for aggregate
         let isAggregate: Bool
+        let isLockedImpact: Bool    // snapshot mode -> LockedDollarBar + "projected next 90 days"
+        let impactFallback: String? // optional fallback when no dollars and no lock
 
         init(
             title: String,
             tiedToFinding: String,
             projectedImpact: String,
             difficulty: String,
-            isAggregate: Bool
+            isAggregate: Bool,
+            isLockedImpact: Bool = false,
+            impactFallback: String? = nil
         ) {
             self.id = UUID()
             self.title = title
@@ -36,6 +40,8 @@ struct ActionCard: View {
             self.projectedImpact = projectedImpact
             self.difficulty = difficulty
             self.isAggregate = isAggregate
+            self.isLockedImpact = isLockedImpact
+            self.impactFallback = impactFallback
         }
     }
 
@@ -50,6 +56,10 @@ struct ActionCard: View {
     /// rendered (aggregate cards always skip the checkbox regardless
     /// of this value).
     var onCheckoffTap: (() -> Void)? = nil
+
+    /// Callback when the LockedDollarBar is tapped. Only relevant when
+    /// action.isLockedImpact is true.
+    var onLockedTap: (() -> Void)? = nil
 
     private var strokeColor: Color {
         action.isAggregate
@@ -100,10 +110,7 @@ struct ActionCard: View {
                                    color: DS.Color.V3.textTertiary)
                     .opacity(isCompleted && !action.isAggregate ? 0.6 : 1)
 
-                Text(action.projectedImpact)
-                    .font(.system(size: 14, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textSecondary)
+                impactRow
                     .padding(.top, 4)
 
                 if !action.isAggregate && !action.difficulty.isEmpty {
@@ -128,6 +135,28 @@ struct ActionCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
         .accessibilityAddTraits(onCheckoffTap == nil ? [] : .isButton)
+    }
+
+    @ViewBuilder
+    private var impactRow: some View {
+        if action.isLockedImpact {
+            HStack(spacing: 8) {
+                LockedDollarBar(width: 110, onTap: { onLockedTap?() })
+                Text("projected next 90 days")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+            }
+        } else if !action.projectedImpact.isEmpty {
+            Text(action.projectedImpact)
+                .font(.system(size: 14, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(DS.Color.V3.textSecondary)
+        } else if let fallback = action.impactFallback, !fallback.isEmpty {
+            Text(fallback)
+                .font(.system(size: 13, weight: .semibold))
+                .tracking(1.0)
+                .foregroundStyle(DS.Color.Brand.yellow)
+        }
     }
 
     @ViewBuilder

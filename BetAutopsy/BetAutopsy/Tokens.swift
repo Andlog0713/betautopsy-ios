@@ -141,8 +141,7 @@ extension DS.Color {
         enum Severity {
             static let red    = SwiftUI.Color(hex: "#FF4D4D")
             static let orange = SwiftUI.Color(hex: "#FF7847")
-            // PR-9: #FFCD2C → #FFC66D (Darcula amber). Disambiguates
-            // severity caution from brand yellow #FACC15.
+            // Darcula amber, intentionally distinct from brand yellow #FACC15.
             static let yellow = SwiftUI.Color(hex: "#FFC66D")
             static let green  = SwiftUI.Color(hex: "#00DC82")
             static let gray   = SwiftUI.Color(hex: "#7A7E8B")

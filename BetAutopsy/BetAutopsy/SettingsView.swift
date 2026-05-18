@@ -99,7 +99,13 @@ struct SettingsView: View {
             Link("ncpgambling.org",
                  destination: URL(string: "https://www.ncpgambling.org")!)
                 .foregroundStyle(DS.Color.V3.textPrimary)
-            // Behavioral Patterns Glossary link added in Phase 5.
+
+            NavigationLink {
+                GlossaryView()
+            } label: {
+                Text("Behavioral Patterns Glossary")
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+            }
         }
     }
 

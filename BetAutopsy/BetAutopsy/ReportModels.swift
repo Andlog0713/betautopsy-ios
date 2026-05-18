@@ -209,6 +209,48 @@ struct BetIQComponents: Codable {
     let specialization: Int
     let timing: Int
     let confidence: Int
+
+    init(
+        lineValue: Int,
+        calibration: Int,
+        sophistication: Int,
+        specialization: Int,
+        timing: Int,
+        confidence: Int
+    ) {
+        self.lineValue = lineValue
+        self.calibration = calibration
+        self.sophistication = sophistication
+        self.specialization = specialization
+        self.timing = timing
+        self.confidence = confidence
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case lineValue, calibration, sophistication
+        case specialization, timing, confidence
+    }
+
+    /// Tolerant decoder. Snapshot wire may ship a sparse components
+    /// object (or omit it entirely); any per-field shape mismatch
+    /// would otherwise cascade up to BetIQResult and collapse the
+    /// hero-ring score to 0. Mirrors the PR-15 DetectedSession fix.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.lineValue      = (try? c.decode(Int.self, forKey: .lineValue))      ?? 0
+        self.calibration    = (try? c.decode(Int.self, forKey: .calibration))    ?? 0
+        self.sophistication = (try? c.decode(Int.self, forKey: .sophistication)) ?? 0
+        self.specialization = (try? c.decode(Int.self, forKey: .specialization)) ?? 0
+        self.timing         = (try? c.decode(Int.self, forKey: .timing))         ?? 0
+        self.confidence     = (try? c.decode(Int.self, forKey: .confidence))     ?? 0
+    }
+
+    /// All-zero default used as the BetIQResult.components fallback
+    /// when the wire ships no components object at all.
+    static let zero = BetIQComponents(
+        lineValue: 0, calibration: 0, sophistication: 0,
+        specialization: 0, timing: 0, confidence: 0
+    )
 }
 
 struct BetIQResult: Codable {
@@ -217,6 +259,48 @@ struct BetIQResult: Codable {
     let percentile: Int
     let interpretation: String
     let insufficientData: Bool
+
+    init(
+        score: Int,
+        components: BetIQComponents,
+        percentile: Int,
+        interpretation: String,
+        insufficientData: Bool
+    ) {
+        self.score = score
+        self.components = components
+        self.percentile = percentile
+        self.interpretation = interpretation
+        self.insufficientData = insufficientData
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case score, components, percentile, interpretation, insufficientData
+    }
+
+    /// Tolerant decoder. Snapshot wire (e.g. 24d12db7) ships a betiq
+    /// object with `score` populated but may omit `components`,
+    /// `interpretation`, or `insufficientData`. Synthesized Codable
+    /// would fail the whole BetIQResult decode on any single missing
+    /// required field, collapsing AutopsyAnalysis.betiq to nil via
+    /// the parent try? and rendering the Ch 1 hero ring as 0.
+    /// Each field reads with try? and a neutral default; score is
+    /// additionally accepted as Double in case the engine ever ships
+    /// 69.0 instead of 69.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        if let intScore = try? c.decode(Int.self, forKey: .score) {
+            self.score = intScore
+        } else if let doubleScore = try? c.decode(Double.self, forKey: .score) {
+            self.score = Int(doubleScore.rounded())
+        } else {
+            self.score = 0
+        }
+        self.components       = (try? c.decode(BetIQComponents.self, forKey: .components)) ?? .zero
+        self.percentile       = (try? c.decode(Int.self, forKey: .percentile))            ?? 0
+        self.interpretation   = (try? c.decode(String.self, forKey: .interpretation))      ?? ""
+        self.insufficientData = (try? c.decode(Bool.self, forKey: .insufficientData))      ?? false
+    }
 }
 
 struct TiltSignals: Codable {

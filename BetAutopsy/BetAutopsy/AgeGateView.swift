@@ -29,6 +29,17 @@ struct AgeGateView: View {
 
     private var gateContent: some View {
         VStack(spacing: 0) {
+            HStack {
+                Image("y-mark-yellow")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+
             Spacer()
 
             Text("BETAUTOPSY")

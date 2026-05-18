@@ -28,13 +28,16 @@ struct AuthView: View {
             VStack(spacing: 0) {
                 Spacer()
 
+                Image("betautopsy-lockup-horizontal-dark")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 160)
+                    .padding(.top, 48)
+                    .padding(.bottom, 32)
+                    .accessibilityLabel("BetAutopsy")
+
                 VStack(alignment: .leading, spacing: DS.Spacing.md) {
                     BAChromeLabel("CASE FILE ACCESS")
-
-                    Text("BetAutopsy")
-                        .font(.system(size: 40, weight: .bold))
-                        .tracking(-40 * 0.015)
-                        .foregroundStyle(DS.Color.V3.textPrimary)
 
                     Text("Behavioral analysis for sports bettors. Upload your history. See what's costing you.")
                         .font(DS.Font.V3.bodyRegular)

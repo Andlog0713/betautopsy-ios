@@ -11,8 +11,7 @@
 //    .bold    → 28pt bold title + rows
 //    .slider  → 22pt section-title + horizontal 5-segment strip
 //
-//  Migrated to V3 in PR-V12. Selection accent shifted from luminol (#6B5BFF)
-//  to V3.ctaText (#8B86E8) — slightly bluer, softer.
+//  Selection accent uses DS.Color.V3.ctaText (alias to Brand.yellow).
 //
 
 import SwiftUI
@@ -206,7 +205,7 @@ struct BetDNAQuizView: View {
             Text(option.label)
                 .font(.system(size: 16, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(isSelected ? DS.Color.V3.textPrimary : DS.Color.V3.textSecondary)
+                .foregroundStyle(isSelected ? DS.Color.Brand.canvasDark : DS.Color.V3.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(isSelected ? DS.Color.V3.ctaText : DS.Color.V3.surfaceCard)

@@ -87,6 +87,8 @@ struct PaywallView: View {
             canvasGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                brandHeader
+
                 topBar
 
                 ScrollView {
@@ -136,6 +138,21 @@ struct PaywallView: View {
                 await RevenueCatStore.shared.fetchOfferings()
             }
         }
+    }
+
+    // MARK: - Brand header
+
+    private var brandHeader: some View {
+        HStack {
+            Image("y-mark-yellow")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
+            Spacer()
+        }
+        .padding(.horizontal, DS.Spacing.md)
+        .padding(.top, DS.Spacing.sm)
     }
 
     // MARK: - Top bar
@@ -262,12 +279,12 @@ struct PaywallView: View {
             ZStack {
                 Text(PaywallCopy.ctaLabel)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .foregroundStyle(DS.Color.Brand.canvasDark)
                     .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
 
                 if RevenueCatStore.shared.isLoading {
                     ProgressView()
-                        .tint(DS.Color.V3.textPrimary)
+                        .tint(DS.Color.Brand.canvasDark)
                 }
             }
             .frame(maxWidth: .infinity)

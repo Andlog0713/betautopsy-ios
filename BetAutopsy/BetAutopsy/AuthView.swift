@@ -25,6 +25,7 @@ struct AuthView: View {
     @State private var lastTapTime: Date = .distantPast
     @State private var showingReviewerSheet: Bool = false
     @State private var showingSampleReport: Bool = false
+    @State private var showingGlossary: Bool = false
 
     var body: some View {
         ZStack {
@@ -79,6 +80,18 @@ struct AuthView: View {
                             .foregroundStyle(DS.Color.V3.ctaText)
                     }
                     .padding(.top, DS.Spacing.sm)
+
+                    HStack(spacing: DS.Spacing.xs) {
+                        Text("Read about")
+                            .font(DS.Font.V3.captionLabel)
+                            .foregroundStyle(DS.Color.V3.textTertiary)
+
+                        Button("Behavioral Patterns") {
+                            showingGlossary = true
+                        }
+                        .font(DS.Font.V3.captionLabel)
+                        .foregroundStyle(DS.Color.Brand.yellow)
+                    }
                 }
                 .padding(.bottom, DS.Spacing.xxl)
             }
@@ -105,6 +118,12 @@ struct AuthView: View {
                 showingSampleReport = false
             })
             .environment(onboardingCoordinator)
+            .preferredColorScheme(.dark)
+        }
+        .sheet(isPresented: $showingGlossary) {
+            NavigationStack {
+                GlossaryView()
+            }
             .preferredColorScheme(.dark)
         }
     }

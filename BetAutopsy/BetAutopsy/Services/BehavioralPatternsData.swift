@@ -65,40 +65,40 @@ enum BehavioralPatterns {
             example: "Six bets placed in 25 minutes after a $400 loss. Average stake on those bets is 1.8x your usual size."
         ),
         GlossaryEntry(
-            id: "hot-hand-fallacy",
-            name: "Hot Hand Fallacy",
-            definition: "Believing a recent run of wins means you're due for more wins, or that a hot streak will continue beyond what randomness supports. Outcomes of independent bets don't carry forward like that.",
-            example: "After three winning bets, your next stake is double your usual size because you feel hot."
+            id: "category-concentration-leak",
+            name: "Category Concentration Leak",
+            definition: "Allocating a large share of total volume to a single sport, league, or bet type while neglecting others. Heavy concentration means your overall results swing with that one category's variance, and a cold stretch there shows up as a much bigger drawdown than a diversified book would produce.",
+            example: "78% of your weekly bets are NBA player props. When NBA props go cold for two weeks, your bankroll takes the full hit."
         ),
         GlossaryEntry(
-            id: "recency-bias",
-            name: "Recency Bias",
-            definition: "Overweighting the most recent results when sizing or selecting your next bet. A team's last game gets more weight than its full sample. Your last bet's outcome gets more weight than your average outcome.",
-            example: "A team blows out an opponent on Sunday. You bet them on Wednesday at a shorter line because that game is still front-of-mind."
+            id: "high-pick-addiction",
+            name: "High-Pick Addiction",
+            definition: "In DFS pick'em pools, leaning heavily on 5-pick and 6-pick entries instead of 2-pick or 3-pick entries. Bigger payouts pull you toward more picks, but the probability of going perfect drops sharply with each added leg and the ROI math usually turns negative.",
+            example: "65% of your DFS entries are 5 or 6 picks. Your 5-6 pick entries are at minus 18% ROI; your 2-3 pick entries are at plus 4%."
         ),
         GlossaryEntry(
-            id: "confirmation-bias",
-            name: "Confirmation Bias",
-            definition: "Seeking out information that supports a bet you've already decided to make, and discounting information that contradicts it. The research happens after the conviction, not before.",
-            example: "You're set on the over. You read the matchup preview, focus on the pace-up angle, and skim past the defensive-rating note that argues for the under."
+            id: "power-play-preference",
+            name: "Power Play Preference",
+            definition: "In DFS pick'em pools, choosing Power Play (all picks must hit) over Flex Play (some picks can miss). Power Play prints bigger when it cashes but cashes far less often. For most bettors, Flex Play returns a better long-run ROI on the same pick set.",
+            example: "Your Power entries are at minus 22% ROI; your Flex entries on the same picks would have returned plus 6%."
+        ),
+        GlossaryEntry(
+            id: "multiplier-chasing",
+            name: "Multiplier Chasing",
+            definition: "After a loss, adding more picks to your next DFS entry to chase the bigger multiplier payout. The post-loss entry takes on more variance just when discipline matters most. Average pick count rises after losses and falls after wins, the opposite of what a steady strategy looks like.",
+            example: "Your average pick count after a loss is 5.2. After a win, it drops to 3.4."
+        ),
+        GlossaryEntry(
+            id: "player-concentration-bias",
+            name: "Player Concentration Bias",
+            definition: "Including the same player across many DFS entries or parlays in the same slate. A single player's bad night cascades through all of them at once. Diversifying across players reduces correlated risk, but loyalty to a favorite player overrides the math.",
+            example: "One player appears in 11 of your 14 DFS entries this week. He goes under, and all 11 entries lose at once."
         ),
         GlossaryEntry(
             id: "sunk-cost-fallacy",
             name: "Sunk Cost Fallacy",
             definition: "Continuing to bet on a team, player, or system because of money already lost on it, not because the next bet has positive expected value. The previous losses are gone whether you bet again or not.",
             example: "You're down $600 on a specific team this season. You bet them again at a price you wouldn't normally take, hoping to make some back."
-        ),
-        GlossaryEntry(
-            id: "gamblers-fallacy",
-            name: "Gambler's Fallacy",
-            definition: "Believing that after a string of one outcome, the opposite outcome is more likely. Independent events don't balance out within a small sample. The coin doesn't owe you tails.",
-            example: "Five unders in a row hit on the same total range. You bet the over on the sixth because it's due."
-        ),
-        GlossaryEntry(
-            id: "anchoring",
-            name: "Anchoring",
-            definition: "Letting the first number you see, usually the opening line, set your reference point for the whole market. Subsequent line movement is judged against that anchor instead of evaluated fresh.",
-            example: "The opening line is minus 3. By kickoff the line is minus 6. You take minus 6 anyway because you anchored on the value at minus 3 days earlier."
         )
     ]
 }

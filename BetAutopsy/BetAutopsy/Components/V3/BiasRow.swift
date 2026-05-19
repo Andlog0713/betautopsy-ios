@@ -17,6 +17,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct BiasRow: View {
     struct Bias: Identifiable, Hashable {
@@ -63,6 +66,12 @@ struct BiasRow: View {
     /// Called when the LockedDollarBar is tapped. No-op when the row is
     /// not in locked-cost mode.
     var onLockedTap: (() -> Void)? = nil
+
+    /// Tap target for the row itself. When non-nil, the chevron rotates
+    /// to a navigational rest pose and the row fires onTap on tap
+    /// (instead of the existing expand toggle). Used by Ch 4 to present
+    /// the BiasEvidenceSheet.
+    var onTap: (() -> Void)? = nil
 
     @State private var expanded: Bool = false
 
@@ -154,12 +163,20 @@ struct BiasRow: View {
         .padding(.vertical, 12)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                expanded.toggle()
+            if let onTap {
+                #if canImport(UIKit)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                #endif
+                onTap()
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    expanded.toggle()
+                }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
+        .accessibilityHint(onTap != nil ? "Tap for evidence bets and full fix" : "")
     }
 
     private var accessibilityDescription: String {

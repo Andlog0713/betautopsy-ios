@@ -92,6 +92,15 @@ struct ChapterYourMindView: View {
         )
     }
 
+    private func hasAnySignal(_ signals: TiltSignals) -> Bool {
+        signals.betSizingVolatility > 0
+            || signals.lossReaction > 0
+            || signals.streakBehavior > 0
+            || signals.sessionDiscipline > 0
+            || signals.sessionAcceleration > 0
+            || signals.oddsDriftAfterLoss > 0
+    }
+
     private var insightBody: String {
         if let trigger = report.analysis.enhancedTilt?.worstTrigger
             .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -121,6 +130,16 @@ struct ChapterYourMindView: View {
                     snapshotHeatedSection
                 } else {
                     fullHeatedSection
+                }
+
+                if let signals = report.analysis.enhancedTilt?.signals,
+                   hasAnySignal(signals) {
+                    Spacer().frame(height: 24)
+                    TiltSignalBreakdownCard(
+                        signals: signals,
+                        worstTrigger: report.analysis.enhancedTilt?.worstTrigger
+                    )
+                    .padding(.horizontal, 16)
                 }
 
                 if !insightBody.isEmpty {

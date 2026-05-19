@@ -91,6 +91,10 @@ struct ChapterYourBiasesView: View {
         Array((report.analysis.pertinentNegatives ?? []).prefix(3))
     }
 
+    private var strategicLeaks: [StrategicLeak] {
+        Array(report.analysis.strategicLeaks.prefix(5))
+    }
+
     private var insightBody: String {
         (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
     }
@@ -101,6 +105,34 @@ struct ChapterYourBiasesView: View {
                 ChapterNavigator(chapterNumber: 4, subtitle: "THE BIAS SHEET")
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+
+                if !strategicLeaks.isEmpty {
+                    Spacer().frame(height: 24)
+
+                    Text("WHERE YOU BLEED")
+                        .font(DS.Font.V3.rowCapsLabel)
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 12)
+
+                    VStack(spacing: 12) {
+                        ForEach(strategicLeaks) { leak in
+                            StrategicLeakCard(
+                                leak: leak,
+                                isLockedDetail: isSnapshot,
+                                onLockedTap: handleStrategicLeakLockedTap
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 24)
+                    V3Divider()
+                        .padding(.horizontal, 16)
+                }
 
                 if !biasRows.isEmpty {
                     Spacer().frame(height: 24)
@@ -197,6 +229,14 @@ struct ChapterYourBiasesView: View {
         Analytics.signal(
             "paywall.triggered",
             parameters: ["source": "ch4_bias_locked_cost"]
+        )
+        showingPaywall = true
+    }
+
+    private func handleStrategicLeakLockedTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch4_strategic_leak_locked"]
         )
         showingPaywall = true
     }

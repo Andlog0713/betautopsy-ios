@@ -71,7 +71,8 @@ struct ChapterYourMindView: View {
                     pnl: Int(session.profit.rounded()),
                     betCount: session.bets,
                     triggerLabel: trigger,
-                    behavioralSignal: secondarySignal
+                    behavioralSignal: secondarySignal,
+                    triggerEvent: session.triggerEvent
                 )
             }
     }
@@ -86,7 +87,8 @@ struct ChapterYourMindView: View {
             grade: s.grade,
             dateLabel: previewDateLabel(date: s.date, dayOfWeek: s.dayOfWeek, startTime: s.startTime),
             betCount: s.bets,
-            heatSignals: Array(s.heatSignals.prefix(3))
+            heatSignals: Array(s.heatSignals.prefix(3)),
+            triggerEvent: s.triggerEvent
         )
     }
 

@@ -428,7 +428,7 @@ struct OddsAnalysis: Codable {
 /// observed so far: "loss", "late_night", "stake_volatility". iOS treats
 /// unknown values as fallthrough at the chapter level (default chip tint
 /// and label). Nil when the engine attributed no specific trigger.
-struct TriggerEvent: Codable, Equatable {
+struct TriggerEvent: Codable, Hashable {
     let type: String
     let description: String
     let triggeringBetId: String?

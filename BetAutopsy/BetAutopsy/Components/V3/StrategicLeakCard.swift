@@ -4,7 +4,7 @@
 //
 //  Single-leak card used in Ch 4 (The Bias Sheet) under the new
 //  WHERE YOU BLEED section. Category + ROI badge + sample size on top;
-//  detail prose; FIX prose below. No dollar field on the model — the
+//  detail prose; FIX prose below. No dollar field on the model; the
 //  engine writes any dollar reference into the detail prose itself
 //  (so snapshot mode collapses to first sentence + LockedDollarBar).
 //

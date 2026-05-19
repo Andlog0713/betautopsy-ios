@@ -310,6 +310,44 @@ struct TiltSignals: Codable {
     let sessionDiscipline: Int
     let sessionAcceleration: Int
     let oddsDriftAfterLoss: Int
+
+    init(
+        betSizingVolatility: Int,
+        lossReaction: Int,
+        streakBehavior: Int,
+        sessionDiscipline: Int,
+        sessionAcceleration: Int,
+        oddsDriftAfterLoss: Int
+    ) {
+        self.betSizingVolatility  = betSizingVolatility
+        self.lossReaction         = lossReaction
+        self.streakBehavior       = streakBehavior
+        self.sessionDiscipline    = sessionDiscipline
+        self.sessionAcceleration  = sessionAcceleration
+        self.oddsDriftAfterLoss   = oddsDriftAfterLoss
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case betSizingVolatility, lossReaction, streakBehavior
+        case sessionDiscipline, sessionAcceleration, oddsDriftAfterLoss
+    }
+
+    /// Tolerant decoder. Mirrors the PR-15 pattern applied to
+    /// DetectedSession / BetIQComponents / BetIQResult. Synthesized
+    /// Codable would fail the whole TiltSignals decode on any single
+    /// missing or mistyped wire field, which through the parent try?
+    /// collapses enhancedTilt to nil and silently zeros the Ch 2
+    /// 6-signal breakdown card. Each field reads with try? and a
+    /// neutral 0 default.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.betSizingVolatility  = (try? c.decode(Int.self, forKey: .betSizingVolatility))  ?? 0
+        self.lossReaction         = (try? c.decode(Int.self, forKey: .lossReaction))         ?? 0
+        self.streakBehavior       = (try? c.decode(Int.self, forKey: .streakBehavior))       ?? 0
+        self.sessionDiscipline    = (try? c.decode(Int.self, forKey: .sessionDiscipline))    ?? 0
+        self.sessionAcceleration  = (try? c.decode(Int.self, forKey: .sessionAcceleration))  ?? 0
+        self.oddsDriftAfterLoss   = (try? c.decode(Int.self, forKey: .oddsDriftAfterLoss))   ?? 0
+    }
 }
 
 struct EnhancedTiltResult: Codable {
@@ -386,6 +424,20 @@ struct OddsAnalysis: Codable {
     let worstBucket: BucketHighlight?
 }
 
+/// Per-session trigger attribution shipped by the engine. Type values
+/// observed so far: "loss", "late_night", "stake_volatility". iOS treats
+/// unknown values as fallthrough at the chapter level (default chip tint
+/// and label). Nil when the engine attributed no specific trigger.
+struct TriggerEvent: Codable, Equatable {
+    let type: String
+    let description: String
+    let triggeringBetId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case type, description, triggeringBetId
+    }
+}
+
 struct DetectedSession: Codable, Identifiable {
     let id: String
     let date: String
@@ -409,6 +461,7 @@ struct DetectedSession: Codable, Identifiable {
     let gradeReasons: [String]
     let isHeated: Bool
     let heatSignals: [String]
+    let triggerEvent: TriggerEvent?
 
     init(
         id: String,
@@ -432,7 +485,8 @@ struct DetectedSession: Codable, Identifiable {
         grade: String,
         gradeReasons: [String],
         isHeated: Bool,
-        heatSignals: [String]
+        heatSignals: [String],
+        triggerEvent: TriggerEvent? = nil
     ) {
         self.id = id
         self.date = date
@@ -456,6 +510,7 @@ struct DetectedSession: Codable, Identifiable {
         self.gradeReasons = gradeReasons
         self.isHeated = isHeated
         self.heatSignals = heatSignals
+        self.triggerEvent = triggerEvent
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -464,6 +519,7 @@ struct DetectedSession: Codable, Identifiable {
         case staked, profit, roi, avgStake, stakeEscalation
         case betsPerHour, chaseCount, lateNight, grade
         case gradeReasons, isHeated, heatSignals
+        case triggerEvent
     }
 
     /// Tolerant decoder. Every field uses try? with a neutral default so
@@ -496,6 +552,7 @@ struct DetectedSession: Codable, Identifiable {
         self.gradeReasons    = (try? c.decode([String].self, forKey: .gradeReasons))    ?? []
         self.isHeated        = (try? c.decode(Bool.self,     forKey: .isHeated))        ?? false
         self.heatSignals     = (try? c.decode([String].self, forKey: .heatSignals))     ?? []
+        self.triggerEvent    = try? c.decode(TriggerEvent.self, forKey: .triggerEvent)
     }
 }
 
@@ -516,6 +573,19 @@ struct SessionDetectionResult: Codable {
     let insight: String
 }
 
+/// One signal contributing to a bet's classification. Engine ships an
+/// array of these on each annotation; iOS rendering currently surfaces
+/// the top 2 by weight on AnnotatedBetCard. Category values observed:
+/// "emotional", "impulsive", "disciplined". Treat unknown values as
+/// fallthrough.
+struct AnnotationSignal: Codable, Identifiable {
+    var id: String { name }
+    let name: String
+    let weight: Int
+    let category: String
+    let description: String
+}
+
 struct BetAnnotation: Codable, Identifiable {
     var id: Int { betIndex }
     let betIndex: Int
@@ -524,6 +594,69 @@ struct BetAnnotation: Codable, Identifiable {
     let primaryReason: String
     let sessionGrade: String?
     let isInHeatedSession: Bool
+    let betId: String?
+    let signals: [AnnotationSignal]?
+    let sessionId: String?
+    let currentStreak: Int?
+    let stakeVsMedian: Double?
+    let timeSinceLastBet: Double?
+
+    init(
+        betIndex: Int,
+        classification: BetClassification,
+        confidence: Double,
+        primaryReason: String,
+        sessionGrade: String? = nil,
+        isInHeatedSession: Bool = false,
+        betId: String? = nil,
+        signals: [AnnotationSignal]? = nil,
+        sessionId: String? = nil,
+        currentStreak: Int? = nil,
+        stakeVsMedian: Double? = nil,
+        timeSinceLastBet: Double? = nil
+    ) {
+        self.betIndex          = betIndex
+        self.classification    = classification
+        self.confidence        = confidence
+        self.primaryReason     = primaryReason
+        self.sessionGrade      = sessionGrade
+        self.isInHeatedSession = isInHeatedSession
+        self.betId             = betId
+        self.signals           = signals
+        self.sessionId         = sessionId
+        self.currentStreak     = currentStreak
+        self.stakeVsMedian     = stakeVsMedian
+        self.timeSinceLastBet  = timeSinceLastBet
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case betIndex, classification, confidence, primaryReason
+        case sessionGrade, isInHeatedSession
+        case betId, signals, sessionId, currentStreak
+        case stakeVsMedian, timeSinceLastBet
+    }
+
+    /// Tolerant decoder. Synthesized Codable was already brittle to wire
+    /// variation; the new optional fields make it worse. Each field reads
+    /// with try? and a neutral default so any single missing or mistyped
+    /// field cannot collapse the whole BetAnnotation, which through the
+    /// parent try? would empty the annotations array and through it
+    /// betAnnotations itself.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.betIndex          = (try? c.decode(Int.self, forKey: .betIndex)) ?? 0
+        self.classification    = (try? c.decode(BetClassification.self, forKey: .classification)) ?? .neutral
+        self.confidence        = (try? c.decode(Double.self, forKey: .confidence)) ?? 0
+        self.primaryReason     = (try? c.decode(String.self, forKey: .primaryReason)) ?? ""
+        self.sessionGrade      = try? c.decode(String.self, forKey: .sessionGrade)
+        self.isInHeatedSession = (try? c.decode(Bool.self, forKey: .isInHeatedSession)) ?? false
+        self.betId             = try? c.decode(String.self, forKey: .betId)
+        self.signals           = try? c.decode([AnnotationSignal].self, forKey: .signals)
+        self.sessionId         = try? c.decode(String.self, forKey: .sessionId)
+        self.currentStreak     = try? c.decode(Int.self, forKey: .currentStreak)
+        self.stakeVsMedian     = try? c.decode(Double.self, forKey: .stakeVsMedian)
+        self.timeSinceLastBet  = try? c.decode(Double.self, forKey: .timeSinceLastBet)
+    }
 }
 
 struct ClassificationStats: Codable, Identifiable {
@@ -536,22 +669,46 @@ struct ClassificationStats: Codable, Identifiable {
     let roi: Double
 }
 
+/// Stake comparison across streak contexts shipped by the engine.
+/// Three dollar averages: neutral, after a 3-win streak, after a
+/// 3-loss streak. Used by Ch 3 StreakInfluenceCard to expose
+/// stake-by-streak behavior.
+struct StreakInfluence: Codable {
+    let avgStakeNeutral: Double
+    let avgStakeAfterWinStreak3: Double
+    let avgStakeAfterLossStreak3: Double
+}
+
 struct AnnotationSummary: Codable {
     let annotations: [BetAnnotation]
     let distribution: [ClassificationStats]
     let emotionalCost: Double
     let insight: String
+    let worstAnnotatedBet: BetAnnotation?
+    let bestAnnotatedBet: BetAnnotation?
+    let streakInfluence: StreakInfluence?
 
-    init(annotations: [BetAnnotation], distribution: [ClassificationStats],
-         emotionalCost: Double, insight: String) {
+    init(
+        annotations: [BetAnnotation],
+        distribution: [ClassificationStats],
+        emotionalCost: Double,
+        insight: String,
+        worstAnnotatedBet: BetAnnotation? = nil,
+        bestAnnotatedBet: BetAnnotation? = nil,
+        streakInfluence: StreakInfluence? = nil
+    ) {
         self.annotations = annotations
         self.distribution = distribution
         self.emotionalCost = emotionalCost
         self.insight = insight
+        self.worstAnnotatedBet = worstAnnotatedBet
+        self.bestAnnotatedBet = bestAnnotatedBet
+        self.streakInfluence = streakInfluence
     }
 
     private enum CodingKeys: String, CodingKey {
         case annotations, distribution, emotionalCost, insight
+        case worstAnnotatedBet, bestAnnotatedBet, streakInfluence
     }
 
     /// Helper used when backend ships `distribution` as a dict keyed by
@@ -569,6 +726,9 @@ struct AnnotationSummary: Codable {
         self.annotations = (try? container.decode([BetAnnotation].self, forKey: .annotations)) ?? []
         self.emotionalCost = (try? container.decode(Double.self, forKey: .emotionalCost)) ?? 0
         self.insight = (try? container.decode(String.self, forKey: .insight)) ?? ""
+        self.worstAnnotatedBet = try? container.decode(BetAnnotation.self, forKey: .worstAnnotatedBet)
+        self.bestAnnotatedBet  = try? container.decode(BetAnnotation.self, forKey: .bestAnnotatedBet)
+        self.streakInfluence   = try? container.decode(StreakInfluence.self, forKey: .streakInfluence)
 
         if let arr = try? container.decode([ClassificationStats].self, forKey: .distribution) {
             self.distribution = arr

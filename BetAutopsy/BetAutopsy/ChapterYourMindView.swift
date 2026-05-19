@@ -71,7 +71,8 @@ struct ChapterYourMindView: View {
                     pnl: Int(session.profit.rounded()),
                     betCount: session.bets,
                     triggerLabel: trigger,
-                    behavioralSignal: secondarySignal
+                    behavioralSignal: secondarySignal,
+                    triggerEvent: session.triggerEvent
                 )
             }
     }
@@ -86,8 +87,18 @@ struct ChapterYourMindView: View {
             grade: s.grade,
             dateLabel: previewDateLabel(date: s.date, dayOfWeek: s.dayOfWeek, startTime: s.startTime),
             betCount: s.bets,
-            heatSignals: Array(s.heatSignals.prefix(3))
+            heatSignals: Array(s.heatSignals.prefix(3)),
+            triggerEvent: s.triggerEvent
         )
+    }
+
+    private func hasAnySignal(_ signals: TiltSignals) -> Bool {
+        signals.betSizingVolatility > 0
+            || signals.lossReaction > 0
+            || signals.streakBehavior > 0
+            || signals.sessionDiscipline > 0
+            || signals.sessionAcceleration > 0
+            || signals.oddsDriftAfterLoss > 0
     }
 
     private var insightBody: String {
@@ -119,6 +130,16 @@ struct ChapterYourMindView: View {
                     snapshotHeatedSection
                 } else {
                     fullHeatedSection
+                }
+
+                if let signals = report.analysis.enhancedTilt?.signals,
+                   hasAnySignal(signals) {
+                    Spacer().frame(height: 24)
+                    TiltSignalBreakdownCard(
+                        signals: signals,
+                        worstTrigger: report.analysis.enhancedTilt?.worstTrigger
+                    )
+                    .padding(.horizontal, 16)
                 }
 
                 if !insightBody.isEmpty {

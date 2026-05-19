@@ -26,6 +26,12 @@ struct ChapterYourPatternsView: View {
     /// no-op preserves preview / standalone usage.
     var onAdvance: () -> Void = {}
 
+    @State private var showingPaywall: Bool = false
+
+    private var heroContradiction: Contradiction? {
+        report.analysis.contradictions?.first
+    }
+
     private var sessions: [DetectedSession] {
         report.analysis.sessionDetection?.sessions ?? []
     }
@@ -135,6 +141,16 @@ struct ChapterYourPatternsView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
+                if let contradiction = heroContradiction {
+                    Spacer().frame(height: 24)
+                    ContradictionCard(
+                        contradiction: contradiction,
+                        isLockedCost: isSnapshot,
+                        onLockedTap: handleContradictionLockedTap
+                    )
+                    .padding(.horizontal, 16)
+                }
+
                 // Snapshot path: prefer wire-shipped behavioral_patterns
                 // (engine V2 scrubs dollars in description, render as-is).
                 // Full path: fall back to client-computed patternCards from
@@ -173,6 +189,17 @@ struct ChapterYourPatternsView: View {
             .frame(maxWidth: .infinity)
         }
         .background(canvasGradient.ignoresSafeArea())
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView(snapshotReportId: report.id)
+        }
+    }
+
+    private func handleContradictionLockedTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch5_contradiction_locked"]
+        )
+        showingPaywall = true
     }
 
     @ViewBuilder

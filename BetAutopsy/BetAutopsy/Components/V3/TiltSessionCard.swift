@@ -21,6 +21,7 @@ struct TiltSessionCard: View {
         let betCount: Int?            // rendered only if > 1
         let triggerLabel: String?     // optional, will be uppercased
         let behavioralSignal: String? // optional, will be uppercased
+        let triggerEvent: TriggerEvent?
 
         init(
             dateLabel: String,
@@ -28,7 +29,8 @@ struct TiltSessionCard: View {
             pnl: Int,
             betCount: Int? = nil,
             triggerLabel: String? = nil,
-            behavioralSignal: String? = nil
+            behavioralSignal: String? = nil,
+            triggerEvent: TriggerEvent? = nil
         ) {
             self.id = UUID()
             self.dateLabel = dateLabel
@@ -37,6 +39,7 @@ struct TiltSessionCard: View {
             self.betCount = betCount
             self.triggerLabel = triggerLabel
             self.behavioralSignal = behavioralSignal
+            self.triggerEvent = triggerEvent
         }
     }
 
@@ -56,6 +59,23 @@ struct TiltSessionCard: View {
         !session.timeRangeLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// When the engine ships a typed trigger event, its description
+    /// replaces the heuristic behavioralSignal as the row body text.
+    /// Falls back to behavioralSignal so older reports (and current
+    /// snapshot payloads where triggerEvent is nil for ~140 of 250
+    /// heated sessions in Andrew's data) keep their fallback prose.
+    private var bodyText: String? {
+        if let event = session.triggerEvent,
+           !event.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return event.description
+        }
+        if let signal = session.behavioralSignal,
+           !signal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return signal
+        }
+        return nil
+    }
+
     private var accessibilityDescription: String {
         let header = hasTimeRange
             ? "\(session.dateLabel) \(session.timeRangeLabel)"
@@ -67,11 +87,14 @@ struct TiltSessionCard: View {
         if let betCount = session.betCount, betCount > 1 {
             parts.append("\(betCount) bets")
         }
-        if let trigger = session.triggerLabel,
-           !trigger.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if let event = session.triggerEvent {
+            parts.append("Trigger: \(event.type). \(event.description)")
+        } else if let trigger = session.triggerLabel,
+                  !trigger.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             parts.append("Triggered by \(trigger)")
         }
-        if let signal = session.behavioralSignal,
+        if session.triggerEvent == nil,
+           let signal = session.behavioralSignal,
            !signal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             parts.append(signal)
         }
@@ -80,6 +103,10 @@ struct TiltSessionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if let event = session.triggerEvent {
+                TriggerEventChip(event: event)
+            }
+
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.dateLabel)
@@ -106,7 +133,8 @@ struct TiltSessionCard: View {
                     .foregroundStyle(DS.Color.V3.textTertiary)
             }
 
-            if let trigger = session.triggerLabel,
+            if session.triggerEvent == nil,
+               let trigger = session.triggerLabel,
                !trigger.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -121,12 +149,11 @@ struct TiltSessionCard: View {
                 .padding(.top, 2)
             }
 
-            if let signal = session.behavioralSignal,
-               !signal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(signal.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.0)
+            if let body = bodyText, !body.isEmpty {
+                Text(body)
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(DS.Color.V3.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 2)
             }
         }
@@ -153,13 +180,20 @@ struct TiltSessionCard: View {
             pnl: -920,
             betCount: 8,
             triggerLabel: "Loss chasing",
-            behavioralSignal: "Stake escalated 3x"
+            behavioralSignal: "Stake escalated 3x",
+            triggerEvent: TriggerEvent(
+                type: "loss",
+                description: "Started 11 minutes after a $420 NFL loss settled.",
+                triggeringBetId: "b_4422"
+            )
         ))
         TiltSessionCard(session: TiltSessionCard.Session(
             dateLabel: "NOV 22",
             timeRangeLabel: "11:42 PM - 12:51 AM",
             pnl: -540,
-            betCount: 5
+            betCount: 5,
+            triggerLabel: "Loss chasing",
+            behavioralSignal: "Stake escalated 2x"
         ))
     }
     .padding(16)

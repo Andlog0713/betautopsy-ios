@@ -20,13 +20,21 @@ struct HeatedSessionPreviewCard: View {
         let dateLabel: String     // "TUE MAR 12 - 11:47 PM"
         let betCount: Int
         let heatSignals: [String] // already truncated to <= 3 by caller
+        let triggerEvent: TriggerEvent?
 
-        init(grade: String, dateLabel: String, betCount: Int, heatSignals: [String]) {
+        init(
+            grade: String,
+            dateLabel: String,
+            betCount: Int,
+            heatSignals: [String],
+            triggerEvent: TriggerEvent? = nil
+        ) {
             self.id = UUID()
             self.grade = grade
             self.dateLabel = dateLabel
             self.betCount = betCount
             self.heatSignals = heatSignals
+            self.triggerEvent = triggerEvent
         }
     }
 
@@ -44,6 +52,10 @@ struct HeatedSessionPreviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let event = session.triggerEvent {
+                TriggerEventChip(event: event)
+            }
+
             HStack(alignment: .firstTextBaseline) {
                 Text("GRADE \(session.grade.uppercased())")
                     .font(.system(size: 10, weight: .bold))

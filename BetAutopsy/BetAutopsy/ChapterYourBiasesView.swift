@@ -25,6 +25,7 @@ struct ChapterYourBiasesView: View {
     let report: AutopsyReport
 
     @State private var showingPaywall: Bool = false
+    @State private var expandedBias: BiasDetected?
 
     private var isSnapshot: Bool { report.reportType == "snapshot" }
 
@@ -48,7 +49,17 @@ struct ChapterYourBiasesView: View {
         materialBiases.map { $0.estimatedCost }.max() ?? 1
     }
 
-    private var biasRows: [BiasRow.Bias] {
+    /// Per-row view-model pair: a UI Bias for the row chrome plus the
+    /// original BiasDetected so the chapter can pass the source object
+    /// into the evidence sheet on tap. UUID id on BiasRow.Bias is the
+    /// ForEach identity.
+    private struct BiasRowEntry: Identifiable {
+        var id: UUID { row.id }
+        let row: BiasRow.Bias
+        let source: BiasDetected
+    }
+
+    private var biasRowEntries: [BiasRowEntry] {
         // With only one material bias, the relative-cost bar reduces
         // to full width regardless of severity, which visually
         // contradicts the severity label. Fall back to a severity-
@@ -61,7 +72,7 @@ struct ChapterYourBiasesView: View {
                 || bias.estimatedCostVisibility == "redacted_dollar"
                 || bias.estimatedCost == 0
             let evidenceVisible = bias.evidenceVisibility != "hidden"
-            return BiasRow.Bias(
+            let row = BiasRow.Bias(
                 biasName: bias.biasName.uppercased(),
                 costAbs: Int(abs(bias.estimatedCost).rounded()),
                 severityLabel: severityCaps(bias.severity),
@@ -75,6 +86,7 @@ struct ChapterYourBiasesView: View {
                 fix: bias.fix,
                 isLockedCost: lockedCost
             )
+            return BiasRowEntry(row: row, source: bias)
         }
     }
 
@@ -91,6 +103,10 @@ struct ChapterYourBiasesView: View {
         Array((report.analysis.pertinentNegatives ?? []).prefix(3))
     }
 
+    private var strategicLeaks: [StrategicLeak] {
+        Array(report.analysis.strategicLeaks.prefix(5))
+    }
+
     private var insightBody: String {
         (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
     }
@@ -102,7 +118,35 @@ struct ChapterYourBiasesView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                if !biasRows.isEmpty {
+                if !strategicLeaks.isEmpty {
+                    Spacer().frame(height: 24)
+
+                    Text("WHERE YOU BLEED")
+                        .font(DS.Font.V3.rowCapsLabel)
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 12)
+
+                    VStack(spacing: 12) {
+                        ForEach(strategicLeaks) { leak in
+                            StrategicLeakCard(
+                                leak: leak,
+                                isLockedDetail: isSnapshot,
+                                onLockedTap: handleStrategicLeakLockedTap
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+
+                    Spacer().frame(height: 24)
+                    V3Divider()
+                        .padding(.horizontal, 16)
+                }
+
+                if !biasRowEntries.isEmpty {
                     Spacer().frame(height: 24)
                     biasCard
                         .padding(.horizontal, 16)
@@ -166,13 +210,20 @@ struct ChapterYourBiasesView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView(snapshotReportId: report.id)
         }
+        .sheet(item: $expandedBias) { bias in
+            BiasEvidenceSheet(
+                bias: bias,
+                isSnapshot: isSnapshot,
+                onLockedTap: handleBiasCostTap
+            )
+        }
     }
 
     private var biasCard: some View {
         VStack(spacing: 0) {
-            ForEach(Array(biasRows.enumerated()), id: \.element.id) { index, row in
-                biasRowView(for: row)
-                if index < biasRows.count - 1 {
+            ForEach(Array(biasRowEntries.enumerated()), id: \.element.id) { index, entry in
+                biasRowView(for: entry)
+                if index < biasRowEntries.count - 1 {
                     V3Divider()
                         .padding(.horizontal, 16)
                 }
@@ -188,15 +239,35 @@ struct ChapterYourBiasesView: View {
     }
 
     @ViewBuilder
-    private func biasRowView(for row: BiasRow.Bias) -> some View {
-        BiasRow(bias: row, onLockedTap: handleBiasCostTap)
-            .padding(.horizontal, 16)
+    private func biasRowView(for entry: BiasRowEntry) -> some View {
+        BiasRow(
+            bias: entry.row,
+            onLockedTap: handleBiasCostTap,
+            onTap: { handleBiasRowTap(entry.source) }
+        )
+        .padding(.horizontal, 16)
+    }
+
+    private func handleBiasRowTap(_ bias: BiasDetected) {
+        Analytics.signal(
+            "ch4.bias_evidence.opened",
+            parameters: ["bias_name": bias.biasName]
+        )
+        expandedBias = bias
     }
 
     private func handleBiasCostTap() {
         Analytics.signal(
             "paywall.triggered",
             parameters: ["source": "ch4_bias_locked_cost"]
+        )
+        showingPaywall = true
+    }
+
+    private func handleStrategicLeakLockedTap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch4_strategic_leak_locked"]
         )
         showingPaywall = true
     }

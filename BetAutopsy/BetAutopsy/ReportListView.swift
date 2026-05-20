@@ -147,6 +147,11 @@ struct ReportListView: View {
     private func reportCard(_ report: AutopsyReport, showProgressRing: Bool) -> some View {
         let ringTotal = min(6, report.analysis.recommendations.count)
         let renderRing = showProgressRing && ringTotal > 0
+        // total_profit is a redacted dollar in snapshot mode (b775e8e);
+        // rendering it inline would leak "$0". Swap for the established
+        // label + LockedDollarBar locked-dollar treatment.
+        let totalProfitRedacted = report.reportType == "snapshot"
+            || report.analysis.summary.totalProfitVisibility == "redacted_dollar"
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Text("CASE \(report.caseNumber)")
@@ -180,13 +185,24 @@ struct ReportListView: View {
                 .foregroundStyle(DS.Color.V3.textSecondary)
                 .padding(.top, 2)
 
-            Text("Your impatience cost you \(formatCurrency(abs(report.analysis.summary.totalProfit))) since November.")
-                .font(.system(size: 14, weight: .regular).italic())
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .lineSpacing(3)
-                .multilineTextAlignment(.leading)
+            if totalProfitRedacted {
+                HStack(spacing: 8) {
+                    Text("NET P/L")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                    LockedDollarBar(width: 110)
+                }
                 .padding(.top, DS.Spacing.md)
-                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Your impatience cost you \(formatCurrency(abs(report.analysis.summary.totalProfit))) since November.")
+                    .font(.system(size: 14, weight: .regular).italic())
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .lineSpacing(3)
+                    .multilineTextAlignment(.leading)
+                    .padding(.top, DS.Spacing.md)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(DS.Spacing.md)

@@ -28,8 +28,10 @@ struct ChapterYourPatternsView: View {
 
     @State private var showingPaywall: Bool = false
 
-    private var heroContradiction: Contradiction? {
-        report.analysis.contradictions?.first
+    /// Snapshot renders the top contradiction; full mode up to 3.
+    private var contradictions: [Contradiction] {
+        let all = report.analysis.contradictions ?? []
+        return Array(all.prefix(isSnapshot ? 1 : 3))
     }
 
     private var sessions: [DetectedSession] {
@@ -106,17 +108,73 @@ struct ChapterYourPatternsView: View {
 
     private var isSnapshot: Bool { report.reportType == "snapshot" }
 
-    private var wirePatterns: [BehavioralPattern] {
-        Array(report.analysis.behavioralPatterns.prefix(2))
+    /// Engine snapshot patterns array (b775e8e). behavioral_patterns ships
+    /// empty in snapshot mode (those are LLM-authored); the engine pre-
+    /// computes a 4-5 entry patternsSnapshot instead. Map each to a
+    /// PatternCard, redacting the dollar where dollarVisibility says so.
+    private var snapshotPatternCards: [PatternCard.Pattern] {
+        (report.analysis.patternsSnapshot ?? []).map { entry in
+            let title = snapshotTitle(entry.kind)
+            if entry.kind == "longest_skid" {
+                return PatternCard.Pattern(
+                    title: title,
+                    bigNumber: "\(entry.betCount) STRAIGHT",
+                    bigNumberColor: DS.Color.V3.textPrimary,
+                    namedEntity: entry.entityLabel,
+                    supportingLine: skidSupportingLine(entry)
+                )
+            }
+            let isWin = entry.kind == "biggest_win"
+            let color = isWin ? DS.Color.V3.textPrimary : DS.Color.V3.Severity.red
+            let locked = entry.dollarVisibility == "redacted_dollar" || entry.dollarValue == nil
+            if locked {
+                return PatternCard.Pattern(
+                    title: title,
+                    bigNumber: "",
+                    bigNumberColor: color,
+                    namedEntity: entry.entityLabel,
+                    supportingLine: snapshotSupportingLine(entry),
+                    isLockedDollar: true,
+                    onLockedTap: { showPatternLockedPaywall() }
+                )
+            }
+            return PatternCard.Pattern(
+                title: title,
+                bigNumber: signedDollar(Int((entry.dollarValue ?? 0).rounded())),
+                bigNumberColor: color,
+                namedEntity: entry.entityLabel,
+                supportingLine: snapshotSupportingLine(entry)
+            )
+        }
+    }
+
+    private func snapshotTitle(_ kind: String) -> String {
+        switch kind {
+        case "biggest_loss": return "BIGGEST LOSS"
+        case "worst_day":    return "WORST DAY"
+        case "worst_hour":   return "WORST HOUR"
+        case "longest_skid": return "LONGEST SKID"
+        case "biggest_win":  return "BIGGEST WIN"
+        default:             return kind.uppercased()
+        }
+    }
+
+    private func snapshotSupportingLine(_ entry: PatternsSnapshotEntry) -> String {
+        "\(entry.betCount) bets, \(formatPct(entry.roi, signed: true, decimals: 1)) ROI."
+    }
+
+    private func skidSupportingLine(_ entry: PatternsSnapshotEntry) -> String {
+        "Consecutive losing sessions."
     }
 
     private var patternCount: Int {
         report.analysis.snapshotCounts?.patterns
+            ?? report.analysis.patternsSnapshot?.count
             ?? report.analysis.behavioralPatterns.count
     }
 
     private var hasAnyPatterns: Bool {
-        !patternCards.isEmpty || !wirePatterns.isEmpty
+        !patternCards.isEmpty || !snapshotPatternCards.isEmpty
     }
 
     private var fallbackText: String {
@@ -141,34 +199,33 @@ struct ChapterYourPatternsView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                if let contradiction = heroContradiction {
-                    Spacer().frame(height: 24)
-                    ContradictionCard(
-                        contradiction: contradiction,
-                        isLockedCost: isSnapshot,
-                        onLockedTap: handleContradictionLockedTap
-                    )
-                    .padding(.horizontal, 16)
-                }
-
-                // Snapshot path: prefer wire-shipped behavioral_patterns
-                // (engine V2 scrubs dollars in description, render as-is).
-                // Full path: fall back to client-computed patternCards from
-                // sessions + timing aggregates when behavioral_patterns is
-                // empty, which preserves the rich full-report cadence.
-                if isSnapshot && !wirePatterns.isEmpty {
+                // Snapshot path: engine-precomputed patternsSnapshot
+                // (dollars redacted per dollarVisibility). Full path:
+                // client-computed patternCards from sessions + timing
+                // aggregates, preserving the rich full-report cadence.
+                let cards = isSnapshot ? snapshotPatternCards : patternCards
+                if !cards.isEmpty {
                     Spacer().frame(height: 24)
                     VStack(spacing: 12) {
-                        ForEach(wirePatterns) { p in
-                            wirePatternCard(p)
+                        ForEach(cards) { p in
+                            PatternCard(pattern: p)
                         }
                     }
                     .padding(.horizontal, 16)
-                } else if !patternCards.isEmpty {
+                }
+
+                // Contradictions render AFTER the pattern cards, before the
+                // closing callout. Snapshot shows the top one (locked
+                // annual cost); full mode up to three.
+                if !contradictions.isEmpty {
                     Spacer().frame(height: 24)
                     VStack(spacing: 12) {
-                        ForEach(patternCards) { p in
-                            PatternCard(pattern: p)
+                        ForEach(contradictions) { contradiction in
+                            ContradictionCard(
+                                contradiction: contradiction,
+                                isLockedCost: isSnapshot,
+                                onLockedTap: handleContradictionLockedTap
+                            )
                         }
                     }
                     .padding(.horizontal, 16)
@@ -202,32 +259,12 @@ struct ChapterYourPatternsView: View {
         showingPaywall = true
     }
 
-    @ViewBuilder
-    private func wirePatternCard(_ pattern: BehavioralPattern) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(pattern.patternName)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(DS.Color.V3.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(pattern.description)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .lineSpacing(3)
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+    private func showPatternLockedPaywall() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch5_pattern_locked"]
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(pattern.patternName). \(pattern.description)")
+        showingPaywall = true
     }
 
     // MARK: - Pattern computations

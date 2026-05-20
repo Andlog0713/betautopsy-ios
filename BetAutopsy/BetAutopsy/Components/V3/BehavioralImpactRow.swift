@@ -33,12 +33,15 @@ struct BehavioralImpactRow: View {
 
     private var dollarLabel: String {
         let absVal = abs(impact.dollarImpact)
+        // Magnitude zero renders "$0", never "-$0" / "+$0".
+        if absVal == 0 { return "$0" }
         let sign = impact.dollarImpact < 0 ? "-" : "+"
         return "\(sign)$\(absVal)"
     }
 
     private var dollarColor: Color {
-        impact.dollarImpact < 0 ? DS.Color.V3.Severity.red : DS.Color.V3.textPrimary
+        if impact.dollarImpact == 0 { return DS.Color.V3.textTertiary }
+        return impact.dollarImpact < 0 ? DS.Color.V3.Severity.red : DS.Color.V3.textPrimary
     }
 
     var body: some View {

@@ -36,9 +36,19 @@ struct AnnotatedBetCard: View {
 
     private var topSignals: [AnnotationSignal] {
         guard let signals = annotation.signals else { return [] }
+        // Blocker #7: the engine sometimes emits a top signal whose
+        // description is verbatim the primaryReason, so it renders as the
+        // card title and again as the first bullet. Drop the duplicate.
+        let reason = annotation.primaryReason
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
         return Array(
             signals
                 .sorted { $0.weight > $1.weight }
+                .filter {
+                    $0.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .lowercased() != reason
+                }
                 .prefix(2)
         )
     }

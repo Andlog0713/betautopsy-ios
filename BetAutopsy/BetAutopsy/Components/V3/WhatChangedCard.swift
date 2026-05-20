@@ -20,17 +20,36 @@ import SwiftUI
 struct WhatChangedCard: View {
     let whatChanged: WhatChanged
 
+    /// Bias names still flagged in this report. Used to drop -100% impact
+    /// shifts on an entity that is simultaneously active (blocker #4): a
+    /// "fell 100%" delta on a bias the report still lists reads as a
+    /// render bug, not a real improvement.
+    var activeBiasNames: Set<String> = []
+
+    /// Baseline-reset guard (blocker #3): hide the BetIQ delta row when
+    /// the previous value was 0 from a schema_version baseline reset
+    /// rather than a measured regression.
+    var suppressBetIQDelta: Bool = false
+
     private var hasArchetype: Bool {
         whatChanged.archetypeChange != nil
     }
 
     private var hasBetIQ: Bool {
-        guard let biq = whatChanged.betIQDelta else { return false }
+        guard !suppressBetIQDelta, let biq = whatChanged.betIQDelta else { return false }
         return biq.direction != .stable
     }
 
+    /// Impact deltas after dropping self-contradictory -100% entries on
+    /// biases that are still active in this report.
+    private var visibleImpactDeltas: [ImpactDelta] {
+        (whatChanged.topImpactDeltas ?? []).filter { delta in
+            !(delta.deltaPercent == -100 && activeBiasNames.contains(delta.biasName))
+        }
+    }
+
     private var hasImpacts: Bool {
-        (whatChanged.topImpactDeltas?.isEmpty == false)
+        !visibleImpactDeltas.isEmpty
     }
 
     /// Defensive double-check: if backend ships an empty whatChanged
@@ -58,9 +77,9 @@ struct WhatChangedCard: View {
                     betIQRow(biq)
                 }
 
-                if hasImpacts, let deltas = whatChanged.topImpactDeltas {
+                if hasImpacts {
                     V3Divider()
-                    impactSection(deltas)
+                    impactSection(visibleImpactDeltas)
                 }
             }
             .background(DS.Color.V3.surfaceCard)

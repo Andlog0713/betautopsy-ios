@@ -35,6 +35,20 @@ struct ChapterYourMindView: View {
         report.analysis.emotionScore
     }
 
+    /// Engine global sample floor (c9d9d56): emotion score zeroed below
+    /// the floor (sibling flag at analysis root, or score 0 with a null
+    /// percentile on the wire).
+    private var emotionInsufficient: Bool {
+        report.analysis.emotionScoreInsufficientData == true
+            || (report.analysis.emotionScore == 0 && report.analysis.emotionPercentile == nil)
+    }
+
+    /// Engine global sample floor (c9d9d56): narrow session-detection gate
+    /// (n < 20). Both heated sections collapse to one building-sample card.
+    private var sessionsInsufficient: Bool {
+        report.analysis.sessionDetection?.insufficientData == true
+    }
+
     private var heatedSessions: [DetectedSession] {
         (report.analysis.sessionDetection?.sessions ?? [])
             .filter { $0.isHeated }
@@ -120,13 +134,19 @@ struct ChapterYourMindView: View {
 
                 Spacer().frame(height: 28)
 
-                HeroRingView(
-                    score: emotionScore,
-                    metricLabel: "EMOTION",
-                    higherIsWorse: true
-                )
+                if emotionInsufficient {
+                    HeroRingInsufficient(metricLabel: "EMOTION")
+                } else {
+                    HeroRingView(
+                        score: emotionScore,
+                        metricLabel: "EMOTION",
+                        higherIsWorse: true
+                    )
+                }
 
-                if isSnapshot {
+                if sessionsInsufficient {
+                    heatedInsufficientCard
+                } else if isSnapshot {
                     snapshotHeatedSection
                 } else {
                     fullHeatedSection
@@ -163,6 +183,32 @@ struct ChapterYourMindView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView(snapshotReportId: report.id)
         }
+    }
+
+    /// Narrow session-detection floor (c9d9d56): single building-sample
+    /// card replacing both the snapshot and full heated sections.
+    private var heatedInsufficientCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HEATED SESSIONS")
+                .font(DS.Font.V3.rowCapsLabel)
+                .tracking(1.5)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+
+            Text("Heated session detection needs more bet history.")
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(DS.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.top, 28)
     }
 
     @ViewBuilder

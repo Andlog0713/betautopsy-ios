@@ -100,7 +100,16 @@ struct ChapterYourBiasesView: View {
     }
 
     private var pertinentNegatives: [PertinentNegative] {
-        Array((report.analysis.pertinentNegatives ?? []).prefix(3))
+        // Drop empty findings and "not detected" placeholder rows; they
+        // read as filler under WHAT YOU'RE DOING RIGHT.
+        Array(
+            (report.analysis.pertinentNegatives ?? [])
+                .filter { item in
+                    let f = item.finding.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return !f.isEmpty && !f.lowercased().contains("not detected")
+                }
+                .prefix(3)
+        )
     }
 
     private var strategicLeaks: [StrategicLeak] {

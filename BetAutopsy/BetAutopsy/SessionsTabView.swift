@@ -110,7 +110,7 @@ struct SessionsTabView: View {
                 .padding(.top, 12)
 
             HStack {
-                Text("\(s.bets) bets")
+                Text(s.bets.pluralized("bet", "bets"))
                     .font(.system(size: 13, weight: .regular).monospacedDigit())
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)

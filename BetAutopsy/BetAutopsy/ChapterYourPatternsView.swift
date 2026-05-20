@@ -58,7 +58,7 @@ struct ChapterYourPatternsView: View {
                 bigNumber: signedDollar(Int(worst.profit.rounded())),
                 bigNumberColor: DS.Color.V3.Severity.red,
                 namedEntity: worst.date,
-                supportingLine: "\(worst.bets) bets in a \(worst.durationMinutes)-minute session."
+                supportingLine: "\(worst.bets.pluralized("bet", "bets")) in a \(worst.durationMinutes)-minute session."
             ))
         }
 
@@ -69,8 +69,8 @@ struct ChapterYourPatternsView: View {
                 title: "WORST DAY",
                 bigNumber: signedDollar(Int(worstDay.profit.rounded())),
                 bigNumberColor: DS.Color.V3.Severity.red,
-                namedEntity: dayLabel(worstDay.label),
-                supportingLine: "\(worstDay.bets) bets, \(formatPct(worstDay.roi, signed: true, decimals: 1)) ROI."
+                namedEntity: singularizedEntityLabel(dayLabel(worstDay.label), betCount: worstDay.bets),
+                supportingLine: "\(worstDay.bets.pluralized("bet", "bets")), \(formatPct(worstDay.roi, signed: true, decimals: 1)) ROI."
             ))
         }
 
@@ -82,7 +82,7 @@ struct ChapterYourPatternsView: View {
                 bigNumber: signedDollar(Int(worstHour.profit.rounded())),
                 bigNumberColor: DS.Color.V3.Severity.red,
                 namedEntity: hourLabel(worstHour.label),
-                supportingLine: "\(worstHour.bets) bets, \(formatPct(worstHour.roi, signed: true, decimals: 1)) ROI."
+                supportingLine: "\(worstHour.bets.pluralized("bet", "bets")), \(formatPct(worstHour.roi, signed: true, decimals: 1)) ROI."
             ))
         }
 
@@ -99,7 +99,7 @@ struct ChapterYourPatternsView: View {
                 bigNumber: signedDollar(Int(best.profit.rounded())),
                 bigNumberColor: DS.Color.V3.textPrimary,
                 namedEntity: best.date,
-                supportingLine: "\(best.bets) bets, \(formatPct(best.roi, signed: true, decimals: 1)) ROI."
+                supportingLine: "\(best.bets.pluralized("bet", "bets")), \(formatPct(best.roi, signed: true, decimals: 1)) ROI."
             ))
         }
 
@@ -115,12 +115,15 @@ struct ChapterYourPatternsView: View {
     private var snapshotPatternCards: [PatternCard.Pattern] {
         (report.analysis.patternsSnapshot ?? []).map { entry in
             let title = snapshotTitle(entry.kind)
+            // Engine bug: ships plural day name even on n=1. v1.1 engine
+            // row filed; iOS singularizes defensively here.
+            let entity = singularizedEntityLabel(entry.entityLabel, betCount: entry.betCount)
             if entry.kind == "longest_skid" {
                 return PatternCard.Pattern(
                     title: title,
                     bigNumber: "\(entry.betCount) STRAIGHT",
                     bigNumberColor: DS.Color.V3.textPrimary,
-                    namedEntity: entry.entityLabel,
+                    namedEntity: entity,
                     supportingLine: skidSupportingLine(entry)
                 )
             }
@@ -132,7 +135,7 @@ struct ChapterYourPatternsView: View {
                     title: title,
                     bigNumber: "",
                     bigNumberColor: color,
-                    namedEntity: entry.entityLabel,
+                    namedEntity: entity,
                     supportingLine: snapshotSupportingLine(entry),
                     isLockedDollar: true,
                     onLockedTap: { showPatternLockedPaywall() }
@@ -142,10 +145,23 @@ struct ChapterYourPatternsView: View {
                 title: title,
                 bigNumber: signedDollar(Int((entry.dollarValue ?? 0).rounded())),
                 bigNumberColor: color,
-                namedEntity: entry.entityLabel,
+                namedEntity: entity,
                 supportingLine: snapshotSupportingLine(entry)
             )
         }
+    }
+
+    private static let weekdayPlurals: Set<String> = [
+        "Mondays", "Tuesdays", "Wednesdays", "Thursdays",
+        "Fridays", "Saturdays", "Sundays"
+    ]
+
+    /// Engine ships plural day-name entityLabels ("Saturdays") even when
+    /// betCount == 1. Strip the trailing "s" in that single case. Proper
+    /// fix is engine-side (v1.1 row filed); this is the iOS guard.
+    private func singularizedEntityLabel(_ label: String, betCount: Int) -> String {
+        guard betCount == 1, Self.weekdayPlurals.contains(label) else { return label }
+        return String(label.dropLast())
     }
 
     private func snapshotTitle(_ kind: String) -> String {
@@ -160,7 +176,7 @@ struct ChapterYourPatternsView: View {
     }
 
     private func snapshotSupportingLine(_ entry: PatternsSnapshotEntry) -> String {
-        "\(entry.betCount) bets, \(formatPct(entry.roi, signed: true, decimals: 1)) ROI."
+        "\(entry.betCount.pluralized("bet", "bets")), \(formatPct(entry.roi, signed: true, decimals: 1)) ROI."
     }
 
     private func skidSupportingLine(_ entry: PatternsSnapshotEntry) -> String {

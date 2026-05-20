@@ -179,7 +179,7 @@ struct ReportListView: View {
                 .foregroundStyle(DS.Color.V3.textPrimary)
                 .padding(.top, DS.Spacing.sm)
 
-            Text("\(report.betCountAnalyzed) bets analyzed")
+            Text("\(report.betCountAnalyzed.pluralized("bet", "bets")) analyzed")
                 .font(.system(size: 13, weight: .regular).monospacedDigit())
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.V3.textSecondary)

@@ -155,7 +155,7 @@ struct ChapterYourSportsView: View {
                 .padding(.top, 16)
 
                 if let lateNight = timing.lateNightStats {
-                    Text("\(lateNight.count) bets after 10pm. ROI: \(Int(lateNight.roi.rounded()))%. Cut these and recover most of the bleed.")
+                    Text("\(lateNight.count.pluralized("bet", "bets")) after 10pm. ROI: \(Int(lateNight.roi.rounded()))%. Cut these and recover most of the bleed.")
                         .font(.system(size: 14))
                         .foregroundStyle(DS.Color.V3.textSecondary)
                         .lineSpacing(3)
@@ -277,7 +277,7 @@ struct ChapterYourSportsView: View {
                 .padding(.top, 4)
 
             if redactedPercents {
-                Text("\(b.bets) BETS")
+                Text(b.bets.pluralizedCaps("BET", "BETS"))
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
                     .tracking(1.5)
@@ -285,7 +285,7 @@ struct ChapterYourSportsView: View {
                     .padding(.top, 8)
             } else {
                 HStack {
-                    Text("\(b.bets) BETS")
+                    Text(b.bets.pluralizedCaps("BET", "BETS"))
                         .font(.system(size: 10, weight: .semibold))
                         .monospacedDigit()
                         .tracking(1.5)

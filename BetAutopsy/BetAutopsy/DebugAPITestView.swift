@@ -100,7 +100,7 @@ struct DebugAPITestView: View {
                             status = "Server accepted"
                         case .complete(_, let reportId, let reportType,
                                        let bets, _, _):
-                            lastEvent = "complete (\(reportType), \(bets) bets, id=\(reportId ?? "nil"))"
+                            lastEvent = "complete (\(reportType), \(bets.pluralized("bet", "bets")), id=\(reportId ?? "nil"))"
                             status = "Done"
                         case .error(let msg):
                             lastEvent = "error: \(msg)"

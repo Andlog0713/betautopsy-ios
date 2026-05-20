@@ -60,7 +60,7 @@ struct StrategicLeakCard: View {
                 roiBadge
             }
 
-            Text("\(leak.sampleSize) bets")
+            Text(leak.sampleSize.pluralized("bet", "bets"))
                 .font(.system(size: 13, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.V3.textSecondary)

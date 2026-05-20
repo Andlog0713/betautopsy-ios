@@ -133,7 +133,7 @@ struct ChapterTheVerdictView: View {
                 if !topDamages.isEmpty, !archetypeBuildingSample {
                     Spacer().frame(height: 24)
 
-                    Text("TOP DAMAGES \u{00B7} \(totalBets) BETS")
+                    Text("TOP DAMAGES \u{00B7} \(totalBets.pluralizedCaps("BET", "BETS"))")
                         .font(DS.Font.V3.navigatorSubtitle)
                         .tracking(1.8)
                         .foregroundStyle(DS.Color.V3.textTertiary)

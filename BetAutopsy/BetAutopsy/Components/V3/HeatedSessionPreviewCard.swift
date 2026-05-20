@@ -77,7 +77,7 @@ struct HeatedSessionPreviewCard: View {
             }
 
             HStack(alignment: .center, spacing: 12) {
-                Text("\(session.betCount) bets")
+                Text(session.betCount.pluralized("bet", "bets"))
                     .font(.system(size: 16, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)

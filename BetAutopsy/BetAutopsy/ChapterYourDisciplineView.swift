@@ -38,6 +38,13 @@ struct ChapterYourDisciplineView: View {
         report.analysis.disciplineScore?.total ?? 0
     }
 
+    /// Engine global sample floor (c9d9d56): discipline detector below
+    /// floor. Hero swaps to building-sample and the component breakdown,
+    /// distribution bar and stake-by-streak card are all suppressed.
+    private var disciplineInsufficient: Bool {
+        report.analysis.disciplineScore?.insufficientData == true
+    }
+
     private var sessions: [DetectedSession] {
         report.analysis.sessionDetection?.sessions ?? []
     }
@@ -137,31 +144,39 @@ struct ChapterYourDisciplineView: View {
 
                 Spacer().frame(height: 28)
 
-                HeroRingView(
-                    score: disciplineTotal,
-                    metricLabel: "DISCIPLINE",
-                    higherIsWorse: false
-                )
-
-                if let annotations {
-                    annotationsSection(annotations)
+                if disciplineInsufficient {
+                    HeroRingInsufficient(metricLabel: "DISCIPLINE")
                 } else {
-                    legacySection
+                    HeroRingView(
+                        score: disciplineTotal,
+                        metricLabel: "DISCIPLINE",
+                        higherIsWorse: false
+                    )
                 }
 
-                Spacer().frame(height: 28)
+                if disciplineInsufficient {
+                    disciplineInsufficientCard
+                } else {
+                    if let annotations {
+                        annotationsSection(annotations)
+                    } else {
+                        legacySection
+                    }
 
-                Text("COMPONENT BREAKDOWN")
-                    .font(DS.Font.V3.navigatorSubtitle)
-                    .tracking(1.8)
-                    .foregroundStyle(DS.Color.V3.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
+                    Spacer().frame(height: 28)
 
-                Spacer().frame(height: 8)
+                    Text("COMPONENT BREAKDOWN")
+                        .font(DS.Font.V3.navigatorSubtitle)
+                        .tracking(1.8)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
 
-                componentBreakdown
-                    .padding(.horizontal, 16)
+                    Spacer().frame(height: 8)
+
+                    componentBreakdown
+                        .padding(.horizontal, 16)
+                }
 
                 if !insightBody.isEmpty {
                     Spacer().frame(height: 24)
@@ -182,6 +197,32 @@ struct ChapterYourDisciplineView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView(snapshotReportId: report.id)
         }
+    }
+
+    /// Discipline sample floor (c9d9d56): single building-sample card
+    /// replacing the annotations/legacy section + component breakdown.
+    private var disciplineInsufficientCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DISCIPLINE AUDIT")
+                .font(DS.Font.V3.rowCapsLabel)
+                .tracking(1.5)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+
+            Text("Discipline scoring needs more bet history.")
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(DS.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.top, 28)
     }
 
     @ViewBuilder
@@ -207,7 +248,10 @@ struct ChapterYourDisciplineView: View {
                     AnnotatedBetCard(role: .best, annotation: best)
                         .frame(width: 320)
                 }
-                .padding(.horizontal, 16)
+                // Extra trailing inset so the second card's right edge is
+                // not flush-cut at the screen boundary on first render.
+                .padding(.leading, 16)
+                .padding(.trailing, 32)
             }
         } else if let worst = annotations.worstAnnotatedBet {
             Spacer().frame(height: 20)
@@ -220,7 +264,10 @@ struct ChapterYourDisciplineView: View {
         }
 
         if let streak = annotations.streakInfluence,
-           streak.avgStakeNeutral > 0 {
+           streak.avgStakeNeutral > 0,
+           // Suppress the all-$0 streak rows: if both streak-context
+           // averages are zero there is no behavior to show.
+           (streak.avgStakeAfterWinStreak3 > 0 || streak.avgStakeAfterLossStreak3 > 0) {
             Spacer().frame(height: 20)
             StreakInfluenceCard(
                 influence: streak,

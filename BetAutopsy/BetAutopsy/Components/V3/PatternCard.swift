@@ -12,20 +12,26 @@
 import SwiftUI
 
 struct PatternCard: View {
-    struct Pattern: Identifiable, Hashable {
+    struct Pattern: Identifiable {
         let id: UUID
         let title: String           // caps display
         let bigNumber: String       // pre-formatted display string
         let bigNumberColor: Color
         let namedEntity: String     // sentence case
         let supportingLine: String? // optional
+        // Snapshot redaction: when true the big number is a paywalled
+        // dollar and a LockedDollarBar renders in its place.
+        let isLockedDollar: Bool
+        let onLockedTap: (() -> Void)?
 
         init(
             title: String,
             bigNumber: String,
             bigNumberColor: Color,
             namedEntity: String,
-            supportingLine: String? = nil
+            supportingLine: String? = nil,
+            isLockedDollar: Bool = false,
+            onLockedTap: (() -> Void)? = nil
         ) {
             self.id = UUID()
             self.title = title
@@ -33,6 +39,8 @@ struct PatternCard: View {
             self.bigNumberColor = bigNumberColor
             self.namedEntity = namedEntity
             self.supportingLine = supportingLine
+            self.isLockedDollar = isLockedDollar
+            self.onLockedTap = onLockedTap
         }
     }
 
@@ -54,10 +62,14 @@ struct PatternCard: View {
                 .tracking(1.4)
                 .foregroundStyle(DS.Color.V3.textTertiary)
 
-            Text(pattern.bigNumber)
-                .font(.system(size: 44, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(pattern.bigNumberColor)
+            if pattern.isLockedDollar {
+                LockedDollarBar(width: 110, onTap: pattern.onLockedTap ?? {})
+            } else {
+                Text(pattern.bigNumber)
+                    .font(.system(size: 44, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(pattern.bigNumberColor)
+            }
 
             Text(pattern.namedEntity)
                 .font(.system(size: 15, weight: .semibold))

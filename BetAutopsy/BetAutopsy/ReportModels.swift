@@ -85,6 +85,35 @@ struct AutopsySummary: Codable {
     let avgStake: Double
     let dateRange: String
     let overallGrade: String
+
+    // Engine snapshot redaction tags (b775e8e). total_profit + avg_stake
+    // are dollar headlines zeroed to 0 in snapshot mode with the matching
+    // tag set to "redacted_dollar". total_bets / record / roi / date_range
+    // stay visible. Optional + try? everywhere so older wire decodes clean.
+    let totalProfitVisibility: String?
+    let avgStakeVisibility: String?
+
+    init(
+        totalBets: Int,
+        record: String,
+        totalProfit: Double,
+        roiPercent: Double,
+        avgStake: Double,
+        dateRange: String,
+        overallGrade: String,
+        totalProfitVisibility: String? = nil,
+        avgStakeVisibility: String? = nil
+    ) {
+        self.totalBets = totalBets
+        self.record = record
+        self.totalProfit = totalProfit
+        self.roiPercent = roiPercent
+        self.avgStake = avgStake
+        self.dateRange = dateRange
+        self.overallGrade = overallGrade
+        self.totalProfitVisibility = totalProfitVisibility
+        self.avgStakeVisibility = avgStakeVisibility
+    }
 }
 
 struct BiasDetected: Codable, Identifiable {
@@ -142,6 +171,30 @@ struct StrategicLeak: Codable, Identifiable {
     let roiImpact: Double
     let sampleSize: Int
     let suggestion: String
+
+    // Engine snapshot redaction tags (b775e8e). Snapshot: detail ships a
+    // deterministic first-sentence teaser (visible), suggestion hidden.
+    // Full: both visible. Optional so older wire decodes unchanged.
+    let detailVisibility: String?
+    let suggestionVisibility: String?
+
+    init(
+        category: String,
+        detail: String,
+        roiImpact: Double,
+        sampleSize: Int,
+        suggestion: String,
+        detailVisibility: String? = nil,
+        suggestionVisibility: String? = nil
+    ) {
+        self.category = category
+        self.detail = detail
+        self.roiImpact = roiImpact
+        self.sampleSize = sampleSize
+        self.suggestion = suggestion
+        self.detailVisibility = detailVisibility
+        self.suggestionVisibility = suggestionVisibility
+    }
 }
 
 struct BehavioralPattern: Codable, Identifiable {
@@ -200,6 +253,29 @@ struct DisciplineScore: Codable {
     let control: Int
     let strategy: Int
     let percentile: Int?
+
+    // Engine global sample floor (c9d9d56). True when the discipline
+    // detector did not meet its per-detector sample minimum; all-zero
+    // components ship and iOS swaps in the building-sample treatment.
+    let insufficientData: Bool?
+
+    init(
+        total: Int,
+        tracking: Int,
+        sizing: Int,
+        control: Int,
+        strategy: Int,
+        percentile: Int? = nil,
+        insufficientData: Bool? = nil
+    ) {
+        self.total = total
+        self.tracking = tracking
+        self.sizing = sizing
+        self.control = control
+        self.strategy = strategy
+        self.percentile = percentile
+        self.insufficientData = insufficientData
+    }
 }
 
 struct BetIQComponents: Codable {
@@ -356,6 +432,26 @@ struct EnhancedTiltResult: Codable {
     let riskLevel: String
     let worstTrigger: String
     let percentile: Int
+
+    // Engine global sample floor (c9d9d56). True when the heated-session
+    // (enhanced_tilt) detector did not meet its sample minimum.
+    let insufficientData: Bool?
+
+    init(
+        score: Int,
+        signals: TiltSignals,
+        riskLevel: String,
+        worstTrigger: String,
+        percentile: Int,
+        insufficientData: Bool? = nil
+    ) {
+        self.score = score
+        self.signals = signals
+        self.riskLevel = riskLevel
+        self.worstTrigger = worstTrigger
+        self.percentile = percentile
+        self.insufficientData = insufficientData
+    }
 }
 
 struct TimingBucket: Codable, Identifiable {
@@ -368,6 +464,32 @@ struct TimingBucket: Codable, Identifiable {
     let profit: Double
     let roi: Double
     let winRate: Double
+
+    // Engine snapshot redaction tag (b775e8e). staked is a dollar sum
+    // redacted in snapshot mode. Optional for backward-compat.
+    let stakedVisibility: String?
+
+    init(
+        label: String,
+        bets: Int,
+        wins: Int,
+        losses: Int,
+        staked: Double,
+        profit: Double,
+        roi: Double,
+        winRate: Double,
+        stakedVisibility: String? = nil
+    ) {
+        self.label = label
+        self.bets = bets
+        self.wins = wins
+        self.losses = losses
+        self.staked = staked
+        self.profit = profit
+        self.roi = roi
+        self.winRate = winRate
+        self.stakedVisibility = stakedVisibility
+    }
 }
 
 struct TimingWindow: Codable {
@@ -405,6 +527,43 @@ struct OddsBucket: Codable, Identifiable {
     let impliedProb: Double
     let actualWinRate: Double
     let edge: Double
+
+    // Engine snapshot redaction tag (b775e8e). staked is a dollar sum
+    // redacted in snapshot mode. (roi/win_rate/edge/actual_win_rate are
+    // also zeroed in snapshot; Ch 6 detects that via the literal-zero
+    // signature rather than carrying every percent tag.) Optional for
+    // backward-compat.
+    let stakedVisibility: String?
+
+    init(
+        label: String,
+        range: String,
+        bets: Int,
+        wins: Int,
+        losses: Int,
+        staked: Double,
+        profit: Double,
+        roi: Double,
+        winRate: Double,
+        impliedProb: Double,
+        actualWinRate: Double,
+        edge: Double,
+        stakedVisibility: String? = nil
+    ) {
+        self.label = label
+        self.range = range
+        self.bets = bets
+        self.wins = wins
+        self.losses = losses
+        self.staked = staked
+        self.profit = profit
+        self.roi = roi
+        self.winRate = winRate
+        self.impliedProb = impliedProb
+        self.actualWinRate = actualWinRate
+        self.edge = edge
+        self.stakedVisibility = stakedVisibility
+    }
 }
 
 struct BucketHighlight: Codable {
@@ -571,6 +730,31 @@ struct SessionDetectionResult: Codable {
     let heatedSessionCount: Int
     let heatedSessionPercent: Double
     let insight: String
+
+    // Engine global sample floor (c9d9d56). Narrow gate (n < 20): when
+    // true the session detector did not meet its sample minimum and Ch 2
+    // collapses both heated sections to a single building-sample card.
+    let insufficientData: Bool?
+
+    init(
+        sessions: [DetectedSession],
+        totalSessions: Int,
+        avgSessionDuration: Double,
+        sessionGradeDistribution: [SessionGradeDistribution],
+        heatedSessionCount: Int,
+        heatedSessionPercent: Double,
+        insight: String,
+        insufficientData: Bool? = nil
+    ) {
+        self.sessions = sessions
+        self.totalSessions = totalSessions
+        self.avgSessionDuration = avgSessionDuration
+        self.sessionGradeDistribution = sessionGradeDistribution
+        self.heatedSessionCount = heatedSessionCount
+        self.heatedSessionPercent = heatedSessionPercent
+        self.insight = insight
+        self.insufficientData = insufficientData
+    }
 }
 
 /// One signal contributing to a bet's classification. Engine ships an
@@ -761,8 +945,13 @@ struct SportSpecificFinding: Codable, Identifiable {
     let estimatedCost: Double?
     let recommendation: String
 
-    // Engine V2 additive visibility tag (see BiasDetected for semantics).
+    // Engine V2 additive visibility tags (see BiasDetected for semantics).
+    // estimatedCostVisibility predates this PR; description/recommendation
+    // tags added for the b775e8e snapshot redaction (description ships a
+    // first-sentence teaser visible, recommendation hidden).
     let estimatedCostVisibility: String?
+    let descriptionVisibility: String?
+    let recommendationVisibility: String?
 
     init(
         findingId: String?,
@@ -773,7 +962,9 @@ struct SportSpecificFinding: Codable, Identifiable {
         evidence: String,
         estimatedCost: Double?,
         recommendation: String,
-        estimatedCostVisibility: String? = nil
+        estimatedCostVisibility: String? = nil,
+        descriptionVisibility: String? = nil,
+        recommendationVisibility: String? = nil
     ) {
         self.findingId = findingId
         self.name = name
@@ -784,6 +975,8 @@ struct SportSpecificFinding: Codable, Identifiable {
         self.estimatedCost = estimatedCost
         self.recommendation = recommendation
         self.estimatedCostVisibility = estimatedCostVisibility
+        self.descriptionVisibility = descriptionVisibility
+        self.recommendationVisibility = recommendationVisibility
     }
 }
 
@@ -866,6 +1059,16 @@ struct BettingArchetypeData: Codable {
     let name: String
     let description: String
 
+    // Engine global sample floor (c9d9d56). True (and name == "Building
+    // Sample") when the archetype detector did not meet its sample floor.
+    let insufficientData: Bool?
+
+    init(name: String, description: String, insufficientData: Bool? = nil) {
+        self.name = name
+        self.description = description
+        self.insufficientData = insufficientData
+    }
+
     var color: Color {
         switch name {
         case "The Chaser":         return DS.Color.Archetype.chaser
@@ -925,6 +1128,24 @@ struct WhatChanged: Codable {
     let topImpactDeltas: [ImpactDelta]?
 }
 
+// MARK: - Patterns snapshot (engine b775e8e)
+//
+// Snapshot mode ships an empty `behavioralPatterns: []` (those are
+// LLM-authored, absent in pure-compute snapshot mode) and a 4-5 entry
+// `patternsSnapshot` array instead. Kinds: biggest_loss, worst_day,
+// worst_hour, longest_skid, biggest_win. biggest_win keeps its dollar
+// visible; the other four ship dollarValue=null + dollarVisibility=
+// "redacted_dollar". Counts (betCount) and roi stay visible.
+struct PatternsSnapshotEntry: Codable, Identifiable {
+    var id: String { kind }
+    let kind: String          // biggest_loss | worst_day | worst_hour | longest_skid | biggest_win
+    let entityLabel: String   // "NBA props", "Tuesday", "11pm-2am"
+    let betCount: Int
+    let roi: Double
+    let dollarValue: Double?   // null in snapshot for the redacted four
+    let dollarVisibility: String?
+}
+
 // MARK: - Top-level analysis
 
 struct AutopsyAnalysis: Codable {
@@ -957,6 +1178,17 @@ struct AutopsyAnalysis: Codable {
     let snapshotCounts: SnapshotCounts?
     let whatChanged: WhatChanged?
 
+    // Engine global sample floor (c9d9d56). Sibling flags at analysis
+    // root: emotion + tilt scores zeroed below the floor. emotionPercentile
+    // is nullable on the wire (and absent on older wire) as Int?.
+    let emotionScoreInsufficientData: Bool?
+    let tiltScoreInsufficientData: Bool?
+    let emotionPercentile: Int?
+
+    // Engine snapshot patterns array (b775e8e). Plain array, no envelope
+    // wrapper. Empty/nil on older wire and on full-mode payloads.
+    let patternsSnapshot: [PatternsSnapshotEntry]?
+
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
          behavioralPatterns: [BehavioralPattern], recommendations: [Recommendation],
@@ -972,7 +1204,11 @@ struct AutopsyAnalysis: Codable {
          quizArchetype: String?,
          snapshotTeaser: SnapshotTeaser? = nil,
          snapshotCounts: SnapshotCounts? = nil,
-         whatChanged: WhatChanged? = nil) {
+         whatChanged: WhatChanged? = nil,
+         emotionScoreInsufficientData: Bool? = nil,
+         tiltScoreInsufficientData: Bool? = nil,
+         emotionPercentile: Int? = nil,
+         patternsSnapshot: [PatternsSnapshotEntry]? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -1001,6 +1237,10 @@ struct AutopsyAnalysis: Codable {
         self.snapshotTeaser = snapshotTeaser
         self.snapshotCounts = snapshotCounts
         self.whatChanged = whatChanged
+        self.emotionScoreInsufficientData = emotionScoreInsufficientData
+        self.tiltScoreInsufficientData = tiltScoreInsufficientData
+        self.emotionPercentile = emotionPercentile
+        self.patternsSnapshot = patternsSnapshot
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1019,6 +1259,8 @@ struct AutopsyAnalysis: Codable {
         case snapshotTeaser = "_snapshotTeaser"
         case snapshotCounts = "_snapshotCounts"
         case whatChanged
+        case emotionScoreInsufficientData, tiltScoreInsufficientData
+        case emotionPercentile, patternsSnapshot
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -1058,6 +1300,10 @@ struct AutopsyAnalysis: Codable {
         self.snapshotTeaser       = try? c.decode(SnapshotTeaser.self, forKey: .snapshotTeaser)
         self.snapshotCounts       = try? c.decode(SnapshotCounts.self, forKey: .snapshotCounts)
         self.whatChanged          = try? c.decode(WhatChanged.self, forKey: .whatChanged)
+        self.emotionScoreInsufficientData = try? c.decode(Bool.self, forKey: .emotionScoreInsufficientData)
+        self.tiltScoreInsufficientData    = try? c.decode(Bool.self, forKey: .tiltScoreInsufficientData)
+        self.emotionPercentile    = try? c.decode(Int.self, forKey: .emotionPercentile)
+        self.patternsSnapshot     = try? c.decode([PatternsSnapshotEntry].self, forKey: .patternsSnapshot)
     }
 }
 
@@ -1079,7 +1325,13 @@ func formatCurrency(_ value: Double, signed: Bool = false) -> String {
     formatter.numberStyle = .decimal
     formatter.maximumFractionDigits = 0
     let absVal = abs(value)
-    let absStr = formatter.string(from: NSNumber(value: Int(absVal))) ?? "0"
+    let intMag = Int(absVal)
+    let absStr = formatter.string(from: NSNumber(value: intMag)) ?? "0"
+    // A value whose magnitude rounds to zero never carries a sign:
+    // "$0", never "-$0" or "+$0".
+    if intMag == 0 {
+        return "$0"
+    }
     if signed {
         let sign = value >= 0 ? "+" : "-"
         return "\(sign)$\(absStr)"

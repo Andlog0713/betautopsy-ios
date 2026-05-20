@@ -244,17 +244,30 @@ struct ChapterYourSportsView: View {
     }
 
     private func oddsBucketCard(_ b: OddsBucket) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // Blocker #11: the engine zeroes roi/win_rate/edge in snapshot mode
+        // (b775e8e redactOddsForSnapshot) and tags them redacted_percent.
+        // Rendering those literally produces a self-contradictory
+        // "ROI 0% / 0% WIN / EDGE +0pp" row. In snapshot that is paywall
+        // redaction (not sparsity), so we show a locked badge; a genuinely
+        // sparse bucket in full mode lands at the same literal zero and
+        // reads as "DATA SPARSE". Sample size (bets) stays visible (D12).
+        let redactedPercents = isSnapshot
+            || (b.bets > 0 && b.actualWinRate == 0 && b.edge == 0)
+        return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(b.label.uppercased())
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.65)
                     .foregroundStyle(DS.Color.V3.textPrimary)
                 Spacer()
-                Text("ROI \(formatPct(b.roi, signed: false))")
-                    .font(.system(size: 12, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(b.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
+                if redactedPercents {
+                    oddsMetricBadge(locked: isSnapshot)
+                } else {
+                    Text("ROI \(formatPct(b.roi, signed: false))")
+                        .font(.system(size: 12, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(b.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
+                }
             }
 
             Text(b.range)
@@ -263,26 +276,35 @@ struct ChapterYourSportsView: View {
                 .foregroundStyle(DS.Color.V3.textTertiary)
                 .padding(.top, 4)
 
-            HStack {
+            if redactedPercents {
                 Text("\(b.bets) BETS")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
                     .tracking(1.5)
                     .foregroundStyle(DS.Color.V3.textTertiary)
-                Spacer()
-                Text("\(Int(b.actualWinRate.rounded()))% WIN")
-                    .font(.system(size: 10, weight: .semibold))
-                    .monospacedDigit()
-                    .tracking(1.5)
-                    .foregroundStyle(DS.Color.V3.textTertiary)
-                Spacer()
-                Text("EDGE \(b.edge >= 0 ? "+" : "")\(Int(b.edge.rounded()))pp")
-                    .font(.system(size: 10, weight: .semibold))
-                    .monospacedDigit()
-                    .tracking(1.5)
-                    .foregroundStyle(b.edge >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
+                    .padding(.top, 8)
+            } else {
+                HStack {
+                    Text("\(b.bets) BETS")
+                        .font(.system(size: 10, weight: .semibold))
+                        .monospacedDigit()
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                    Spacer()
+                    Text("\(Int(b.actualWinRate.rounded()))% WIN")
+                        .font(.system(size: 10, weight: .semibold))
+                        .monospacedDigit()
+                        .tracking(1.5)
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                    Spacer()
+                    Text("EDGE \(b.edge >= 0 ? "+" : "")\(Int(b.edge.rounded()))pp")
+                        .font(.system(size: 10, weight: .semibold))
+                        .monospacedDigit()
+                        .tracking(1.5)
+                        .foregroundStyle(b.edge >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
+                }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -292,6 +314,31 @@ struct ChapterYourSportsView: View {
                 .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// Stand-in for the redacted ROI/WIN/EDGE metrics on an odds bucket.
+    /// Snapshot: tappable "LOCKED" (paywall redaction). Full-mode sparse:
+    /// plain "DATA SPARSE" caps label, no background, no border.
+    @ViewBuilder
+    private func oddsMetricBadge(locked: Bool) -> some View {
+        if locked {
+            HStack(spacing: 4) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                Text("LOCKED")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.5)
+            }
+            .foregroundStyle(DS.Color.V3.textTertiary)
+            .contentShape(Rectangle())
+            .onTapGesture { handleDollarTap() }
+        } else {
+            Text("DATA SPARSE")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.5)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .lineLimit(1)
+        }
     }
 
     // MARK: - Sport-specific findings
@@ -335,12 +382,17 @@ struct ChapterYourSportsView: View {
                 .foregroundStyle(DS.Color.V3.textPrimary)
                 .padding(.top, 8)
 
-            Text(f.description)
-                .font(.system(size: 15))
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .lineSpacing(3)
-                .padding(.top, 4)
-                .fixedSize(horizontal: false, vertical: true)
+            // Snapshot ships a first-sentence teaser (b775e8e); full mode
+            // ships full prose. Gate display on description_visibility.
+            if f.descriptionVisibility != "hidden",
+               !f.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(isSnapshot ? f.description.firstSentences(1) : f.description)
+                    .font(.system(size: 15))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .lineSpacing(3)
+                    .padding(.top, 4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Rectangle()
                 .fill(DS.Color.V3.borderSubtle)
@@ -360,12 +412,17 @@ struct ChapterYourSportsView: View {
                 .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(f.recommendation)
-                .font(.custom("Georgia-Italic", size: 14))
-                .foregroundStyle(DS.Color.V3.textPrimary)
-                .lineSpacing(3)
-                .padding(.top, 8)
-                .fixedSize(horizontal: false, vertical: true)
+            // Recommendation suppressed entirely when hidden or empty
+            // (snapshot ships recommendation_visibility="hidden").
+            if f.recommendationVisibility != "hidden",
+               !f.recommendation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(f.recommendation)
+                    .font(.custom("Georgia-Italic", size: 14))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+                    .lineSpacing(3)
+                    .padding(.top, 8)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             // Engine V2 ships estimatedCost = 0 + visibility "redacted_dollar"
             // in snapshot mode. Render the locked bar in that case (or

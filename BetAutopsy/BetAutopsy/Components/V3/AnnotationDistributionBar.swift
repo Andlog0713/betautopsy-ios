@@ -36,9 +36,7 @@ struct AnnotationDistributionBar: View {
     }
 
     private var populated: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            captionRow
-
+        VStack(alignment: .leading, spacing: 10) {
             GeometryReader { geo in
                 HStack(spacing: 1) {
                     ForEach(distribution) { stat in
@@ -50,6 +48,8 @@ struct AnnotationDistributionBar: View {
             }
             .frame(height: 8)
             .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+            legend
 
             if let insight = insightText?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -70,18 +70,30 @@ struct AnnotationDistributionBar: View {
             .foregroundStyle(DS.Color.V3.textTertiary)
     }
 
-    private var captionRow: some View {
-        HStack(spacing: 12) {
+    /// Stacked legend below the bar (blocker #5). The prior inline caption
+    /// row wrapped mid-word on long class labels; one row per class with a
+    /// color swatch eliminates any mid-word break.
+    private var legend: some View {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(distribution) { stat in
-                HStack(spacing: 4) {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(stat.classification.color)
+                        .frame(width: 8, height: 8)
                     Text(stat.classification.label)
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1.0)
                         .foregroundStyle(stat.classification.color)
+                    Spacer(minLength: 8)
+                    Text("\(stat.count)")
+                        .font(.system(size: 10, weight: .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.textSecondary)
                     Text("\(Int(stat.percent.rounded()))%")
                         .font(.system(size: 10, weight: .regular))
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.textTertiary)
+                        .frame(minWidth: 36, alignment: .trailing)
                 }
             }
         }

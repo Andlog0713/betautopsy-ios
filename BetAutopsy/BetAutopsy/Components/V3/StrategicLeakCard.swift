@@ -23,6 +23,16 @@ struct StrategicLeakCard: View {
         return DS.Color.V3.Severity.gray
     }
 
+    private var showFix: Bool {
+        !leak.suggestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && leak.suggestionVisibility != "hidden"
+    }
+
+    private var showDetail: Bool {
+        leak.detailVisibility != "hidden"
+            && !leak.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var roiLabel: String {
         let value = leak.roiImpact
         let formatter = NumberFormatter()
@@ -59,17 +69,22 @@ struct StrategicLeakCard: View {
 
             detailBlock
 
-            Text("FIX")
-                .font(DS.Font.V3.rowCapsLabel)
-                .tracking(1.4)
-                .foregroundStyle(DS.Color.V3.textTertiary)
-                .padding(.top, 4)
+            // FIX block gated entirely (blocker #9): snapshot ships
+            // suggestion="" + suggestion_visibility="hidden", so the label
+            // must not render an empty prose body.
+            if showFix {
+                Text("FIX")
+                    .font(DS.Font.V3.rowCapsLabel)
+                    .tracking(1.4)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .padding(.top, 4)
 
-            Text(leak.suggestion)
-                .font(DS.Font.V3.bodyRegular)
-                .italic()
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(leak.suggestion)
+                    .font(DS.Font.V3.bodyRegular)
+                    .italic()
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -103,10 +118,12 @@ struct StrategicLeakCard: View {
     private var detailBlock: some View {
         if isLockedDetail {
             VStack(alignment: .leading, spacing: 8) {
-                Text(leak.detail.firstSentences(1))
-                    .font(DS.Font.V3.bodyRegular)
-                    .foregroundStyle(DS.Color.V3.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if showDetail {
+                    Text(leak.detail.firstSentences(1))
+                        .font(DS.Font.V3.bodyRegular)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 HStack(spacing: 8) {
                     Text("DOLLAR DAMAGE")
@@ -116,7 +133,7 @@ struct StrategicLeakCard: View {
                     LockedDollarBar(width: 110, onTap: { onLockedTap?() })
                 }
             }
-        } else {
+        } else if showDetail {
             Text(leak.detail)
                 .font(DS.Font.V3.bodyRegular)
                 .foregroundStyle(DS.Color.V3.textPrimary)

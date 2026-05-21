@@ -52,6 +52,22 @@ struct BetAutopsyApp: App {
                 .preferredColorScheme(.dark)
                 .environment(coordinator)
                 .task {
+                    // PRE-WARM: force Supabase session refresh BEFORE anything
+                    // else needs it. Cold launch hits an expired JWT (1h TTL)
+                    // on virtually every open; without pre-warming,
+                    // RootTabView's .task(id:) hydrate fires concurrently with
+                    // this task's RC-login path, and both await auth.session -
+                    // racing on refresh-token rotation can balloon a
+                    // normally-sub-second refresh to 10+ seconds (observed:
+                    // 12-14s every cold launch on 5G + wifi). Serializing the
+                    // refresh here means subsequent auth.session callers (RC
+                    // login, ReportListClient bearerToken) coalesce onto the
+                    // cached session or join the single in-flight refresh.
+                    // Routed through currentAccessToken() (the exact path
+                    // bearerToken uses: -> auth.session) so the app entry
+                    // point needn't import the Supabase SDK directly.
+                    _ = await SupabaseService.currentAccessToken()
+
                     // Silently sign the user out if Apple has revoked
                     // the credential since last launch. No-op if not
                     // authenticated.

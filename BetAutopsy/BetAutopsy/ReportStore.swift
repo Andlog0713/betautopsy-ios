@@ -9,6 +9,7 @@
 
 import Foundation
 import Observation
+import Combine
 
 @Observable
 final class ReportStore {
@@ -22,7 +23,14 @@ final class ReportStore {
 
     private(set) var reports: [AutopsyReport] = []
 
-    /// True when no real reports exist yet — ReportListView uses this to
+    /// Combine surface for non-SwiftUI observers (REBUILD-PHASE-2 D14).
+    /// @Observable drives SwiftUI views; ReportScrollViewModel needs a
+    /// Combine publisher to react to the post-purchase upsert without the
+    /// store conforming to ObservableObject. Fired on every mutation with
+    /// the current reports snapshot. Not @Observable-tracked (it's a let).
+    let reportsChanged = PassthroughSubject<[AutopsyReport], Never>()
+
+    /// True when no real reports exist yet; ReportListView uses this to
     /// fall back to the Tilter mock as a placeholder card.
     var showMockPlaceholder: Bool { reports.isEmpty }
 
@@ -36,10 +44,11 @@ final class ReportStore {
 
     func add(_ report: AutopsyReport) {
         reports.insert(report, at: 0)
+        reportsChanged.send(reports)
     }
 
     /// Inserts or replaces a report by id. Used by RevenueCatStore's
-    /// post-purchase polling when the child full row materializes —
+    /// post-purchase polling when the child full row materializes:
     /// replacing the snapshot in-place would orphan the snapshot row;
     /// we insert the new full as the newest and let the UI choose
     /// which to surface.
@@ -49,9 +58,11 @@ final class ReportStore {
         } else {
             reports.insert(report, at: 0)
         }
+        reportsChanged.send(reports)
     }
 
     func clear() {
         reports = []
+        reportsChanged.send(reports)
     }
 }

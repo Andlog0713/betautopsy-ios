@@ -85,7 +85,7 @@ struct ReportListView: View {
             )
         }
         .fullScreenCover(item: $presentedReport) { report in
-            ReportView(report: report)
+            ReportScrollContainer(report: report)
         }
         .onChange(of: coordinatorStateKey) { _, _ in
             handleStateChange()

@@ -13,8 +13,23 @@ import SwiftUI
 
 struct InsightCallout: View {
     let text: String
-    let ctaLabel: String   // caps display
-    let onTap: () -> Void
+    let ctaLabel: String?   // caps display; nil => prose-only (no CTA arm)
+    let onTap: (() -> Void)?
+
+    /// Prose + CTA (original signature, unchanged for existing callers).
+    init(text: String, ctaLabel: String, onTap: @escaping () -> Void) {
+        self.text = text
+        self.ctaLabel = ctaLabel
+        self.onTap = onTap
+    }
+
+    /// Prose-only (REBUILD-PHASE-2): single-scroll IA drops chapter-advance
+    /// CTAs, but the insight prose is preserved. No button renders.
+    init(text: String) {
+        self.text = text
+        self.ctaLabel = nil
+        self.onTap = nil
+    }
 
     private let cornerRadius: CGFloat = 12
 
@@ -26,20 +41,22 @@ struct InsightCallout: View {
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button(action: onTap) {
-                HStack(spacing: 6) {
-                    Text(ctaLabel.uppercased())
-                        .font(DS.Font.V3.ctaText)
-                        .tracking(1.4)
-                        .foregroundStyle(DS.Color.Brand.yellow)
+            if let ctaLabel, let onTap {
+                Button(action: onTap) {
+                    HStack(spacing: 6) {
+                        Text(ctaLabel.uppercased())
+                            .font(DS.Font.V3.ctaText)
+                            .tracking(1.4)
+                            .foregroundStyle(DS.Color.Brand.yellow)
 
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(DS.Color.Brand.yellow)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(DS.Color.Brand.yellow)
+                    }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(ctaLabel)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(ctaLabel)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

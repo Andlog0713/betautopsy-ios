@@ -101,8 +101,19 @@ struct VsLastReportCard: View {
             .filter { !prior.contains($0) }
     }
 
+    /// Top impact shifts, absorbed from the retired WhatChangedCard
+    /// (REBUILD-PHASE-2 Step 5). Read from the wire whatChanged envelope.
+    /// Drops self-contradictory -100% entries on a bias still active in
+    /// this report (WhatChangedCard's blocker #4 filter).
+    private var visibleImpactDeltas: [ImpactDelta] {
+        let activeBiasNames = Set(current.biasesDetected.map { $0.biasName })
+        return (current.whatChanged?.topImpactDeltas ?? []).filter { delta in
+            !(delta.deltaPercent == -100 && activeBiasNames.contains(delta.biasName))
+        }
+    }
+
     private var hasContent: Bool {
-        !scoreDeltas.isEmpty || !newBiasNames.isEmpty
+        !scoreDeltas.isEmpty || !newBiasNames.isEmpty || !visibleImpactDeltas.isEmpty
     }
 
     var body: some View {
@@ -121,6 +132,11 @@ struct VsLastReportCard: View {
                 if !newBiasNames.isEmpty {
                     V3Divider()
                     newBiasSection
+                }
+
+                if !visibleImpactDeltas.isEmpty {
+                    V3Divider()
+                    impactSection
                 }
             }
             .background(DS.Color.V3.surfaceCard)
@@ -206,6 +222,64 @@ struct VsLastReportCard: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Top impact shifts (absorbed from WhatChangedCard)
+
+    private var impactSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("TOP IMPACT SHIFTS")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(10 * 0.18)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+
+            ForEach(visibleImpactDeltas) { delta in
+                impactRow(delta)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 14)
+    }
+
+    private func impactRow(_ delta: ImpactDelta) -> some View {
+        HStack(spacing: 10) {
+            Text(delta.biasName)
+                .font(DS.Font.V3.bodyRegular)
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(signedPercentString(delta.deltaPercent))
+                .font(DS.Font.V3.rowValue)
+                .monospacedDigit()
+                .foregroundStyle(impactColor(delta.deltaPercent))
+
+            Text(delta.confidence.rawValue.uppercased())
+                .font(DS.Font.V3.captionLabel)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .frame(minWidth: 52, alignment: .trailing)
+        }
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(delta.biasName), \(signedPercentString(delta.deltaPercent)), \(delta.confidence.rawValue) confidence"
+        )
+    }
+
+    /// Negative delta = bias cost dropped = improvement = green.
+    private func impactColor(_ deltaPercent: Int) -> Color {
+        if deltaPercent < 0 { return DS.Color.V3.Severity.green }
+        if deltaPercent > 0 { return DS.Color.V3.Severity.red }
+        return DS.Color.V3.textTertiary
+    }
+
+    private func signedPercentString(_ value: Int) -> String {
+        if value > 0 { return "+\(value)%" }
+        if value < 0 { return "\u{2212}\(abs(value))%" }
+        return "0%"
     }
 
     private func signedString(_ value: Int) -> String {

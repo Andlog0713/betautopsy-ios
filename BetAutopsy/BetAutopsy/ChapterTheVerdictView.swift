@@ -166,19 +166,11 @@ struct ChapterTheVerdictView: View {
                 // type-check fast (project rule on body splitting).
                 conversionMechanics
 
-                // Building-sample mode skips the longitudinal WhatChanged
-                // card (deltas on an insufficient sample are misleading,
-                // and this subsumes the "skip TOP IMPACT SHIFTS" rule).
-                if let whatChanged = report.analysis.whatChanged, !archetypeBuildingSample {
-                    Spacer().frame(height: 24)
-
-                    WhatChangedCard(
-                        whatChanged: whatChanged,
-                        activeBiasNames: activeBiasNames,
-                        suppressBetIQDelta: betIQDeltaIsBaselineReset
-                    )
-                    .padding(.horizontal, 16)
-                }
+                // WhatChangedCard removed in REBUILD-PHASE-2 (Step 5): its
+                // longitudinal content is now owned by VsLastReportCard
+                // (which absorbed topImpactDeltas). This chapter view is dead
+                // reader code preserved for Phase 3 deletion; the card block
+                // was stripped here so WhatChangedCard.swift could retire.
 
                 if !topDamages.isEmpty, !archetypeBuildingSample {
                     Spacer().frame(height: 24)

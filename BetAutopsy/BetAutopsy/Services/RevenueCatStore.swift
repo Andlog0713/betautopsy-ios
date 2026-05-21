@@ -366,7 +366,7 @@ extension RevenueCatStore {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let payload = try decoder.decode(UpgradedListResponse.self, from: data)
             guard let first = payload.reports.first else { return nil }
-            return makeAutopsyReport(from: first)
+            return makeAutopsyReport(from: first, polledSnapshotId: snapshotReportId)
 
         case 401:
             throw PollError.unauthorized
@@ -380,7 +380,10 @@ extension RevenueCatStore {
     /// the case_number fallback applies consistently. Kept in this file
     /// per the commit-5 rule (don't touch ReportFetchClient); the
     /// duplication is ~20 lines and not worth a shared helper module.
-    private static func makeAutopsyReport(from row: UpgradedListResponse.Row) -> AutopsyReport {
+    private static func makeAutopsyReport(
+        from row: UpgradedListResponse.Row,
+        polledSnapshotId: String
+    ) -> AutopsyReport {
         let caseNumber = row.caseNumber ?? "BA-\(String(row.id.prefix(8)).uppercased())"
         return AutopsyReport(
             id: row.id,
@@ -390,7 +393,10 @@ extension RevenueCatStore {
             dateRangeStart: row.dateRangeStart,
             dateRangeEnd: row.dateRangeEnd,
             createdAt: row.createdAt,
-            analysis: row.reportJson
+            analysis: row.reportJson,
+            // Prefer the wire value; fall back to the snapshot id we polled
+            // for (this row IS the upgrade of that snapshot). Drives D14.
+            upgradedFromSnapshotId: row.upgradedFromSnapshotId ?? polledSnapshotId
         )
     }
 }
@@ -412,6 +418,7 @@ private struct UpgradedListResponse: Decodable {
         let dateRangeEnd: String?
         let createdAt: String
         let reportJson: AutopsyAnalysis
+        let upgradedFromSnapshotId: String?
     }
 }
 

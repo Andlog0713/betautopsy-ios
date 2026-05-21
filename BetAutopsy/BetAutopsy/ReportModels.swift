@@ -216,7 +216,7 @@ struct Recommendation: Codable, Identifiable {
 
     // Engine V2 may populate a numeric cost_savings (positive dollars)
     // and a cost_savings_visibility tag mirroring the bias pattern.
-    // Both optional — older engines just ship expectedImprovement prose.
+    // Both optional; older engines just ship expectedImprovement prose.
     let costSavings: Double?
     let costSavingsVisibility: String?
 
@@ -1044,7 +1044,7 @@ struct TeaserBias: Codable, Identifiable {
 struct SnapshotTeaser: Codable {
     let biasNames: [TeaserBias]
     // sessionGrades, leakCategories, heatedSessionCount also on wire;
-    // intentionally not decoded in v1 — add when a surface needs them.
+    // intentionally not decoded in v1; add when a surface needs them.
 }
 
 struct SnapshotCounts: Codable {
@@ -1316,6 +1316,37 @@ struct AutopsyReport: Codable, Identifiable {
     let dateRangeEnd: String?
     let createdAt: String
     let analysis: AutopsyAnalysis
+
+    /// Wire `upgraded_from_snapshot_id`. nil on snapshots and on first-run
+    /// full reports; set on a full child row that was materialized from a
+    /// snapshot after purchase. ReportScrollViewModel matches on this to
+    /// drive the in-place snapshot->full swap (REBUILD-PHASE-2, D14).
+    /// Explicit init with a default keeps existing manual constructors
+    /// compiling; Codable synthesis (with convertFromSnakeCase at decode
+    /// sites) still decodes the field on direct-decode paths.
+    let upgradedFromSnapshotId: String?
+
+    init(
+        id: String,
+        caseNumber: String,
+        reportType: String,
+        betCountAnalyzed: Int,
+        dateRangeStart: String?,
+        dateRangeEnd: String?,
+        createdAt: String,
+        analysis: AutopsyAnalysis,
+        upgradedFromSnapshotId: String? = nil
+    ) {
+        self.id = id
+        self.caseNumber = caseNumber
+        self.reportType = reportType
+        self.betCountAnalyzed = betCountAnalyzed
+        self.dateRangeStart = dateRangeStart
+        self.dateRangeEnd = dateRangeEnd
+        self.createdAt = createdAt
+        self.analysis = analysis
+        self.upgradedFromSnapshotId = upgradedFromSnapshotId
+    }
 }
 
 // MARK: - Display helpers

@@ -22,6 +22,14 @@ enum APIConfig {
         baseURL.appendingPathComponent("api/analyze")
     }
 
+    /// GET /api/reports: the authenticated user's full report list,
+    /// RLS-scoped server-side via auth.uid()=user_id. No path, no query
+    /// (the ?upgraded_from=X variant lives in reportsListUpgradedFromURL).
+    /// Backend returns { reports: [...] } sorted created_at DESC, limit 100.
+    nonisolated static var reportsListURL: URL {
+        baseURL.appendingPathComponent("api/reports")
+    }
+
     nonisolated static var checkInURL: URL {
         baseURL.appendingPathComponent("api/check-in")
     }

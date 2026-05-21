@@ -52,6 +52,20 @@ struct RootTabView: View {
         .task {
             await deepLinkRouter.consume()
         }
+        // Hydrate ReportStore from Supabase once per userId transition.
+        // RootTabView always exists (auth/onboarding is a cover over it),
+        // so keying on user?.appleUserID fires on cold launch, sign-in,
+        // and sign-out. AuthState has no `userId`; appleUserID is the
+        // stable per-user identifier and String? is Hashable. A bare
+        // .task would re-fire on every tab switch into this view; the
+        // id-gated form fires only on the identity change we want.
+        .task(id: AuthState.shared.user?.appleUserID) {
+            if AuthState.shared.isAuthenticated {
+                await reportStore.hydrate()
+            } else {
+                reportStore.clear()
+            }
+        }
         .onChange(of: AuthState.shared.isAuthenticated) { _, isAuth in
             if isAuth {
                 Task { await deepLinkRouter.consume() }

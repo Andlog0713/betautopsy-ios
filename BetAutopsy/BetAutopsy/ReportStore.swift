@@ -23,6 +23,14 @@ final class ReportStore {
 
     private(set) var reports: [AutopsyReport] = []
 
+    /// True while hydrate() has an in-flight GET /api/reports. Drives the
+    /// loading state on cold launch and the empty-state spinner.
+    var isHydrating: Bool = false
+
+    /// Last hydrate() failure, retained so ReportListView can surface an
+    /// error + retry. Cleared at the start of each hydrate attempt.
+    var hydrationError: Error?
+
     /// Combine surface for non-SwiftUI observers (REBUILD-PHASE-2 D14).
     /// @Observable drives SwiftUI views; ReportScrollViewModel needs a
     /// Combine publisher to react to the post-purchase upsert without the
@@ -30,16 +38,30 @@ final class ReportStore {
     /// the current reports snapshot. Not @Observable-tracked (it's a let).
     let reportsChanged = PassthroughSubject<[AutopsyReport], Never>()
 
-    /// True when no real reports exist yet; ReportListView uses this to
-    /// fall back to the Tilter mock as a placeholder card.
-    var showMockPlaceholder: Bool { reports.isEmpty }
-
-    /// Mock placeholder when empty, otherwise the real reports list.
+    /// The reports to render. No longer substitutes a mock when empty
+    /// (P0 persistence): callers own their own empty state. ReportListView
+    /// shows an upload prompt; SessionsTabView falls through to its own
+    /// emptyState. Retained as a named accessor for both call sites.
     var displayedReports: [AutopsyReport] {
-        if reports.isEmpty {
-            return [MockReport.heatedBettor]
+        reports
+    }
+
+    /// Hydrate from Supabase via GET /api/reports (web 5cc8356). Called
+    /// once per userId transition by RootTabView (cold launch + sign-in)
+    /// and by ReportListView's pull-to-refresh. On error, keeps the
+    /// last-known reports for offline resilience.
+    @MainActor
+    func hydrate() async {
+        isHydrating = true
+        hydrationError = nil
+        do {
+            let fetched = try await ReportListClient.shared.fetchList()
+            self.reports = fetched
+        } catch {
+            self.hydrationError = error
+            // Do NOT touch self.reports on error - keep last-known state.
         }
-        return reports
+        isHydrating = false
     }
 
     func add(_ report: AutopsyReport) {

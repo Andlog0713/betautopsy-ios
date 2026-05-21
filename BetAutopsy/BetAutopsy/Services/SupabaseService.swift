@@ -62,16 +62,10 @@ extension SupabaseService {
     /// so callers should not need to refresh manually unless they
     /// observe a 401 response (see AnalyzeClient's retry path).
     static func currentAccessToken() async -> String? {
-        let start = Date()
-        print("[\(start)] [perf] currentAccessToken START")
         do {
             let session = try await shared.auth.session
-            let elapsed = Date().timeIntervalSince(start)
-            print("[\(Date())] [perf] currentAccessToken DONE elapsed=\(String(format: "%.2f", elapsed))s")
             return session.accessToken
         } catch {
-            let elapsed = Date().timeIntervalSince(start)
-            print("[\(Date())] [perf] currentAccessToken FAILED elapsed=\(String(format: "%.2f", elapsed))s, error=\(error)")
             return nil
         }
     }

@@ -52,29 +52,22 @@ struct RootTabView: View {
         .task {
             await deepLinkRouter.consume()
         }
-        // Hydrate ReportStore from Supabase once per userId transition.
-        // RootTabView always exists (auth/onboarding is a cover over it),
-        // so keying on user?.appleUserID fires on cold launch, sign-in,
-        // and sign-out. AuthState has no `userId`; appleUserID is the
-        // stable per-user identifier and String? is Hashable. A bare
-        // .task would re-fire on every tab switch into this view; the
-        // id-gated form fires only on the identity change we want.
+        // Cache-first hydrate, keyed on userId so it fires once per identity
+        // transition (cold launch, sign-in, sign-out). RootTabView always
+        // exists (auth/onboarding is a cover over it). AuthState has no
+        // `userId`; appleUserID is the stable per-user identifier and String?
+        // is Hashable. A bare .task would re-fire on every tab switch into
+        // this view; the id-gated form fires only on the identity change we
+        // want. No longer awaits sessionPrewarm: network is off the critical
+        // path of first paint now that cached reports render synchronously.
         .task(id: AuthState.shared.user?.appleUserID) {
-            let triggerStart = Date()
-            print("[\(triggerStart)] [perf] RootTabView.task(id:) FIRED, isAuth=\(AuthState.shared.isAuthenticated)")
-
-            if AuthState.shared.isAuthenticated {
-                // Sequence: pre-warm completes (or is already in-flight,
-                // coalesced) BEFORE hydrate. Eliminates the auth.session race
-                // between BetAutopsyApp.task and this .task that f4e7e69 didn't
-                // address (both fired concurrently when their views appeared).
-                await BetAutopsyApp.sessionPrewarm.value
-                let prewarmSyncDone = Date()
-                print("[\(prewarmSyncDone)] [perf] RootTabView pre-warm sync done, elapsed=\(String(format: "%.2f", prewarmSyncDone.timeIntervalSince(triggerStart)))s")
-
+            if let userId = AuthState.shared.user?.appleUserID {
+                // Synchronous: swaps in this user's cached reports BEFORE any
+                // await fires, so the UI re-renders with cached state instantly.
+                reportStore.updateUser(userId)
+                // Network refresh in the background. If it hangs or fails, the
+                // user already sees their cached reports - they never know.
                 await reportStore.hydrate()
-                let hydrateDone = Date()
-                print("[\(hydrateDone)] [perf] RootTabView hydrate done, hydrate-only=\(String(format: "%.2f", hydrateDone.timeIntervalSince(prewarmSyncDone)))s, total=\(String(format: "%.2f", hydrateDone.timeIntervalSince(triggerStart)))s")
             } else {
                 reportStore.clear()
             }

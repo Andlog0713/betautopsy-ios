@@ -60,8 +60,21 @@ struct RootTabView: View {
         // .task would re-fire on every tab switch into this view; the
         // id-gated form fires only on the identity change we want.
         .task(id: AuthState.shared.user?.appleUserID) {
+            let triggerStart = Date()
+            print("[\(triggerStart)] [perf] RootTabView.task(id:) FIRED, isAuth=\(AuthState.shared.isAuthenticated)")
+
             if AuthState.shared.isAuthenticated {
+                // Sequence: pre-warm completes (or is already in-flight,
+                // coalesced) BEFORE hydrate. Eliminates the auth.session race
+                // between BetAutopsyApp.task and this .task that f4e7e69 didn't
+                // address (both fired concurrently when their views appeared).
+                await BetAutopsyApp.sessionPrewarm.value
+                let prewarmSyncDone = Date()
+                print("[\(prewarmSyncDone)] [perf] RootTabView pre-warm sync done, elapsed=\(String(format: "%.2f", prewarmSyncDone.timeIntervalSince(triggerStart)))s")
+
                 await reportStore.hydrate()
+                let hydrateDone = Date()
+                print("[\(hydrateDone)] [perf] RootTabView hydrate done, hydrate-only=\(String(format: "%.2f", hydrateDone.timeIntervalSince(prewarmSyncDone)))s, total=\(String(format: "%.2f", hydrateDone.timeIntervalSince(triggerStart)))s")
             } else {
                 reportStore.clear()
             }

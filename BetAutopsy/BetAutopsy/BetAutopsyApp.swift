@@ -11,7 +11,23 @@ struct BetAutopsyApp: App {
     @State private var coordinator = OnboardingCoordinator()
     @AppStorage("onboardingComplete") private var onboardingComplete = false
 
+    // Pre-warm runs at App static init - starts BEFORE any view's .task fires.
+    // RootTabView.task(id:) awaits this same Task before calling hydrate(),
+    // guaranteeing the JWT refresh is either complete or in-flight (coalesced)
+    // by the time hydrate's bearerToken needs auth.session. f4e7e69's inline
+    // pre-warm raced hydrate because both fired when their views appeared;
+    // this static Task sequences ahead by construction.
+    static let sessionPrewarm: Task<Void, Never> = Task {
+        let start = Date()
+        print("[\(Date())] [perf] sessionPrewarm START")
+        _ = await SupabaseService.currentAccessToken()
+        let elapsed = Date().timeIntervalSince(start)
+        print("[\(Date())] [perf] sessionPrewarm DONE elapsed=\(String(format: "%.2f", elapsed))s")
+    }
+
     init() {
+        print("[\(Date())] [perf] BetAutopsyApp.init")
+        _ = Self.sessionPrewarm  // Touch to ensure the pre-warm Task fires at App init.
         Self.runArchetypeV2toV3MigrationIfNeeded()
         // Sentry first so subsequent SDK init errors get captured.
         SentryService.start()
@@ -52,31 +68,30 @@ struct BetAutopsyApp: App {
                 .preferredColorScheme(.dark)
                 .environment(coordinator)
                 .task {
-                    // PRE-WARM: force Supabase session refresh BEFORE anything
-                    // else needs it. Cold launch hits an expired JWT (1h TTL)
-                    // on virtually every open; without pre-warming,
-                    // RootTabView's .task(id:) hydrate fires concurrently with
-                    // this task's RC-login path, and both await auth.session -
-                    // racing on refresh-token rotation can balloon a
-                    // normally-sub-second refresh to 10+ seconds (observed:
-                    // 12-14s every cold launch on 5G + wifi). Serializing the
-                    // refresh here means subsequent auth.session callers (RC
-                    // login, ReportListClient bearerToken) coalesce onto the
-                    // cached session or join the single in-flight refresh.
-                    // Routed through currentAccessToken() (the exact path
-                    // bearerToken uses: -> auth.session) so the app entry
-                    // point needn't import the Supabase SDK directly.
-                    _ = await SupabaseService.currentAccessToken()
+                    let taskStart = Date()
+                    print("[\(taskStart)] [perf] WindowGroup.task START")
+
+                    // Sync to the shared pre-warm Task instead of awaiting
+                    // auth.session directly (f4e7e69 did the latter inline,
+                    // which raced RootTabView.task(id:)). If the static Task is
+                    // already done, this returns instantly; if still in-flight,
+                    // we coalesce on it - no duplicate refresh.
+                    await BetAutopsyApp.sessionPrewarm.value
+                    print("[\(Date())] [perf] WindowGroup.task pre-warm sync done, elapsed=\(String(format: "%.2f", Date().timeIntervalSince(taskStart)))s")
 
                     // Silently sign the user out if Apple has revoked
                     // the credential since last launch. No-op if not
                     // authenticated.
+                    print("[\(Date())] [perf] checkCredentialState START")
                     await AppleSignInCoordinator.checkCredentialState()
+                    print("[\(Date())] [perf] checkCredentialState DONE")
 
                     // Cold-start RC login for a restored Supabase
                     // session. No-op if not authenticated, idempotent
                     // on repeat launches via lastLoggedInUserId.
+                    print("[\(Date())] [perf] loginIfAuthenticated START")
                     await RevenueCatStore.shared.loginIfAuthenticated()
+                    print("[\(Date())] [perf] loginIfAuthenticated DONE")
                 }
                 .fullScreenCover(isPresented: onboardingPresented) {
                     OnboardingHost()

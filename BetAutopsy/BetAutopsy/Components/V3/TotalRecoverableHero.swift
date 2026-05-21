@@ -84,13 +84,43 @@ struct TotalRecoverableHero: View {
     }
 }
 
+/// One entry in the ranked leak/bias fix-sequence. Carries the full
+/// payload the LeakPrioritizerCard needs (REBUILD-PHASE-2.5 surface #4),
+/// not just the dollar figure the hero sums.
+enum PrioritizedItemType: String {
+    case bias
+    case leak
+}
+
+struct PrioritizedItem: Identifiable {
+    let rank: Int
+    let name: String
+    let type: PrioritizedItemType
+    let costDollars: Double
+    let costVisibility: String?
+    let detail: String?
+    let fix: String?
+
+    var id: String { "\(type.rawValue)-\(name)" }
+}
+
 /// Client-side totalRecoverable computation, factored out so it can be
 /// unit-reasoned and reused. Mirrors web's AutopsyReport.tsx formula,
 /// including the bias/leak overlap de-duplication (keep higher cost).
+///
+/// `ranked(for:)` returns the full dedup'd + sorted fix-sequence; the
+/// hero figure `compute(for:)` is just the sum of those costs. The
+/// LeakPrioritizerCard renders the ranked list directly.
 enum TotalRecoverable {
-    private struct Item {
+    /// Intermediate item carrying cost + the display payload, before
+    /// dedup and ranking.
+    private struct Candidate {
         let name: String
+        let type: PrioritizedItemType
         let cost: Double
+        let costVisibility: String?
+        let detail: String?
+        let fix: String?
     }
 
     /// Curated bias-keyword <-> leak-keyword overlap pairs, ported verbatim
@@ -109,11 +139,14 @@ enum TotalRecoverable {
         (["underdog"], ["underdog"]),
     ]
 
-    static func compute(for analysis: AutopsyAnalysis) -> Double {
+    /// Dedup'd, cost-descending fix-sequence of every dollar-bearing bias
+    /// and leak. Empty in snapshot mode (every dollar input is redacted to
+    /// 0, so no candidate survives the cost > 0 filter).
+    static func ranked(for analysis: AutopsyAnalysis) -> [PrioritizedItem] {
         let avgStake = analysis.summary.avgStake
 
         // Bias term.
-        var biasItems: [Item] = []
+        var biasItems: [Candidate] = []
         for bias in analysis.biasesDetected {
             let raw = abs(bias.estimatedCost)
             let cost: Double
@@ -124,16 +157,34 @@ enum TotalRecoverable {
             } else {
                 cost = 0
             }
-            if cost > 0 { biasItems.append(Item(name: bias.biasName, cost: cost)) }
+            if cost > 0 {
+                biasItems.append(Candidate(
+                    name: bias.biasName,
+                    type: .bias,
+                    cost: cost,
+                    costVisibility: bias.estimatedCostVisibility,
+                    detail: bias.description,
+                    fix: bias.fix
+                ))
+            }
         }
 
         // Leak term. iOS lacks the raw bets array web matches against, so
         // only the roi_impact fallback path is available.
-        var leakItems: [Item] = []
+        var leakItems: [Candidate] = []
         for leak in analysis.strategicLeaks where leak.roiImpact < 0 {
             guard leak.sampleSize > 0, avgStake > 0 else { continue }
             let cost = abs(leak.roiImpact / 100 * avgStake * Double(leak.sampleSize))
-            if cost > 0 { leakItems.append(Item(name: leak.category, cost: cost)) }
+            if cost > 0 {
+                leakItems.append(Candidate(
+                    name: leak.category,
+                    type: .leak,
+                    cost: cost,
+                    costVisibility: leak.detailVisibility,
+                    detail: leak.detail,
+                    fix: leak.suggestion
+                ))
+            }
         }
 
         // De-duplicate overlapping bias/leak pairs: keep the higher cost,
@@ -155,14 +206,31 @@ enum TotalRecoverable {
             }
         }
 
-        let biasSum = biasItems.enumerated()
+        let survivors = biasItems.enumerated()
             .filter { !droppedBias.contains($0.offset) }
-            .reduce(0.0) { $0 + $1.element.cost }
-        let leakSum = leakItems.enumerated()
-            .filter { !droppedLeak.contains($0.offset) }
-            .reduce(0.0) { $0 + $1.element.cost }
+            .map { $0.element }
+            + leakItems.enumerated()
+                .filter { !droppedLeak.contains($0.offset) }
+                .map { $0.element }
 
-        return biasSum + leakSum
+        return survivors
+            .sorted { $0.cost > $1.cost }
+            .enumerated()
+            .map { index, candidate in
+                PrioritizedItem(
+                    rank: index + 1,
+                    name: candidate.name,
+                    type: candidate.type,
+                    costDollars: candidate.cost,
+                    costVisibility: candidate.costVisibility,
+                    detail: candidate.detail,
+                    fix: candidate.fix
+                )
+            }
+    }
+
+    static func compute(for analysis: AutopsyAnalysis) -> Double {
+        ranked(for: analysis).reduce(0.0) { $0 + $1.costDollars }
     }
 
     private static func severityMultiplier(_ severity: BiasSeverity) -> Double {

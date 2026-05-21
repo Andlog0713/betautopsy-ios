@@ -127,6 +127,12 @@ struct ChapterYourBiasesView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
+                // REBUILD-PHASE-1: findings tally at the top of the bias
+                // sheet. Self-hides when there are no findings.
+                Spacer().frame(height: 24)
+                FindingsCounterChips(report: report)
+                    .padding(.horizontal, 16)
+
                 if !strategicLeaks.isEmpty {
                     Spacer().frame(height: 24)
 
@@ -211,6 +217,14 @@ struct ChapterYourBiasesView: View {
                     .padding(.horizontal, 16)
                 }
 
+                // REBUILD-PHASE-1: repeated conversion CTA at the bottom of
+                // the bias sheet, snapshot mode only.
+                if isSnapshot {
+                    Spacer().frame(height: 24)
+                    RepeatedCTABlock(variant: .mid, onTap: handleRepeatedCTATap)
+                        .padding(.horizontal, 16)
+                }
+
                 Spacer().frame(height: 60)
             }
             .frame(maxWidth: .infinity)
@@ -269,6 +283,14 @@ struct ChapterYourBiasesView: View {
         Analytics.signal(
             "paywall.triggered",
             parameters: ["source": "ch4_bias_locked_cost"]
+        )
+        showingPaywall = true
+    }
+
+    private func handleRepeatedCTATap() {
+        Analytics.signal(
+            "paywall.triggered",
+            parameters: ["source": "ch4_repeated_cta"]
         )
         showingPaywall = true
     }

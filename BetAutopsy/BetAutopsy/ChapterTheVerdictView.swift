@@ -26,6 +26,8 @@ struct ChapterTheVerdictView: View {
     /// no-op preserves preview / standalone usage.
     var onAdvance: () -> Void = {}
 
+    private var isSnapshot: Bool { report.reportType == "snapshot" }
+
     private var betIQScore: Int {
         report.analysis.betiq?.score ?? 0
     }
@@ -83,12 +85,55 @@ struct ChapterTheVerdictView: View {
             .map { $0 }
     }
 
+    /// Previous report for the VsLastReportCard client-side diff. Picks the
+    /// most-recent in-memory report from a DIFFERENT upload window (skips
+    /// the snapshot/full twin of the current upload, which shares the same
+    /// date range). Nil when this is the first report or in previews where
+    /// the store is empty; the card then hides.
+    private var previousAnalysis: AutopsyAnalysis? {
+        ReportStore.shared.reports.first { other in
+            other.id != report.id
+                && !(other.dateRangeStart == report.dateRangeStart
+                     && other.dateRangeEnd == report.dateRangeEnd)
+        }?.analysis
+    }
+
     private var insightBody: String {
         // Building-sample mode: suppress the archetype description prose
         // fallback (it reads as a real verdict on too little data).
         let fallback = archetypeBuildingSample ? "" : (report.analysis.bettingArchetype?.description ?? "")
         let raw = report.analysis.executiveDiagnosis ?? fallback
         return raw.firstSentences(2)
+    }
+
+    /// REBUILD-PHASE-1 conversion mechanics block. TotalRecoverableHero is
+    /// full-mode-only (it self-hides in snapshot and when the figure is 0).
+    /// BankrollHealthCallout renders only when health != healthy.
+    /// VsLastReportCard renders only when a prior report exists and is
+    /// skipped in building-sample mode (deltas on an insufficient sample
+    /// mislead).
+    @ViewBuilder
+    private var conversionMechanics: some View {
+        if !isSnapshot {
+            Spacer().frame(height: 24)
+            TotalRecoverableHero(report: report)
+                .padding(.horizontal, 16)
+        }
+
+        if report.analysis.bankrollHealth != .healthy {
+            Spacer().frame(height: 24)
+            BankrollHealthCallout(health: report.analysis.bankrollHealth)
+                .padding(.horizontal, 16)
+        }
+
+        if let previousAnalysis, !archetypeBuildingSample {
+            Spacer().frame(height: 24)
+            VsLastReportCard(
+                current: report.analysis,
+                previous: previousAnalysis
+            )
+            .padding(.horizontal, 16)
+        }
     }
 
     var body: some View {
@@ -115,6 +160,11 @@ struct ChapterTheVerdictView: View {
                         : DS.Color.V3.textPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
+
+                // REBUILD-PHASE-1 conversion mechanics, near the top of the
+                // verdict. Extracted to a sub-view to keep the body's
+                // type-check fast (project rule on body splitting).
+                conversionMechanics
 
                 // Building-sample mode skips the longitudinal WhatChanged
                 // card (deltas on an insufficient sample are misleading,

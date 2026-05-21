@@ -144,6 +144,48 @@ struct ReportListView: View {
 
     // MARK: - Report card
 
+    /// Card title: "{archetype} · {shortDate}". Falls back to the date
+    /// alone when the archetype is absent, and to "Report" when neither
+    /// the archetype nor a parseable date is available (Step 5).
+    private func cardTitle(for report: AutopsyReport) -> String {
+        let archetype = report.analysis.bettingArchetype?.name
+        let date = Self.shortDate(from: report.createdAt)
+        switch (archetype, date) {
+        case let (.some(name), .some(day)): return "\(name) \u{00B7} \(day)"
+        case let (.some(name), .none):      return name
+        case let (.none, .some(day)):       return day
+        case (.none, .none):                return "Report"
+        }
+    }
+
+    /// Parses an ISO-8601 createdAt string and formats it as "MMM d"
+    /// (e.g. "May 20"). Returns nil when the string can't be parsed, so
+    /// cardTitle can fall back cleanly. No shared Date extension exists in
+    /// the project yet; this local helper avoids adding one for a single
+    /// call site.
+    private static let cardDatePlain = ISO8601DateFormatter()
+    private static let cardDateFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    private static let cardDateOutput: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.setLocalizedDateFormatFromTemplate("MMMd")
+        return f
+    }()
+    private static func shortDate(from raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        // Supabase createdAt may or may not carry fractional seconds; try
+        // both ISO-8601 variants before giving up.
+        let date = cardDatePlain.date(from: trimmed)
+            ?? cardDateFractional.date(from: trimmed)
+        guard let date else { return nil }
+        return cardDateOutput.string(from: date)
+    }
+
     private func reportCard(_ report: AutopsyReport, showProgressRing: Bool) -> some View {
         let ringTotal = min(6, report.analysis.recommendations.count)
         let renderRing = showProgressRing && ringTotal > 0
@@ -153,12 +195,10 @@ struct ReportListView: View {
         let totalProfitRedacted = report.reportType == "snapshot"
             || report.analysis.summary.totalProfitVisibility == "redacted_dollar"
         return VStack(alignment: .leading, spacing: 0) {
+            // REBUILD-PHASE-1 Step 5: status markers only. The case number
+            // moved to a secondary line under the archetype+date title; this
+            // row collapses to zero height when empty (full report w/ ring).
             HStack(spacing: 8) {
-                Text("CASE \(report.caseNumber)")
-                    .font(.system(size: 10, weight: .regular).monospacedDigit())
-                    .tracking(10 * 0.15)
-                    .foregroundStyle(DS.Color.V3.textTertiary)
-
                 if report.reportType == "snapshot" {
                     LabelChip(text: "FREE SNAPSHOT",
                               color: DS.Color.V3.Severity.gray)
@@ -174,10 +214,19 @@ struct ReportListView: View {
                 }
             }
 
-            Text(report.analysis.bettingArchetype?.name ?? "Report")
+            // Primary: "{archetype} · {shortDate}", or just the date when
+            // the archetype is absent, or "Report" when neither resolves.
+            Text(cardTitle(for: report))
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(DS.Color.V3.textPrimary)
                 .padding(.top, DS.Spacing.sm)
+
+            // Secondary: case number, subdued.
+            Text("Case \(report.caseNumber)")
+                .font(.system(size: 12, weight: .regular).monospacedDigit())
+                .tracking(10 * 0.12)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .padding(.top, 3)
 
             Text("\(report.betCountAnalyzed.pluralized("bet", "bets")) analyzed")
                 .font(.system(size: 13, weight: .regular).monospacedDigit())
@@ -258,7 +307,7 @@ struct ReportListView: View {
         )
     }
 
-    /// String key for .onChange — UploadFlowCoordinator.State isn't
+    /// String key for .onChange - UploadFlowCoordinator.State isn't
     /// Equatable so we use a discriminator.
     private var coordinatorStateKey: String {
         switch coordinator.state {

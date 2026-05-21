@@ -152,7 +152,10 @@ struct ChapterYourMindView: View {
                     fullHeatedSection
                 }
 
-                if let signals = report.analysis.enhancedTilt?.signals,
+                // D5 (REBUILD-PHASE-1): the signal breakdown is a paid-tier
+                // depth surface; hidden entirely in snapshot mode.
+                if !isSnapshot,
+                   let signals = report.analysis.enhancedTilt?.signals,
                    hasAnySignal(signals) {
                     Spacer().frame(height: 24)
                     TiltSignalBreakdownCard(
@@ -168,7 +171,7 @@ struct ChapterYourMindView: View {
                     InsightCallout(
                         text: insightBody,
                         ctaLabel: isSnapshot
-                            ? "UNLOCK THE DOLLAR DAMAGE"
+                            ? "SEE THE DOLLAR DAMAGE"
                             : "READ THE DISCIPLINE AUDIT",
                         onTap: handleInsightTap
                     )

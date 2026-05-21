@@ -69,6 +69,11 @@ final class AuthState {
         UserDefaults.standard.set(false, forKey: Self.authStateKey)
         PushTokenStore.shared.clearPendingToken()
         ActionCheckoffStore.shared.clearAll()
+        // Wipe the disk-backed report cache immediately on sign-out (security:
+        // never serve one user's cached reports to the next). RootTabView's
+        // task(id:) also clears when the user id goes nil, but that fires only
+        // when the view re-evaluates; doing it here makes it immediate.
+        ReportStore.shared.clear()
         Task { await RevenueCatStore.shared.logout() }
     }
 

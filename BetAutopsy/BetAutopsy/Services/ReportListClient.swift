@@ -32,7 +32,6 @@ final class ReportListClient {
     /// Public entry point. Returns every report for the authenticated
     /// user, newest-first (server-sorted).
     func fetchList() async throws -> [AutopsyReport] {
-        print("[\(Date())] [perf] ReportListClient.fetchList START")
         do {
             return try await attemptFetch()
         } catch ReportFetchError.unauthorized {
@@ -52,13 +51,9 @@ final class ReportListClient {
     }
 
     private func attemptFetch() async throws -> [AutopsyReport] {
-        let start = Date()
         guard let bearer = await APIConfig.bearerToken else {
-            print("[\(Date())] [perf] fetchList bearerToken nil, throwing, elapsed=\(String(format: "%.2f", Date().timeIntervalSince(start)))s")
             throw ReportFetchError.unauthorized
         }
-        let tokenDone = Date()
-        print("[\(tokenDone)] [perf] fetchList bearerToken obtained, elapsed=\(String(format: "%.2f", tokenDone.timeIntervalSince(start)))s")
 
         var urlRequest = URLRequest(url: APIConfig.reportsListURL, timeoutInterval: 15)
         urlRequest.httpMethod = "GET"
@@ -76,8 +71,6 @@ final class ReportListClient {
         } catch {
             throw ReportFetchError.networkError(error)
         }
-        let netDone = Date()
-        print("[\(netDone)] [perf] fetchList network done, elapsed=\(String(format: "%.2f", netDone.timeIntervalSince(tokenDone)))s, bytes=\(data.count)")
 
         guard let http = response as? HTTPURLResponse else {
             throw ReportFetchError.unexpectedStatus(-1)
@@ -91,8 +84,6 @@ final class ReportListClient {
             } catch {
                 throw ReportFetchError.decodingError(error)
             }
-            let decodeDone = Date()
-            print("[\(decodeDone)] [perf] fetchList decode done, elapsed=\(String(format: "%.2f", decodeDone.timeIntervalSince(netDone)))s, count=\(decoded.reports.count)")
             return decoded.reports.map(Self.makeAutopsyReport(from:))
 
         case 401:

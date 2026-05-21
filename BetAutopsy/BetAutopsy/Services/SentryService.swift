@@ -50,7 +50,16 @@ enum SentryService {
             options.tracesSampleRate = 1.0
             options.enableAutoSessionTracking = true
             options.enableUserInteractionTracing = false
-            options.enableNetworkBreadcrumbs = true
+
+            // P0 fix May 2026: Sentry's URLSession swizzling was causing
+            // /api/reports requests to time out after 15s on cold launch (server
+            // responded fast per Vercel logs; iOS never received the body).
+            // Disabling network tracking eliminated the hang. Crash reporting and
+            // custom breadcrumbs remain enabled.
+            options.enableNetworkTracking = false
+            options.enableNetworkBreadcrumbs = false
+            options.enableCaptureFailedRequests = false
+
             options.attachStacktrace = true
             options.attachScreenshot = false
             options.attachViewHierarchy = false

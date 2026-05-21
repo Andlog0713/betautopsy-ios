@@ -2,10 +2,13 @@
 //  ReportView.swift
 //  BetAutopsy
 //
+//  DEPRECATED in REBUILD-PHASE-2 (May 21 2026). Replaced by
+//  ReportScrollContainer (single-scroll IA). File preserved for Phase 3
+//  deletion after device QA confirms section parity. No live callsites
+//  remain; the paged 7-chapter TabView below is dead reader code.
+//
 //  Full-screen report reader. Top bar with case number + chapter counter
 //  + dismiss, paged TabView of 7 chapters, animated page indicator.
-//  Phase 1 fills all 7 pages with ChapterPlaceholder; later phases swap
-//  in real chapter views.
 //
 
 import SwiftUI

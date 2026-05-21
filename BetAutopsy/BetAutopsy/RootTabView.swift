@@ -47,7 +47,7 @@ struct RootTabView: View {
             get: { deepLinkRouter.presentingReport },
             set: { newValue in if newValue == nil { deepLinkRouter.dismissed() } }
         )) { report in
-            ReportView(report: report)
+            ReportScrollContainer(report: report)
         }
         .task {
             await deepLinkRouter.consume()

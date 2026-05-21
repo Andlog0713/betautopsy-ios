@@ -66,7 +66,7 @@ struct LockedDollarBar: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Locked dollar amount")
-        .accessibilityHint("Tap to unlock the full report for $19.99")
+        .accessibilityHint("Tap to read the full report for \(RevenueCatStore.shared.priceString)")
         .accessibilityAddTraits(.isButton)
     }
 }

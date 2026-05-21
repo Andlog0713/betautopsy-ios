@@ -163,19 +163,25 @@ struct ChapterYourDisciplineView: View {
                         legacySection
                     }
 
-                    Spacer().frame(height: 28)
+                    // D7 (REBUILD-PHASE-1): the TRACKING / SIZING / CONTROL /
+                    // STRATEGY sub-scores are paid-tier depth; hidden in
+                    // snapshot. The overall discipline hero score above stays
+                    // visible.
+                    if !isSnapshot {
+                        Spacer().frame(height: 28)
 
-                    Text("COMPONENT BREAKDOWN")
-                        .font(DS.Font.V3.navigatorSubtitle)
-                        .tracking(1.8)
-                        .foregroundStyle(DS.Color.V3.textTertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
+                        Text("COMPONENT BREAKDOWN")
+                            .font(DS.Font.V3.navigatorSubtitle)
+                            .tracking(1.8)
+                            .foregroundStyle(DS.Color.V3.textTertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
 
-                    Spacer().frame(height: 8)
+                        Spacer().frame(height: 8)
 
-                    componentBreakdown
-                        .padding(.horizontal, 16)
+                        componentBreakdown
+                            .padding(.horizontal, 16)
+                    }
                 }
 
                 if !insightBody.isEmpty {

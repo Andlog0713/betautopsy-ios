@@ -34,8 +34,9 @@ import RevenueCat
 // MARK: - Pricing constants
 
 private enum PaywallCopy {
-    static let priceLabel = "$19.99"
-    static let ctaLabel   = "Read the full report ($19.99)."
+    /// CTA label is now built dynamically from RevenueCatStore.priceString
+    /// (REBUILD-PHASE-1 Step 4); see PaywallView.ctaLabel. The "$19.99"
+    /// fallback lives only in RevenueCatStore.priceString.
     static let microcopy  = "One-time charge. Yours to keep. No subscription."
     /// IAP product ID kept in code as `single` to match the existing
     /// receipt-validation / entitlement path. App Store Connect side
@@ -47,7 +48,7 @@ private enum PaywallCopy {
     /// RC entitlement identifier (Phase 1 dashboard config). Checked
     /// against CustomerInfo.entitlements.active after a restore call.
     static let entitlementIdentifier = "full_report_unlock"
-    /// Restore alert copy. Two messages — one when the SDK reports the
+    /// Restore alert copy. Two messages: one when the SDK reports the
     /// full_report_unlock entitlement is active after restore (rare
     /// for a consumable, but possible via family sharing or sandbox
     /// state), one when no active entitlement was found.
@@ -133,7 +134,7 @@ struct PaywallView: View {
 
             // Fetch offerings if RC hadn't loaded them yet (e.g., the
             // sheet was triggered before the cold-start login resolved).
-            // Subsequent opens skip this — currentOffering stays cached.
+            // Subsequent opens skip this; currentOffering stays cached.
             if RevenueCatStore.shared.currentOffering == nil {
                 await RevenueCatStore.shared.fetchOfferings()
             }
@@ -274,10 +275,16 @@ struct PaywallView: View {
         }
     }
 
+    /// Buy CTA label, built from the live localized price (Step 4).
+    /// Falls back to "$19.99" via RevenueCatStore.priceString.
+    private var ctaLabel: String {
+        "Read the full report (\(RevenueCatStore.shared.priceString))."
+    }
+
     private var buyButton: some View {
         Button(action: handleBuy) {
             ZStack {
-                Text(PaywallCopy.ctaLabel)
+                Text(ctaLabel)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(DS.Color.Brand.canvasDark)
                     .opacity(RevenueCatStore.shared.isLoading ? 0 : 1)
@@ -349,7 +356,7 @@ struct PaywallView: View {
                     // "Pull to refresh on the dashboard..." message
                     // and renders inline via bottomCTA. Hold visible
                     // for a beat so the user can read it, then close
-                    // the sheet — the dashboard reactive observation
+                    // the sheet; the dashboard reactive observation
                     // will pick up the child row on the user's pull
                     // to refresh.
                     try? await Task.sleep(for: .seconds(2.5))

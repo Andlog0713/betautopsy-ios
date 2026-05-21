@@ -95,6 +95,13 @@ struct ChapterYourNext7DaysView: View {
                 // teaser content. Full-report mode renders the InsightCallout
                 // at the bottom of the chapter instead.
                 if report.reportType == "snapshot" {
+                    // REBUILD-PHASE-1: repeated terminal CTA placed above the
+                    // rich snapshotPaywallCard (distinct canonical copy so the
+                    // two CTAs do not read as duplicates).
+                    Spacer().frame(height: 24)
+                    RepeatedCTABlock(variant: .terminal, onTap: handleUnlock)
+                        .padding(.horizontal, 16)
+
                     Spacer().frame(height: 24)
                     snapshotPaywallCard
                         .padding(.horizontal, 16)
@@ -259,7 +266,7 @@ struct ChapterYourNext7DaysView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(action: handleUnlock) {
-                Text("Read the full report ($19.99).")
+                Text("Read the full report (\(RevenueCatStore.shared.priceString)).")
                     .font(DS.Font.V3.buttonLabel)
                     .foregroundStyle(DS.Color.V3.canvasGradientEnd)
                     .frame(maxWidth: .infinity)

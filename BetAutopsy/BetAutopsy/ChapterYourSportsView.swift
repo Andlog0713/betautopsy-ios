@@ -91,6 +91,11 @@ struct ChapterYourSportsView: View {
 
     @ViewBuilder
     private var hourChartSection: some View {
+        // D6 (REBUILD-PHASE-1): the BY HOUR bar shape is the moat and stays
+        // visible in every mode. The bars encode ROI percent (non-redacted)
+        // with hour labels; there is no per-bar tap interaction and no
+        // dollar/bet-count tooltip surface to gate, so no dollar value leaks
+        // in snapshot. The BEST/WORST captions are window labels only.
         if let timing = report.analysis.timingAnalysis, !timing.byHour.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 Text("BY HOUR")
@@ -228,17 +233,26 @@ struct ChapterYourSportsView: View {
                 }
                 .padding(.top, 16)
 
+                // D8 (REBUILD-PHASE-1): the luck rating label stays visible
+                // in every mode (it carries the "running hot/cold" direction).
+                // The precise wins-vs-expected counts are locked in snapshot
+                // behind the standard redaction capsule.
                 Text("Luck rating: \(odds.luckLabel)")
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(1.5)
                     .foregroundStyle(DS.Color.V3.textTertiary)
                     .padding(.top, 16)
 
-                Text("\(odds.actualWins) wins vs \(Int(odds.expectedWins.rounded())) expected")
-                    .font(.system(size: 13, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textPrimary)
-                    .padding(.top, 4)
+                if isSnapshot {
+                    LockedDollarBar(width: 140, onTap: handleDollarTap)
+                        .padding(.top, 4)
+                } else {
+                    Text("\(odds.actualWins) wins vs \(Int(odds.expectedWins.rounded())) expected")
+                        .font(.system(size: 13, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .padding(.top, 4)
+                }
             }
         }
     }
@@ -497,7 +511,7 @@ private struct SnapshotCountsModule: View {
             .padding(.top, 16)
 
             Button(action: onTap) {
-                Text("Read the full report ($19.99).")
+                Text("Read the full report (\(RevenueCatStore.shared.priceString)).")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(DS.Color.Brand.canvasDark)
                     .frame(maxWidth: .infinity)

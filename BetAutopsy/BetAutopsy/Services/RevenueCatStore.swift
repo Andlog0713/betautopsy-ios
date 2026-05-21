@@ -20,7 +20,7 @@
 //  (AppleSignInCoordinator.handleSuccess → loginIfAuthenticated) both
 //  reach login(userId:); the second call is a no-op.
 //
-//  Surface-silent failures on login / logout / fetchOfferings — Sentry
+//  Surface-silent failures on login / logout / fetchOfferings - Sentry
 //  capture only, kind=iap. purchase() and restorePurchases() throw
 //  because PaywallView needs to react to user-initiated failures.
 //
@@ -41,6 +41,16 @@ final class RevenueCatStore {
     private(set) var currentOffering: Offering?
     private(set) var isLoading: Bool = false
     private(set) var lastPurchaseError: String?
+
+    /// Localized display price for the one-time full report (the lifetime
+    /// package of the current offering). Single source of the "$19.99"
+    /// fallback used app-wide before offerings resolve. Derived from the
+    /// already-observable currentOffering, so it updates automatically on
+    /// fetchOfferings() and resets on logout(). The fallback string lives
+    /// here and nowhere else (REBUILD-PHASE-1 Step 4).
+    var priceString: String {
+        currentOffering?.lifetime?.localizedPriceString ?? "$19.99"
+    }
 
     /// True while pollForUpgradedReport is running. PaywallView swaps
     /// the CTA for a "Preparing your full report..." spinner during
@@ -122,7 +132,7 @@ final class RevenueCatStore {
     /// Called automatically after a fresh login(); also exposed for
     /// PaywallView to call on appear if currentOffering is nil (e.g.,
     /// the user opened PaywallView before the cold-start login fully
-    /// resolved). Silent on failure — PaywallView shows a generic
+    /// resolved). Silent on failure - PaywallView shows a generic
     /// "Couldn't load purchase options" state when currentOffering
     /// stays nil.
     func fetchOfferings() async {
@@ -204,7 +214,7 @@ final class RevenueCatStore {
 
     /// Surfaces an error message to PaywallView without going through
     /// a thrown-error path. Used for view-side precondition failures
-    /// the store doesn't see directly — e.g., the package lookup in
+    /// the store doesn't see directly: e.g., the package lookup in
     /// currentOffering returning nil before purchase() can be called.
     func setError(_ message: String) {
         lastPurchaseError = message

@@ -163,6 +163,17 @@ struct SectionVerdict: View {
                     .padding(.horizontal, 16)
             }
 
+            // #3 What-If simulator: between DamagesCard and the exec-
+            // diagnosis insight. Full-mode only (the engine omits
+            // what_if_scenarios in snapshot); nil/empty on older reports.
+            if !isSnapshot,
+               let scenarios = report.analysis.whatIfScenarios,
+               !scenarios.isEmpty {
+                Spacer().frame(height: 24)
+                WhatIfCard(scenarios: scenarios)
+                    .padding(.horizontal, 16)
+            }
+
             if !insightBody.isEmpty {
                 Spacer().frame(height: 24)
 

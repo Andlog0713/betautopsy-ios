@@ -1146,6 +1146,21 @@ struct PatternsSnapshotEntry: Codable, Identifiable {
     let dollarVisibility: String?
 }
 
+// MARK: - What-If scenarios (engine a658305)
+//
+// Full reports only: the engine ports buildWhatIfs server-side (web's
+// AutopsyReport.tsx) and ships 1-3 counterfactual scenarios. runSnapshot
+// omits the field, and older pre-deploy reports lack it, so iOS treats
+// the whole array as optional and renders nothing when nil/empty.
+struct WhatIfScenario: Codable, Identifiable {
+    let label: String
+    let actual: Double
+    let hypothetical: Double
+
+    var id: String { label }
+    var deltaDollars: Double { hypothetical - actual }
+}
+
 // MARK: - Top-level analysis
 
 struct AutopsyAnalysis: Codable {
@@ -1189,6 +1204,10 @@ struct AutopsyAnalysis: Codable {
     // wrapper. Empty/nil on older wire and on full-mode payloads.
     let patternsSnapshot: [PatternsSnapshotEntry]?
 
+    // Engine What-If scenarios (a658305). Full-mode only; nil in snapshot
+    // and on older pre-deploy reports.
+    let whatIfScenarios: [WhatIfScenario]?
+
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
          behavioralPatterns: [BehavioralPattern], recommendations: [Recommendation],
@@ -1208,7 +1227,8 @@ struct AutopsyAnalysis: Codable {
          emotionScoreInsufficientData: Bool? = nil,
          tiltScoreInsufficientData: Bool? = nil,
          emotionPercentile: Int? = nil,
-         patternsSnapshot: [PatternsSnapshotEntry]? = nil) {
+         patternsSnapshot: [PatternsSnapshotEntry]? = nil,
+         whatIfScenarios: [WhatIfScenario]? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -1241,6 +1261,7 @@ struct AutopsyAnalysis: Codable {
         self.tiltScoreInsufficientData = tiltScoreInsufficientData
         self.emotionPercentile = emotionPercentile
         self.patternsSnapshot = patternsSnapshot
+        self.whatIfScenarios = whatIfScenarios
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1261,6 +1282,9 @@ struct AutopsyAnalysis: Codable {
         case whatChanged
         case emotionScoreInsufficientData, tiltScoreInsufficientData
         case emotionPercentile, patternsSnapshot
+        // convertFromSnakeCase maps what_if_scenarios -> whatIfScenarios,
+        // so no explicit raw value (matches whatChanged / patternsSnapshot).
+        case whatIfScenarios
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -1304,6 +1328,7 @@ struct AutopsyAnalysis: Codable {
         self.tiltScoreInsufficientData    = try? c.decode(Bool.self, forKey: .tiltScoreInsufficientData)
         self.emotionPercentile    = try? c.decode(Int.self, forKey: .emotionPercentile)
         self.patternsSnapshot     = try? c.decode([PatternsSnapshotEntry].self, forKey: .patternsSnapshot)
+        self.whatIfScenarios      = try? c.decode([WhatIfScenario].self, forKey: .whatIfScenarios)
     }
 }
 

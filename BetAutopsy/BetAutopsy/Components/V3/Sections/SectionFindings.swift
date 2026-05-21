@@ -97,6 +97,18 @@ struct SectionFindings: View {
         Array(report.analysis.strategicLeaks.prefix(5))
     }
 
+    /// #4 leak prioritizer gate. Full mode needs at least one dollar-bearing
+    /// ranked item; snapshot needs a bias or a negative-ROI leak to preview
+    /// (costs are locked). Mirrors LeakPrioritizerCard's own emptiness check
+    /// so the section header never orphans an empty card.
+    private var showLeakPrioritizer: Bool {
+        if isSnapshot {
+            return !report.analysis.biasesDetected.isEmpty
+                || report.analysis.strategicLeaks.contains { $0.roiImpact < 0 }
+        }
+        return !TotalRecoverable.ranked(for: report.analysis).isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             FindingsCounterChips(report: report)
@@ -136,6 +148,34 @@ struct SectionFindings: View {
                     .padding(.horizontal, 16)
             }
 
+            // #4 leak prioritizer: AFTER the bias rows, BEFORE the clean
+            // findings. It synthesizes both the leak and bias streams above
+            // into one "fix order" ranking, so it follows both. The framing
+            // (FIX IN THIS ORDER) distinguishes it from WHERE YOU BLEED.
+            if showLeakPrioritizer {
+                Spacer().frame(height: 28)
+
+                Text("FIX IN THIS ORDER")
+                    .font(DS.Font.V3.navigatorSubtitle)
+                    .tracking(1.8)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+
+                Spacer().frame(height: 4)
+
+                Text("Your leaks and biases, ranked by impact.")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+
+                Spacer().frame(height: 12)
+
+                LeakPrioritizerCard(report: report, onPaywallTap: onPaywallTap)
+                    .padding(.horizontal, 16)
+            }
+
             if !pertinentNegatives.isEmpty {
                 Spacer().frame(height: 28)
 
@@ -148,22 +188,25 @@ struct SectionFindings: View {
 
                 Spacer().frame(height: 12)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 16) {
                     ForEach(pertinentNegatives) { item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.pattern.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
-                                .tracking(1.1)
-                                .foregroundStyle(DS.Color.V3.textTertiary)
-                            Text(item.finding)
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(DS.Color.V3.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                        cleanFindingRow(item)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
+
+                // #5 footer: web's benchmark provenance line (AutopsyReport
+                // .tsx 1611), rendered verbatim. The population percentage
+                // itself already lives inside each item.detail sentence, so
+                // no separate percent chip is added (it would duplicate it).
+                Text("Population benchmarks based on aggregate betting behavior research.")
+                    .font(.system(size: 11, weight: .regular))
+                    .italic()
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
             }
             // Exec-diagnosis InsightCallout removed (Q3 dedup): it duplicated
             // SectionVerdict's insight. Section-specific prose is unaffected.
@@ -213,6 +256,30 @@ struct SectionFindings: View {
             parameters: ["bias_name": bias.biasName]
         )
         expandedBias = bias
+    }
+
+    /// #5 clean-finding row. Web shows pattern (win-colored), finding, and
+    /// detail (AutopsyReport.tsx 1603-1608). iOS previously rendered only
+    /// pattern + finding; this adds the detail line (which carries the
+    /// population benchmark sentence) and lifts the label to the win color.
+    @ViewBuilder
+    private func cleanFindingRow(_ item: PertinentNegative) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.pattern.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.1)
+                .foregroundStyle(DS.Color.V3.Severity.green)
+            Text(item.finding)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !item.detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(item.detail)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private func severityCaps(_ severity: BiasSeverity) -> String {

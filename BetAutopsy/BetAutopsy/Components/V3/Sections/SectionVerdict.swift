@@ -75,6 +75,15 @@ struct SectionVerdict: View {
         return raw.firstSentences(2)
     }
 
+    /// Mirrors BetIQComponentBars.shouldRender so the surrounding spacer is
+    /// dropped when the bars hide (no betiq, or insufficient sample in full
+    /// mode). Snapshot always shows the locked teaser when betiq exists.
+    private var showComponentBars: Bool {
+        guard let betiq = report.analysis.betiq else { return false }
+        if isSnapshot { return true }
+        return !betiq.insufficientData
+    }
+
     /// Phase 1 conversion mechanics block. TotalRecoverableHero is
     /// full-mode-only (self-hides in snapshot and when the figure is 0).
     /// BankrollHealthCallout renders only when health != healthy.
@@ -106,10 +115,24 @@ struct SectionVerdict: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // #1 vitals strip: top-of-section density anchor, above the ring.
+            VitalsStripCard(report: report, onPaywallTap: onPaywallTap)
+                .padding(.horizontal, 16)
+
+            Spacer().frame(height: 24)
+
             if betIQInsufficient {
                 HeroRingInsufficient(metricLabel: "BETIQ")
             } else {
                 HeroRingView(score: betIQScore, metricLabel: "BETIQ")
+            }
+
+            // #2 BetIQ skill-component bars: between the ring and the
+            // archetype prose (opens the composite score into its drivers).
+            if showComponentBars {
+                Spacer().frame(height: 24)
+                BetIQComponentBars(report: report, onPaywallTap: onPaywallTap)
+                    .padding(.horizontal, 16)
             }
 
             Spacer().frame(height: 28)

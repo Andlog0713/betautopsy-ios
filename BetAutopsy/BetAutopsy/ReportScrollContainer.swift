@@ -67,6 +67,10 @@ struct ReportScrollContainer: View {
                             .trackSectionTop("section_sports")
                             .id("section_sports")
 
+                        SectionProtocol(report: viewModel.report, onPaywallTap: handlePaywallTap)
+                            .trackSectionTop("section_protocol")
+                            .id("section_protocol")
+
                         SectionAction(report: viewModel.report, onPaywallTap: handlePaywallTap)
                             .trackSectionTop("section_action")
                             .id("section_action")

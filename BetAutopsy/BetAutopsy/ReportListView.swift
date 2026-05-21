@@ -37,35 +37,13 @@ struct ReportListView: View {
                         .foregroundStyle(DS.Color.V3.textPrimary)
                         .padding(.top, DS.Spacing.xs)
 
-                    if store.showMockPlaceholder {
-                        emptyStateUploadButton
-                            .padding(.top, DS.Spacing.xl)
-                    }
-
-                    VStack(spacing: DS.Spacing.md) {
-                        ForEach(Array(store.displayedReports.enumerated()), id: \.element.id) { idx, report in
-                            Button {
-                                presentedReport = report
-                            } label: {
-                                reportCard(
-                                    report,
-                                    showProgressRing: idx == 0 && !store.reports.isEmpty
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.top, store.showMockPlaceholder
-                                   ? DS.Spacing.xl : DS.Spacing.xl)
-
-                    Text("More reports unlock after each weekly upload.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(DS.Color.V3.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, DS.Spacing.xl)
+                    content
                 }
                 .padding(.horizontal, DS.Spacing.md)
                 .padding(.bottom, DS.Spacing.xl)
+            }
+            .refreshable {
+                await store.hydrate()
             }
         }
         .sheet(isPresented: $showingPicker) {
@@ -99,6 +77,82 @@ struct ReportListView: View {
             if isAuth, let mostRecentId = store.reports.first?.id {
                 Task { await checkoffStore.load(reportId: mostRecentId) }
             }
+        }
+    }
+
+    // MARK: - Content state machine
+
+    /// Drives loading / error / empty / populated off the hydration state.
+    /// While reports exist, the list always shows (pull-to-refresh keeps
+    /// the last-known list visible and renders its own spinner).
+    @ViewBuilder
+    private var content: some View {
+        if store.reports.isEmpty {
+            if store.isHydrating {
+                loadingState
+            } else if store.hydrationError != nil {
+                errorState
+            } else {
+                emptyState
+            }
+        } else {
+            reportsList
+        }
+    }
+
+    private var loadingState: some View {
+        VStack(spacing: DS.Spacing.md) {
+            ProgressView()
+                .tint(DS.Color.V3.textTertiary)
+            Text("Loading your reports.")
+                .font(.system(size: 15))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, DS.Spacing.xxl)
+    }
+
+    private var emptyState: some View {
+        emptyStateUploadButton
+            .padding(.top, DS.Spacing.xl)
+    }
+
+    private var errorState: some View {
+        VStack(spacing: DS.Spacing.md) {
+            Text("Couldn't load reports.")
+                .font(.system(size: 15))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button(action: { Task { await store.hydrate() } }) {
+                Text("Try again")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.ctaText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, DS.Spacing.xxl)
+    }
+
+    private var reportsList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: DS.Spacing.md) {
+                ForEach(Array(store.reports.enumerated()), id: \.element.id) { idx, report in
+                    Button {
+                        presentedReport = report
+                    } label: {
+                        reportCard(report, showProgressRing: idx == 0)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, DS.Spacing.xl)
+
+            Text("More reports unlock after each weekly upload.")
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.top, DS.Spacing.xl)
         }
     }
 

@@ -92,7 +92,16 @@ actor ReportCache {
 enum ReportCacheCodec {
     /// Bump when a breaking change to the persisted shape ships. A cache written
     /// by a newer version is ignored rather than risking a decode crash.
-    static let currentVersion = 1
+    ///
+    /// v2 (P0 full-report rebuild): the AutopsyAnalysis decode paths changed
+    /// (AutopsySummary tolerant init + optional overallGrade, dual
+    /// executiveDiagnosis). Blobs written by v1 may hold a degraded decode
+    /// (zero-fallback summary, nil sessionDetection) that pre-dates the fix and
+    /// would otherwise persist across launches - the source of the stale "$0
+    /// hero" and the "Pattern analysis lives in the full report" leak in full
+    /// mode. Bumping invalidates them so the next launch re-fetches and
+    /// re-decodes cleanly.
+    static let currentVersion = 2
 
     private static let encoder: JSONEncoder = {
         let e = JSONEncoder()

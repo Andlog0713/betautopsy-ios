@@ -117,7 +117,11 @@ struct SectionPatternsTiming: View {
             }
             let isWin = entry.kind == "biggest_win"
             let color = isWin ? DS.Color.V3.textPrimary : DS.Color.V3.Severity.red
-            let locked = entry.dollarVisibility == "redacted_dollar" || entry.dollarValue == nil
+            // Lock the Biggest Win dollar in snapshot too. The engine marks
+            // biggest_win visible, but leaving it the lone unredacted dollar
+            // next to a locked Biggest Loss is an asymmetric leak; the paid
+            // report still shows it (full path, patternCards, always visible).
+            let locked = isWin || entry.dollarVisibility == "redacted_dollar" || entry.dollarValue == nil
             if locked {
                 return PatternCard.Pattern(
                     title: title,

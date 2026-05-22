@@ -113,7 +113,7 @@ struct SectionHeatedDiscipline: View {
             .trimmingCharacters(in: .whitespacesAndNewlines), !trigger.isEmpty {
             return trigger
         }
-        return (report.analysis.executiveDiagnosis ?? "").firstSentences(2)
+        return report.analysis.executiveDiagnosisInsight(snapshot: isSnapshot).firstSentences(2)
     }
 
     // MARK: - Discipline

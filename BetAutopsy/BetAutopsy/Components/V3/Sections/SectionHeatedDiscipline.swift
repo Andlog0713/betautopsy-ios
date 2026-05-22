@@ -508,7 +508,12 @@ struct SectionHeatedDiscipline: View {
                     onTap: { onPaywallTap("section_heated_discipline_emotional_cost_locked") }
                 )
             } else {
-                Text("-$\(Int(annotations.emotionalCost.rounded()))")
+                // emotionalCost ships negative (a P&L delta, e.g. -8839.78).
+                // formatCurrency on the forced-negative magnitude renders a
+                // single "-$8,840" (comma, one minus) matching the other loss
+                // cards; the old hardcoded "-$\(value)" prepended a second
+                // minus onto the already-negative value ("-$-8,840").
+                Text(formatCurrency(-abs(annotations.emotionalCost)))
                     .font(.system(size: 52, weight: .bold).monospacedDigit())
                     .foregroundStyle(emotionalCostTint)
             }

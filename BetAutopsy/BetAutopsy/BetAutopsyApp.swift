@@ -27,6 +27,9 @@ struct BetAutopsyApp: App {
         // Sentry first so subsequent SDK init errors get captured.
         SentryService.start()
         Analytics.initialize()
+        #if DEBUG
+        ReportDecodeDebug.run()
+        #endif
     }
 
     /// One-shot migration: any UserDefaults `userArchetype` value still

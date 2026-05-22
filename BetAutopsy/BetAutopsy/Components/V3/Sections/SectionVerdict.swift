@@ -71,7 +71,11 @@ struct SectionVerdict: View {
 
     private var insightBody: String {
         let fallback = archetypeBuildingSample ? "" : (report.analysis.bettingArchetype?.description ?? "")
-        let raw = report.analysis.executiveDiagnosis ?? fallback
+        // Snapshot routes to insightSnapshot (no dollar figures); full routes
+        // to insightFull. Empty insight falls back to the archetype prose so a
+        // snapshot without a snapshot variant never leaks the full $ prose.
+        let insight = report.analysis.executiveDiagnosisInsight(snapshot: isSnapshot)
+        let raw = insight.isEmpty ? fallback : insight
         return raw.firstSentences(2)
     }
 

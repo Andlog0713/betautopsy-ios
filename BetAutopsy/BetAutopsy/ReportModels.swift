@@ -84,7 +84,13 @@ struct AutopsySummary: Codable {
     let roiPercent: Double
     let avgStake: Double
     let dateRange: String
-    let overallGrade: String
+    // Optional: the engine ships overall_grade: null on schema_version=2
+    // full reports. When this was a non-optional String the synthesized
+    // Codable threw on null, which through AutopsyAnalysis's tolerant
+    // `try? summary` collapsed the WHOLE summary to the zero fallback and
+    // rendered the $0/blank vitals strip. Optional + the tolerant init(from:)
+    // below make any single null field a local nil, never a whole-summary loss.
+    let overallGrade: String?
 
     // Engine snapshot redaction tags (b775e8e). total_profit + avg_stake
     // are dollar headlines zeroed to 0 in snapshot mode with the matching
@@ -100,7 +106,7 @@ struct AutopsySummary: Codable {
         roiPercent: Double,
         avgStake: Double,
         dateRange: String,
-        overallGrade: String,
+        overallGrade: String?,
         totalProfitVisibility: String? = nil,
         avgStakeVisibility: String? = nil
     ) {
@@ -113,6 +119,29 @@ struct AutopsySummary: Codable {
         self.overallGrade = overallGrade
         self.totalProfitVisibility = totalProfitVisibility
         self.avgStakeVisibility = avgStakeVisibility
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case totalBets, record, totalProfit, roiPercent, avgStake
+        case dateRange, overallGrade, totalProfitVisibility, avgStakeVisibility
+    }
+
+    /// Tolerant decoder. Every field reads with try? and a neutral default so
+    /// a single null/mistyped wire field (the schema_version=2 engine ships
+    /// overall_grade: null) cannot fail the whole AutopsySummary decode and,
+    /// through AutopsyAnalysis's `try? summary`, swap in the all-zero fallback
+    /// that produced the $0/blank vitals strip on full reports.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.totalBets   = (try? c.decode(Int.self,    forKey: .totalBets))   ?? 0
+        self.record      = (try? c.decode(String.self, forKey: .record))      ?? ""
+        self.totalProfit = (try? c.decode(Double.self, forKey: .totalProfit)) ?? 0
+        self.roiPercent  = (try? c.decode(Double.self, forKey: .roiPercent))  ?? 0
+        self.avgStake    = (try? c.decode(Double.self, forKey: .avgStake))    ?? 0
+        self.dateRange   = (try? c.decode(String.self, forKey: .dateRange))   ?? ""
+        self.overallGrade = try? c.decode(String.self, forKey: .overallGrade)
+        self.totalProfitVisibility = try? c.decode(String.self, forKey: .totalProfitVisibility)
+        self.avgStakeVisibility    = try? c.decode(String.self, forKey: .avgStakeVisibility)
     }
 }
 
@@ -1161,6 +1190,38 @@ struct WhatIfScenario: Codable, Identifiable {
     var deltaDollars: Double { hypothetical - actual }
 }
 
+// MARK: - Executive diagnosis (engine PR #55 dual representation)
+//
+// The schema_version=2 wire ships BOTH `executive_diagnosis` (a bare string,
+// = the full insight) AND `executiveDiagnosis` (an object with insightFull +
+// insightSnapshot). Under .convertFromSnakeCase the snake key converts to the
+// same camelCase key as the object, so the keyed container exposes ONE value
+// at "executiveDiagnosis" - whichever survived the collision. This tolerant
+// payload decodes either shape: a bare string populates insightFull only; the
+// object populates both. AutopsyAnalysis extracts the two strings so snapshot
+// mode can route to insightSnapshot (no dollar figures) and full mode to
+// insightFull, regardless of which form survived.
+private struct ExecutiveDiagnosisPayload: Decodable {
+    let insightFull: String?
+    let insightSnapshot: String?
+
+    private enum CodingKeys: String, CodingKey { case insightFull, insightSnapshot }
+
+    init(from decoder: Decoder) throws {
+        // Bare-string form (executive_diagnosis): take it as the full insight.
+        if let single = try? decoder.singleValueContainer(),
+           let str = try? single.decode(String.self) {
+            self.insightFull = str
+            self.insightSnapshot = nil
+            return
+        }
+        // Object form (executiveDiagnosis): both variants.
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.insightFull = try? c.decode(String.self, forKey: .insightFull)
+        self.insightSnapshot = try? c.decode(String.self, forKey: .insightSnapshot)
+    }
+}
+
 // MARK: - Top-level analysis
 
 struct AutopsyAnalysis: Codable {
@@ -1184,7 +1245,13 @@ struct AutopsyAnalysis: Codable {
     let dfsMode: Bool
     let dfsPlatform: String?
     let dfsMetrics: DFSMetrics?
+    // Full-mode insight prose (executiveDiagnosis.insightFull, or the bare
+    // executive_diagnosis string). Legacy callers read this directly.
     let executiveDiagnosis: String?
+    // Snapshot-mode insight prose (executiveDiagnosis.insightSnapshot). nil
+    // when the wire shipped only the bare string; the reader then falls back
+    // to the archetype description rather than leaking the full dollar prose.
+    let executiveDiagnosisSnapshot: String?
     let pertinentNegatives: [PertinentNegative]?
     let contradictions: [Contradiction]?
     let bettingArchetype: BettingArchetypeData?
@@ -1218,7 +1285,8 @@ struct AutopsyAnalysis: Codable {
          sessionDetection: SessionDetectionResult?, betAnnotations: AnnotationSummary?,
          sportSpecificFindings: [SportSpecificFinding]?, dfsMode: Bool,
          dfsPlatform: String?, dfsMetrics: DFSMetrics?,
-         executiveDiagnosis: String?, pertinentNegatives: [PertinentNegative]?,
+         executiveDiagnosis: String?, executiveDiagnosisSnapshot: String? = nil,
+         pertinentNegatives: [PertinentNegative]?,
          contradictions: [Contradiction]?, bettingArchetype: BettingArchetypeData?,
          quizArchetype: String?,
          snapshotTeaser: SnapshotTeaser? = nil,
@@ -1250,6 +1318,7 @@ struct AutopsyAnalysis: Codable {
         self.dfsPlatform = dfsPlatform
         self.dfsMetrics = dfsMetrics
         self.executiveDiagnosis = executiveDiagnosis
+        self.executiveDiagnosisSnapshot = executiveDiagnosisSnapshot
         self.pertinentNegatives = pertinentNegatives
         self.contradictions = contradictions
         self.bettingArchetype = bettingArchetype
@@ -1270,7 +1339,7 @@ struct AutopsyAnalysis: Codable {
         case bankrollHealth, disciplineScore, betiq, enhancedTilt
         case timingAnalysis, oddsAnalysis, sessionDetection, betAnnotations
         case sportSpecificFindings, dfsMode, dfsPlatform, dfsMetrics
-        case executiveDiagnosis, pertinentNegatives, contradictions
+        case executiveDiagnosis, executiveDiagnosisSnapshot, pertinentNegatives, contradictions
         case bettingArchetype, quizArchetype
         // Backend snapshot side-channel. Leading underscore on the wire
         // survives the convertFromSnakeCase strategy (it strips internal
@@ -1316,7 +1385,15 @@ struct AutopsyAnalysis: Codable {
         self.dfsMode              = (try? c.decode(Bool.self, forKey: .dfsMode)) ?? false
         self.dfsPlatform          = try? c.decode(String.self, forKey: .dfsPlatform)
         self.dfsMetrics           = try? c.decode(DFSMetrics.self, forKey: .dfsMetrics)
-        self.executiveDiagnosis   = try? c.decode(String.self, forKey: .executiveDiagnosis)
+        // Dual executive diagnosis (engine PR #55). Decode whichever form
+        // survived the convertFromSnakeCase collision into insightFull /
+        // insightSnapshot. The snapshot string also falls back to its own
+        // cache key so a cache round-trip (which re-encodes both strings)
+        // preserves it.
+        let execDiag = try? c.decode(ExecutiveDiagnosisPayload.self, forKey: .executiveDiagnosis)
+        self.executiveDiagnosis = execDiag?.insightFull
+        self.executiveDiagnosisSnapshot = execDiag?.insightSnapshot
+            ?? (try? c.decode(String.self, forKey: .executiveDiagnosisSnapshot))
         self.pertinentNegatives   = try? c.decode([PertinentNegative].self, forKey: .pertinentNegatives)
         self.contradictions       = try? c.decode([Contradiction].self, forKey: .contradictions)
         self.bettingArchetype     = try? c.decode(BettingArchetypeData.self, forKey: .bettingArchetype)
@@ -1329,6 +1406,15 @@ struct AutopsyAnalysis: Codable {
         self.emotionPercentile    = try? c.decode(Int.self, forKey: .emotionPercentile)
         self.patternsSnapshot     = try? c.decode([PatternsSnapshotEntry].self, forKey: .patternsSnapshot)
         self.whatIfScenarios      = try? c.decode([WhatIfScenario].self, forKey: .whatIfScenarios)
+    }
+
+    /// Insight prose for the verdict callout. Full mode prefers the full
+    /// insight; snapshot mode uses only the snapshot variant (no dollar
+    /// figures) and returns "" when it is absent so the caller falls back to
+    /// the archetype description rather than leaking the full prose.
+    func executiveDiagnosisInsight(snapshot: Bool) -> String {
+        if snapshot { return executiveDiagnosisSnapshot ?? "" }
+        return executiveDiagnosis ?? executiveDiagnosisSnapshot ?? ""
     }
 }
 

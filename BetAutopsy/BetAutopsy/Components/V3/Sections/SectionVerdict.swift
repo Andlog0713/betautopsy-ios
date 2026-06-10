@@ -119,6 +119,15 @@ struct SectionVerdict: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Elevated-tier note: dismissible, non-clinical heads-up at the
+            // very top. Recovery tier renders nothing here (its card lives in
+            // SectionProtocol); snapshots never reach here (controlSystem nil).
+            if report.analysis.controlSystem?.effectiveRiskTier == .elevated {
+                ElevatedRiskNote(reportId: report.id)
+                    .padding(.horizontal, 16)
+                Spacer().frame(height: 24)
+            }
+
             // #1 vitals strip: top-of-section density anchor, above the ring.
             VitalsStripCard(report: report, onPaywallTap: onPaywallTap)
                 .padding(.horizontal, 16)

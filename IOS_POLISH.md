@@ -730,3 +730,78 @@ no double-present, no duplicate analytics.
   unlock) is flagged for a later evaluation, NOT snapshot-time pre-gen.
 - Notion: sprint rows / command-center update not filed by Claude Code
   (standing rule); file from this entry.
+
+---
+
+## Branch: recovery-tier-ui (2026-06-10)
+
+Re-converges iOS with web PR #71 (commit 45ec0fb): renders the report-baked
+three-tier `riskTier` recovery UI that now shows on web. Outline-gated
+(approved), two commits (decode, then UI), build verified between. NOT a
+TestFlight blocker; sequences after PR #32 smoke+merge and the 4 critical
+items. Branched off main (no file overlap with PR #32).
+
+### What shipped
+
+Commit 1 (decode):
+- `ReportModels.swift`: new `RiskTier` enum ('none'|'elevated'|'recovery'),
+  `SupportResource`, `ReportRiskSummary`, and a minimal `ReportControlSystem`
+  (only the fields iOS renders; rules engine / cooldowns / plan template are
+  Control-Center surfaces iOS lacks and are left off the model). Optional
+  `controlSystem` added to `AutopsyAnalysis` (property + memberwise init +
+  CodingKeys + tolerant `init(from:)`). `effectiveRiskTier` mirrors web's
+  `riskTier ?? (recoveryModeRecommended ? .recovery : .none)` back-compat.
+
+Commit 2 (UI):
+- New `ElevatedRiskNote.swift`: dismissible non-clinical note, per-report
+  `@AppStorage("elevatedNoteDismissed.<reportId>")` (mirrors web localStorage).
+  Rendered at top of `SectionVerdict` only at the elevated tier. No helpline.
+- New `RecoveryRecommendationCard.swift`: informational card (no opt-in CTA
+  — iOS has no Control Center). Renders headline + topRisks + the decoded
+  `supportResources` (helpline rendering A: engine-sourced, styled with
+  ResponsibleUseLink chrome) + non-medical disclaimer. Rendered in
+  `SectionProtocol` only at the recovery tier. Support resources surface
+  ONLY here (recovery tier), matching web's message-fatigue gating.
+
+### Scope dropped (approved)
+
+- Live-state reframing (web `recoveryModeActive`): no iOS source (no
+  control-system endpoint, no `profiles.manual_recovery_mode` read, no
+  recovery toggle), and no iOS user can be in manual recovery mode anyway.
+  iOS renders the report-baked `effectiveRiskTier` only. Session relabeling,
+  recovery banner, and `!recoveryModeActive` card-suppression all dropped.
+- Control Center / rules / cooldowns / plan template / relapse triggers: not
+  decoded, not rendered.
+- Recovery card opt-in CTA: dropped (nothing to point at).
+- Helpline at elevated tier: deliberately not added (message-fatigue gate).
+
+### DO-NOT-MARKET gate (clinical-safety)
+
+This UI inherits web PR #71's DO-NOT-MARKET gate: the recovery tier must NOT
+appear in any iOS marketing / App Store copy until the engine threshold
+recalibration lands on a real population (coupled to the WS-NUMERIC /
+WS-TEMPORAL re-tune). The recovery tier is an in-product clinical-safety
+surface only, not a feature to promote, until the thresholds are validated.
+
+### Verification
+
+- xcodebuild Debug (scheme BetAutopsy, generic iOS Simulator): BUILD
+  SUCCEEDED after each commit (decode, then UI).
+- Crash-safety: `controlSystem` optional + per-field tolerant init means
+  snapshots (engine omits control_system), every pre-#71 report, and any
+  malformed/unknown-tier payload decode to nil/.none and render nothing.
+  No historical or cached report can crash.
+- Device-eyeball owed (next halt): an elevated-tier report (note + dismissal
+  persists per report) and a recovery-tier report (card + support links tap
+  out to tel/chat). Needs a real recovery-tier payload from the engine, or a
+  temporary MockReport `controlSystem` to force each tier on-device.
+
+### Notes / deviations
+
+- Engine-dependency flag: `riskTier` is engine-classified
+  (`classifyReportRiskTier`) and PR #71 was itself a threshold recalibration;
+  tier assignment can shift as the temporal/numeric engine work lands. iOS
+  renders only what's shipped (low coupling), but this belongs on the
+  engine-sequencing list in the parity map.
+- Notion: per the standing rule, sprint rows + command-center update are NOT
+  filed by Claude Code; file them from this entry.

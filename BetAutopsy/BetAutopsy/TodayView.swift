@@ -2,13 +2,11 @@
 //  TodayView.swift
 //  BetAutopsy
 //
-//  Today tab. Mock data only — no API calls in PR-1.
-//
-//  PR-V10 Phase 2: token migration only. Visual structure preserved.
-//  Inline hero ring kept (130pt archetype-tinted) rather than swapping
-//  to HeroRingView (230pt severity-tinted) because the smaller
-//  archetype-colored summary widget is intentionally distinct from the
-//  chapter-view hero. Token swap only.
+//  Today tab. Reads the latest cached report from ReportStore for the
+//  BetIQ hero, verdict, and discipline/emotion ranges. No fabricated
+//  numbers: every figure is sourced from a real report, and when no
+//  report exists yet the figures are hidden and the surface invites an
+//  upload instead. The "About to bet" check-in CTA is always present.
 //
 
 import SwiftUI
@@ -16,13 +14,45 @@ import SwiftUI
 struct TodayView: View {
     @Environment(OnboardingCoordinator.self) private var coordinator
 
+    // Archetype identity is captured at quiz reveal and is real (not mock),
+    // so it stays AppStorage-backed and renders before any report exists.
     @AppStorage("userArchetype")         private var userArchetype: String = ""
     @AppStorage("userArchetypeColorHex") private var userArchetypeColorHex: String = ""
-    @AppStorage("userEmotionScore")      private var userEmotionScore: Int = 0
-    @AppStorage("userDisciplineScore")   private var userDisciplineScore: Int = 0
 
+    @State private var reportStore = ReportStore.shared
     @State private var showingCheckIn = false
     @State private var showingSettings = false
+
+    // MARK: - Report-derived state
+
+    private var latest: AutopsyReport? { reportStore.reports.first }
+    private var isSnapshot: Bool { latest?.reportType == "snapshot" }
+
+    /// BetIQ score, only when a report carries a real, sufficient-data score.
+    private var betIQScore: Int? {
+        guard let betiq = latest?.analysis.betiq,
+              !betiq.insufficientData,
+              betiq.score > 0 else { return nil }
+        return betiq.score
+    }
+
+    /// One-sentence verdict from the report's executive diagnosis (the
+    /// snapshot-safe variant in snapshot mode). nil when no prose exists.
+    private var verdictText: String? {
+        guard let insight = latest?.analysis
+            .executiveDiagnosisInsight(snapshot: isSnapshot)
+            .firstSentence,
+              !insight.isEmpty else { return nil }
+        return insight
+    }
+
+    private var disciplineValue: Int? { latest?.analysis.disciplineScore?.total }
+
+    private var emotionValue: Int? {
+        guard let analysis = latest?.analysis,
+              analysis.emotionScoreInsufficientData != true else { return nil }
+        return analysis.emotionScore
+    }
 
     private var hasArchetype: Bool { !userArchetype.isEmpty }
 
@@ -64,8 +94,10 @@ struct TodayView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
 
-                    rangeCard
-                        .padding(.horizontal, 16)
+                    if rangeCardHasContent {
+                        rangeCard
+                            .padding(.horizontal, 16)
+                    }
 
                     Spacer(minLength: 32)
                 }
@@ -134,7 +166,7 @@ struct TodayView: View {
     // MARK: - Case header
 
     private var caseHeader: some View {
-        Text("CASE 0247 · MAY 11")
+        Text(latest.map { "CASE \($0.caseNumber)" } ?? "TODAY")
             .font(.system(size: 11, weight: .semibold))
             .tracking(1.65)
             .foregroundStyle(DS.Color.V3.textTertiary)
@@ -150,10 +182,12 @@ struct TodayView: View {
                 .shadow(color: archetypeColor.opacity(0.22), radius: 12, x: 0, y: 0)
 
             VStack(spacing: 2) {
-                Text("87")
-                    .font(.system(size: 48, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textPrimary)
+                if let score = betIQScore {
+                    Text("\(score)")
+                        .font(.system(size: 48, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                }
 
                 Text("BETIQ")
                     .font(.system(size: 8, weight: .semibold))
@@ -192,30 +226,49 @@ struct TodayView: View {
 
     // MARK: - Verdict
 
+    @ViewBuilder
     private var verdict: some View {
-        Text("Your impatience cost you $2,847 since November.")
-            .font(.custom("Georgia-Italic", size: 17))
-            .foregroundStyle(DS.Color.V3.textSecondary)
-            .multilineTextAlignment(.center)
+        if let verdictText {
+            Text(verdictText)
+                .font(.custom("Georgia-Italic", size: 17))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+        } else if latest == nil {
+            Text("Upload your bet history to see your full autopsy.")
+                .font(.custom("Georgia-Italic", size: 17))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+        }
     }
 
     // MARK: - Range card
 
+    private var rangeCardHasContent: Bool {
+        disciplineValue != nil || emotionValue != nil
+    }
+
     private var rangeCard: some View {
         VStack(alignment: .leading, spacing: 24) {
-            RangeBar(
-                label: "Discipline",
-                value: userDisciplineScore,
-                dotColor: DS.Color.V3.Severity.zoneColor(
-                    forScore: userDisciplineScore,
-                    higherIsWorse: false
+            if let disciplineValue {
+                RangeBar(
+                    label: "Discipline",
+                    value: disciplineValue,
+                    dotColor: DS.Color.V3.Severity.zoneColor(
+                        forScore: disciplineValue,
+                        higherIsWorse: false
+                    )
                 )
-            )
-            RangeBar(
-                label: "Emotion score",
-                value: userEmotionScore,
-                dotColor: DS.Color.V3.Severity.red
-            )
+            }
+            if let emotionValue {
+                RangeBar(
+                    label: "Emotion score",
+                    value: emotionValue,
+                    dotColor: DS.Color.V3.Severity.zoneColor(
+                        forScore: emotionValue,
+                        higherIsWorse: true
+                    )
+                )
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -75,7 +75,7 @@ struct AuthView: View {
                             .font(DS.Font.V3.captionLabel)
                             .foregroundStyle(DS.Color.V3.textTertiary)
 
-                        Text("Call 1-800-GAMBLER")
+                        Text("Call 1-800-MY-RESET")
                             .font(DS.Font.V3.captionLabel)
                             .foregroundStyle(DS.Color.V3.ctaText)
                     }

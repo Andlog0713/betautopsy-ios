@@ -6,7 +6,7 @@
 //  but had no iOS render surface before REBUILD-PHASE-1.
 //
 //  Renders ONLY when health is not .healthy:
-//    .danger  -> red left border + inline 1-800-GAMBLER responsible-use line
+//    .danger  -> red left border + inline 1-800-MY-RESET responsible-use line
 //    .caution -> yellow left border, no helpline line
 //    .healthy -> EmptyView (nothing to flag)
 //
@@ -86,7 +86,7 @@ struct BankrollHealthCallout: View {
         (
             Text("If gambling has stopped being fun, call ")
                 .foregroundStyle(DS.Color.V3.textSecondary)
-            + Text("1-800-GAMBLER")
+            + Text("1-800-MY-RESET")
                 .foregroundStyle(DS.Color.V3.textPrimary)
         )
         .font(DS.Font.V3.captionLabel)

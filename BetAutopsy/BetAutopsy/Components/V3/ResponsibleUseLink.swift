@@ -14,15 +14,21 @@ import SwiftUI
 struct ResponsibleUseLink: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.sm) {
-            Link(destination: URL(string: "tel://18004262537")!) {
-                Text("If gambling has stopped being fun, call 1-800-GAMBLER")
+            Link(destination: URL(string: "tel://18006973738")!) {
+                Text("If gambling has stopped being fun, call 1-800-MY-RESET")
                     .font(DS.Font.V3.captionLabel)
                     .foregroundStyle(DS.Color.Brand.yellow)
                     .multilineTextAlignment(.leading)
             }
 
-            Link(destination: URL(string: "https://www.ncpgambling.org")!) {
-                Text("ncpgambling.org")
+            Link(destination: URL(string: "sms:800426")!) {
+                Text("Or text 800GAM.")
+                    .font(DS.Font.V3.captionLabel)
+                    .foregroundStyle(DS.Color.Brand.yellow)
+            }
+
+            Link(destination: URL(string: "https://www.ncpgambling.org/chat")!) {
+                Text("ncpgambling.org/chat")
                     .font(DS.Font.V3.captionLabel)
                     .foregroundStyle(DS.Color.Brand.yellow)
             }

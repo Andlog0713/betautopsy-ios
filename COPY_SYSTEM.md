@@ -4,7 +4,11 @@ A canonical reference for every copy decision in the product. Save this alongsid
 
 ## What this document is, and what triggered it
 
-PR-4 Phase 3 shipped with "Unlock the full autopsy" on the Chapter 7 paywall button and "Unlock the dollar costs, recommendations, and session details for $9.99" as the subtext underneath. Both strings violate the locked banned-phrase list in CLAUDE.md. The session that wrote them flagged the contradiction in its summary, then shipped anyway. That is the wrong order of operations, and this document exists to prevent the next instance.
+PR-4 Phase 3 shipped with "Unlock the full autopsy" on the Chapter 7 paywall button and "Unlock the dollar costs, recommendations, and session details for $19.99" as the subtext underneath. Both strings violate the locked banned-phrase list in CLAUDE.md. The session that wrote them flagged the contradiction in its summary, then shipped anyway. That is the wrong order of operations, and this document exists to prevent the next instance.
+
+**Unsourced constants (read before pasting any example).** Two numbers recur in the examples below and are NOT cleared to ship: the "$3,284 average annual loss" stat and any "23 pages" / page-count anchor. Per voice rule 7 (numbers cited in copy must be sourced; no fabricated statistics), neither may reach a user-facing surface until: (a) $3,284 carries a verifiable public citation, recorded here when sourced, and (b) the page/length anchor is replaced with an accurate descriptor of the live single-scroll reader (the report is not 23 paginated pages; see Section 3C). Until then, treat both as TKTK placeholders that demonstrate sentence structure only.
+
+**Canonical helpline (current NCPG set, locked).** The problem-gambling helpline is: call 1-800-MY-RESET, text 800GAM, chat ncpgambling.org/chat. The legacy 1-800-GAMBLER number is retired. In tight inline brand lines (the paywall compliance line, the auth and bankroll callouts) use the call number alone and keep "We can wait." verbatim; in the dedicated helpline surfaces (Settings, the responsible-use card) show all three contact methods.
 
 The fix to that specific string is in Section 8. The rest of this document is the system that makes the fix non-negotiable: a banned-phrase replacement matrix, a copy decision matrix for every product surface, a voice principles framework, a hundred canonical examples ready to paste, and a workflow change for Claude Code sessions that treats spec contradictions as stop conditions rather than ship-with-a-note conditions.
 
@@ -30,7 +34,7 @@ The voice this product must never reach for is also clear from the audit. DraftK
 
 **Eight. Paywall fine print is brand voice.** Robinhood's "You should be prepared to lose all of the funds." 16Personalities' "no sneaky renewals or hidden fees." Stripe's "no hidden fees." Fine print is where the brand proves it is not a sportsbook. BetAutopsy's fine print should sound like a clinic invoice, not a casino sign-up bonus.
 
-**Nine. Compliance copy is primary, not footnote.** This is the inversion that defines the brand against the gambling vertical. Every sportsbook buries 1-800-GAMBLER in a concatenated footer paragraph after 800 words of promo. BetAutopsy puts it in persistent navigation and in onboarding before the audit feature. If the brand is loss-prevention, the loss-prevention copy is not fine print.
+**Nine. Compliance copy is primary, not footnote.** This is the inversion that defines the brand against the gambling vertical. Every sportsbook buries 1-800-MY-RESET in a concatenated footer paragraph after 800 words of promo. BetAutopsy puts it in persistent navigation and in onboarding before the audit feature. If the brand is loss-prevention, the loss-prevention copy is not fine print.
 
 **Ten. Productive friction is the product. Don't sell it as frictionless.** Selling a behavioral-intervention product as "seamless" or "effortless" lies about what it does. The product's job is to make the user pause, sit with a hard read, and choose differently next time. "The work is in reading the report. We do the assembly." That distinction is the brand.
 
@@ -38,7 +42,7 @@ The voice this product must never reach for is also clear from the audit. DraftK
 
 These are directives. Each is defended with reasoning and illustrated with a BetAutopsy-specific good-versus-bad example.
 
-**Principle 1. Loss-prevention over feature-stack.** Every surface answers the question "what does this save the user." Never "what does this app do." The reasoning: the user is paying $9.99 to find out where $3,284 went. Feature-stack framing puts the app at the center. Loss-prevention framing puts the user's money at the center. Good: "Three patterns cost you $1,847 last quarter. The autopsy itemizes each." Bad: "Get advanced behavioral analytics with BetAutopsy."
+**Principle 1. Loss-prevention over feature-stack.** Every surface answers the question "what does this save the user." Never "what does this app do." The reasoning: the user is paying $19.99 to find out where $3,284 went. Feature-stack framing puts the app at the center. Loss-prevention framing puts the user's money at the center. Good: "Three patterns cost you $1,847 last quarter. The autopsy itemizes each." Bad: "Get advanced behavioral analytics with BetAutopsy."
 
 **Principle 2. Specific dollars and percentages over vague claims.** Numbers carry trust the way adjectives used to. Use them. Never invent them. When real user data exists, cite it. When it doesn't yet exist, cite the public stat ($3,284/year average loss, sourced) or the structural fact ("Chapter 5 itemizes every bet that lost more than $50"). Good: "47 bets in 9 days. 11 placed within 4 minutes of a previous loss." Bad: "You've been betting a lot lately."
 
@@ -56,9 +60,9 @@ These are directives. Each is defended with reasoning and illustrated with a Bet
 
 **Principle 9. Numbers in monospace. Language in sans. Italic for analyst.** The typographic discipline reinforces the voice discipline. When a number appears inline in a sans paragraph, it shifts to mono. This signals that the number is sourced, calculated, and citable, not rhetorical. Stripe's number-density reads as credibility because the numbers are visually distinct. BetAutopsy inherits this rule.
 
-**Principle 10. Never moralize. Always behavioralize.** The product never says gambling is bad, that the user should stop, or that the user has a problem. It says what happened, in what sequence, at what cost. The 1-800-GAMBLER copy is the only place the product offers help, and it offers it without diagnosis. Good: "The session lasted 4 hours 17 minutes. Bet 14 was placed 38 seconds after bet 13 lost. Bet 14 was 3.1 times bet 1." Bad: "You may have a gambling problem. Please consider talking to someone."
+**Principle 10. Never moralize. Always behavioralize.** The product never says gambling is bad, that the user should stop, or that the user has a problem. It says what happened, in what sequence, at what cost. The 1-800-MY-RESET copy is the only place the product offers help, and it offers it without diagnosis. Good: "The session lasted 4 hours 17 minutes. Bet 14 was placed 38 seconds after bet 13 lost. Bet 14 was 3.1 times bet 1." Bad: "You may have a gambling problem. Please consider talking to someone."
 
-**Principle 11. When in doubt, restructure rather than swap.** Most banned-word problems are sentence-structure problems wearing a vocabulary mask. If "Unlock the full autopsy" needs replacing, the best fix is often not a new verb but a new sentence. "Full autopsy. $9.99. One-time." has no verb at all and reads cleaner than any verb-led variant. Section 2's restructure-don't-replace pattern should be the default, not the fallback.
+**Principle 11. When in doubt, restructure rather than swap.** Most banned-word problems are sentence-structure problems wearing a vocabulary mask. If "Unlock the full autopsy" needs replacing, the best fix is often not a new verb but a new sentence. "Full autopsy. $19.99. One-time." has no verb at all and reads cleaner than any verb-led variant. Section 2's restructure-don't-replace pattern should be the default, not the fallback.
 
 ## Part 2. The banned-phrase replacement matrix
 
@@ -69,15 +73,15 @@ These are directives. Each is defended with reasoning and illustrated with a Bet
 **Best replacement.** "Read the full report." The verb is from documents, not games. The noun reuses the product frame. Pair with a price anchor and the line is done.
 
 **Replacement options ranked.**
-1. **Read the full report ($9.99).** Best general purpose. Document register, no hype.
-2. **Run the full autopsy ($9.99).** Best when reinforcing the forensic noun is the priority. Pathology and software both "run" things.
-3. **See the full autopsy ($9.99).** Best when pressure must be at its lowest. "See" promises nothing.
-4. **Open the full report ($9.99).** Filing-cabinet verb, not treasure-chest verb. Works.
-5. **Continue to the full breakdown ($9.99).** Continuation framing, kills the gate metaphor entirely.
-6. **Show me the rest ($9.99).** First-person, warmest. Only on second or third paywall view.
-7. **Pull the full file ($9.99).** Noir, detective-coded. Good on session-level paywalls.
+1. **Read the full report ($19.99).** Best general purpose. Document register, no hype.
+2. **Run the full autopsy ($19.99).** Best when reinforcing the forensic noun is the priority. Pathology and software both "run" things.
+3. **See the full autopsy ($19.99).** Best when pressure must be at its lowest. "See" promises nothing.
+4. **Open the full report ($19.99).** Filing-cabinet verb, not treasure-chest verb. Works.
+5. **Continue to the full breakdown ($19.99).** Continuation framing, kills the gate metaphor entirely.
+6. **Show me the rest ($19.99).** First-person, warmest. Only on second or third paywall view.
+7. **Pull the full file ($19.99).** Noir, detective-coded. Good on session-level paywalls.
 
-**When to use no replacement.** When the price and the noun do the work alone: "Full autopsy. $9.99." This is the recommended ship for PR-4 Phase 3. See Section 8.
+**When to use no replacement.** When the price and the noun do the work alone: "Full autopsy. $19.99." This is the recommended ship for PR-4 Phase 3. See Section 8.
 
 ### 2.2 AI-powered (as a selling point)
 
@@ -224,7 +228,7 @@ Each subsection answers: what voice rules apply, what tone to match, and 5 to 10
 
 ### 3B. Core product UI (Today, Reports, Sessions tabs)
 
-**Voice rules.** Labels are nouns. Buttons are verbs. Periods on three-plus-word strings. No labels longer than three words. Range card labels are single words: Discipline, Heated session, Tilt risk, Variance.
+**Voice rules.** Labels are nouns. Buttons are verbs. Periods on three-plus-word strings. No labels longer than three words. Range card labels are single words: Discipline, Heated session, Emotion, Variance. ("Tilt risk" is banned in product UI per the locked rule; use Emotion.)
 
 **Section headers.** "Recent sessions." "This week." "Bias flags." "Dollar impact." Never "Your Recent Sessions" or "RECENT SESSIONS."
 
@@ -241,7 +245,9 @@ Each subsection answers: what voice rules apply, what tone to match, and 5 to 10
 
 **Loading state copy variants.** See Section 5 for the full set. Default to specific verbs: "Reading the CSV." "Scoring decisions." "Assembling the autopsy." Avoid generic "Loading..." where possible. Never "One moment please."
 
-### 3C. The 7-chapter report
+### 3C. The report (single-scroll reader)
+
+The live iOS reader is `ReportScrollContainer`: one continuous scroll organized into seven sections in order (Verdict, Findings, Heated and Discipline, Patterns and Timing, Sports, Protocol, Action), not seven separately paginated chapters and not a fixed page count. The seven legacy `Chapter*View` files are deprecated. Where this document still says "Chapter N," read it as voice guidance for the corresponding section; do not surface "Chapter N" or a "23 pages" count as user-facing copy (see the unsourced-constants note in Section 1).
 
 **Voice rules.** Chapters open in analyst voice (italic serif). Bias cards use clinical taxonomic register with severity labels in all caps. Recommendation copy is imperative without scolding.
 
@@ -283,19 +289,15 @@ This is the surface that triggered this document. The rules here are non-negotia
 
 **Paywall subhead patterns.** Itemize contents in a single sentence. Use commas, not bullets. Use specific page counts when available. "Dollar costs, recommendations, and the full session timeline. 23 pages."
 
-**Single Report card description ($9.99).** "One autopsy, one-time. The report stays in your library."
+**Single Report card description ($19.99).** "One autopsy, one-time. The report stays in your library." This is the only SKU in v1. The 3-Report Season Bundle, Pro Annual, and Pro Monthly tiers are retired (pricing locked May 17, 2026: a single $19.99 consumable). Do not write copy for bundle, annual, or subscription tiers; they do not exist in v1.
 
-**3-Report Season Bundle card description ($19.99).** "Three autopsies. Use them across one season. The unit price is $6.66."
-
-**Pro Annual card description ($99.99).** "Unlimited autopsies for a year. Built for users who run more than 10 reports a season." Note: only show this card with an honest count, not a "Most Popular" badge.
-
-**Anchor framing.** If the team wants to show that the bundle saves money, do it with arithmetic, not adjectives. "Three reports at $9.99 is $29.97. The bundle is $19.99. You save $9.98." No "Get 5+ months free" language unless the math actually supports that across the annual tier, in which case state it precisely: "The annual tier breaks even at the 10th autopsy."
+**No anchor framing in v1.** With a single SKU there is no bundle or annual tier to anchor against, so there is no save-money arithmetic and no "months free" language. The price stands on its own next to the artifact: "Full autopsy. $19.99. One-time."
 
 **Loss-prevention CTA copy.** Use sparingly and only when the user has actual data showing material losses. "Find out where the $1,847 went." This works as a paywall headline for a returning user. It does not work for a first-time user with no data uploaded yet.
 
 **Trust copy below CTAs.** "Restore Purchases." "Terms." "Privacy." All lowercase or sentence case. No "Get help" gimmick links.
 
-**Problem gambling copy.** Always present on the paywall. Treat as primary, not footnote. "If gambling has stopped being fun, call 1-800-GAMBLER. We can wait." The "We can wait" line is brand-defining. Use it.
+**Problem gambling copy.** Always present on the paywall. Treat as primary, not footnote. "If gambling has stopped being fun, call 1-800-MY-RESET. We can wait." The "We can wait" line is brand-defining. Use it.
 
 **Post-purchase confirmation.** "The full autopsy is yours. We saved it to your library." One button: "Read the autopsy."
 
@@ -345,7 +347,7 @@ V1 is provisional only. Push is deferred to V1.1. The principles below should be
 
 **Heated Session Alert push (v1.1) pattern. Only fires if the user explicitly opted into this alert during onboarding.**
 - Subject: "Heated session flagged."
-- Body: "The Saturday session matches your top-three tilt patterns. The full read is in the Reports tab."
+- Body: "The Saturday session matches your top-three heated-session patterns. The full read is in the Reports tab."
 
 **60/90-day re-engagement push pattern (v1.1).** Tied to sports calendar but never to a specific game.
 - Subject: "NFL kickoff is in nine days."
@@ -387,13 +389,13 @@ V1 is provisional only. Push is deferred to V1.1. The principles below should be
 
 **Delete Account confirmation.** "Delete your BetAutopsy account. This removes every report, every bet record, and every analysis. It cannot be undone." Buttons: "Delete account." (destructive red) and "Cancel."
 
-**1-800-GAMBLER compliance copy.** "If gambling has stopped being fun, call 1-800-GAMBLER. The line is free and confidential."
+**1-800-MY-RESET compliance copy.** "If gambling has stopped being fun, call 1-800-MY-RESET. The line is free and confidential."
 
 **Privacy Policy / Terms of Service link copy.** "Privacy policy." "Terms of service." Lowercase. Period. No "View our."
 
 **Restore Purchases button.** "Restore purchases."
 
-**Cancel Subscription flow copy.** "Cancel the BetAutopsy season bundle. You keep access to the reports you've already opened. You won't be charged again." Buttons: "Cancel subscription." and "Keep it."
+**Cancel Subscription flow copy.** Not applicable in v1. The single $19.99 report is a one-time consumable, so there is no subscription to cancel and no cancel flow to write. (Retained as a heading only so a future subscription tier knows where its copy lives.)
 
 ### 3I. Marketing
 
@@ -409,7 +411,7 @@ The current subtitle ("Forensic bet analysis & tilt") includes "tilt." Per the l
 > BetAutopsy reads your bet history and tells you where yours went.
 > A 23-page forensic report, written by behavioral analysts.
 
-**App Store promotional text (170 characters).** "A 23-page autopsy of your last 30 days of bets. Biases flagged, dollars itemized, three changes to try. One-time $9.99. No subscription required."
+**App Store promotional text (170 characters).** "A 23-page autopsy of your last 30 days of bets. Biases flagged, dollars itemized, three changes to try. One-time $19.99. No subscription required."
 
 **App Store keywords (98 characters).** "bet tracker,tilt,gambling,bet analysis,sportsbook,parlay,bet history,bankroll,problem gambling,DFS"
 
@@ -447,12 +449,12 @@ Example for "Why do I lose at sports betting":
 **Micro-influencer brief copy.** The brief sent to creators for the unique-code outreach. The brief itself is brand copy. Use the same voice.
 
 > Brief, in two parts.
-> Part one. Your audience. We're not asking you to sell. We're asking you to tell your audience that BetAutopsy reads their bet history and writes a 23-page forensic report. The report names three biases costing them money. It is $9.99, one-time. There is no subscription on the single report.
-> Part two. Your code. Your unique code gives the first 100 of your audience a free report. After that, $9.99 like everyone else. We don't want you to fake urgency. The 100-cap is the only scarcity, and it is real.
+> Part one. Your audience. We're not asking you to sell. We're asking you to tell your audience that BetAutopsy reads their bet history and writes a 23-page forensic report. The report names three biases costing them money. It is $19.99, one-time. There is no subscription on the single report.
+> Part two. Your code. Your unique code gives the first 100 of your audience a free report. After that, $19.99 like everyone else. We don't want you to fake urgency. The 100-cap is the only scarcity, and it is real.
 
 ### 3J. App Review and compliance copy
 
-**App Review notes paragraph (mirrors Pikkit precedent id1586567110).** "BetAutopsy is a behavioral analysis app. It reads bet history exports from sportsbook accounts the user already has. It does not facilitate, place, or recommend wagers. There are no real-money transactions inside the app. The product is one-shot diagnostic, similar in structure to 23andMe's report-first model. The user uploads a CSV (or syncs via Pikkit), takes a 7-question behavioral quiz, and receives a forensic report. Pricing is $9.99 single report, $19.99 three-report bundle, $99.99 annual. The app references 1-800-GAMBLER on the home tab and in settings, and is accessible to users 18+."
+**App Review notes paragraph (mirrors Pikkit precedent id1586567110).** "BetAutopsy is a behavioral analysis app. It reads bet history exports from sportsbook accounts the user already has. It does not facilitate, place, or recommend wagers. There are no real-money transactions inside the app. The product is one-shot diagnostic, similar in structure to 23andMe's report-first model. The user uploads a CSV (or syncs via Pikkit), takes a 7-question behavioral quiz, and receives a forensic report. Pricing is a single $19.99 one-time consumable report. There is no subscription. The app references the problem-gambling helpline (call 1-800-MY-RESET, text 800GAM, chat ncpgambling.org/chat) on the home tab and in settings, and is accessible to users 18+."
 
 **Privacy manifest summary.** "BetAutopsy collects bet history data the user uploads, the quiz responses they provide, and a hashed Apple ID for sign-in. The app does not collect contacts, photos, location, or browsing history. Analytics are aggregated and not tied to identifiable users. Full disclosure in the privacy policy."
 
@@ -496,20 +498,20 @@ Production ready. No placeholders.
 
 ### Paywall CTA button labels (replacing "Unlock the full autopsy")
 
-1. Read the full report ($9.99).
-2. Run the full autopsy ($9.99).
-3. See the full autopsy ($9.99).
-4. Open the full report ($9.99).
-5. Continue to the full breakdown ($9.99).
-6. Pull the full file ($9.99).
-7. Full autopsy. $9.99.
+1. Read the full report ($19.99).
+2. Run the full autopsy ($19.99).
+3. See the full autopsy ($19.99).
+4. Open the full report ($19.99).
+5. Continue to the full breakdown ($19.99).
+6. Pull the full file ($19.99).
+7. Full autopsy. $19.99.
 
 ### Paywall subhead variants (replacing "Unlock the dollar costs...")
 
-1. Dollar costs, recommendations, and session details. One-time charge of $9.99.
-2. What it cost you, what to do about it, and the full session timeline. $9.99, one-time.
+1. Dollar costs, recommendations, and session details. One-time charge of $19.99.
+2. What it cost you, what to do about it, and the full session timeline. $19.99, one-time.
 3. Includes the dollar impact, three recommendations, and the full session breakdown.
-4. 23 pages. Dollar costs, recommendations, session details. $9.99, one-time.
+4. 23 pages. Dollar costs, recommendations, session details. $19.99, one-time.
 5. Chapters 4 through 7. The dollar numbers, the bias cards, the recommendations.
 
 ### Paywall headlines
@@ -568,7 +570,7 @@ Production ready. No placeholders.
 ### Push notification subject and body pairs (v1.1 scoped)
 
 1. Subject: "This week's autopsy is ready." / Body: "23 bets across 4 sessions. Two biases flagged. Read it when you have five minutes."
-2. Subject: "Heated session flagged." / Body: "The Saturday session matches your top-three tilt patterns. The full read is in the Reports tab."
+2. Subject: "Heated session flagged." / Body: "The Saturday session matches your top-three heated-session patterns. The full read is in the Reports tab."
 3. Subject: "NFL kickoff is in nine days." / Body: "Last season's autopsy is in your library. Worth a re-read before week 1."
 4. Subject: "Your three-month check-in." / Body: "It's been 90 days since your last autopsy. Sync to see what changed."
 5. Subject: "Verdict updated." / Body: "We re-scored your last 30 days. The Heat Chaser pattern is down 23 percent."
@@ -595,14 +597,14 @@ See Section 3K. Five paragraphs are written there, ready to ship.
 
 1. "$3,284. (beat) The average annual loss. (beat) BetAutopsy tells you where yours went. (beat) Forensic bet analysis. App Store now."
 2. "47 bets. (beat) 11 placed in the four minutes after a loss. (beat) BetAutopsy named the pattern. (beat) Read your autopsy."
-3. "You've seen your bets. (beat) You haven't seen them like this. (beat) 23 pages. (beat) $9.99. (beat) BetAutopsy."
+3. "You've seen your bets. (beat) You haven't seen them like this. (beat) 23 pages. (beat) $19.99. (beat) BetAutopsy."
 
 ### SEO page opening hooks
 
 1. (Heat Chaser page) "Heat Chaser is the archetype that doubles the stake within 12 minutes of a loss. The pattern costs the average Heat Chaser $1,847 a quarter. BetAutopsy maps yours, decision by decision."
 2. (NFL page) "NFL bettors lose more on three-team parlays than on any other single product. BetAutopsy itemizes every NFL parlay in your last season."
 3. (Why do I lose at sports betting page) "Most bettors lose for one of four reasons: stake-size escalation after losses, parlay over-correlation, line-shopping skipped, or sample size too small. The autopsy tells you which one you are."
-4. (Am I a problem gambler page) "We don't diagnose. We do show you, in numbers, how often gambling has stopped being fun in your last 90 days. If the answer alarms you, 1-800-GAMBLER is on every page of this site."
+4. (Am I a problem gambler page) "We don't diagnose. We do show you, in numbers, how often gambling has stopped being fun in your last 90 days. If the answer alarms you, 1-800-MY-RESET is on every page of this site."
 5. (Track my bets page) "BetAutopsy doesn't track bets. It autopsies them. Sync once, get a report, read it, sync again next month. The product is the report, not the dashboard."
 
 ### Email welcome sequences first-line patterns
@@ -613,8 +615,8 @@ See Section 3K. Five paragraphs are written there, ready to ship.
 
 ### Micro-influencer brief snippets
 
-1. "Don't sell. Tell your audience BetAutopsy reads their bet history and writes a 23-page report. The report names three biases costing them money. One-time $9.99."
-2. "Your code gives the first 100 of your audience a free report. After that, $9.99 like everyone else. The 100-cap is the only scarcity. It is real."
+1. "Don't sell. Tell your audience BetAutopsy reads their bet history and writes a 23-page report. The report names three biases costing them money. One-time $19.99."
+2. "Your code gives the first 100 of your audience a free report. After that, $19.99 like everyone else. The 100-cap is the only scarcity. It is real."
 3. "What we don't want from you: hype, parlay-pick promotion, 'click my link before midnight' urgency. What we do want: one sentence on what the autopsy told you."
 4. "If your audience asks 'is this AI,' the answer is: we score every decision against expected value at the moment it was placed. Yes, computers do the math. The voice is human."
 5. "Use the assets in this folder. Don't add green up-arrows, money-bag emoji, or 'big win' overlays. If a sportsbook would post it, we won't."
@@ -725,25 +727,25 @@ The current ship has two strings to replace.
 
 **Button.** "Unlock the full autopsy."
 
-**Subtext.** "Unlock the dollar costs, recommendations, and session details for $9.99."
+**Subtext.** "Unlock the dollar costs, recommendations, and session details for $19.99."
 
 **The recommendation is to ship this replacement, exactly:**
 
 > **Headline:** The autopsy is ready.
 > **Subhead:** Dollar costs, recommendations, and the full session timeline. 23 pages.
-> **CTA button:** Read the full report ($9.99).
+> **CTA button:** Read the full report ($19.99).
 > **Microcopy below CTA:** One-time charge. Yours to keep. No subscription.
-> **Compliance line at bottom of paywall:** If gambling has stopped being fun, call 1-800-GAMBLER. We can wait.
+> **Compliance line at bottom of paywall:** If gambling has stopped being fun, call 1-800-MY-RESET. We can wait.
 
 **Why this exact combination.**
 
-The button "Read the full report ($9.99)" wins for four reasons. First, "Read" is a document verb, not a gate verb. It removes the casino metaphor at the root. Second, "the full report" reuses the brand frame without overworking it. Third, the price is inline, which kills the friction of a separate price reveal and matches Stripe's price-anchored CTA pattern. Fourth, the parenthetical price doesn't strain the typographic system because the existing button uses no parentheses and has room.
+The button "Read the full report ($19.99)" wins for four reasons. First, "Read" is a document verb, not a gate verb. It removes the casino metaphor at the root. Second, "the full report" reuses the brand frame without overworking it. Third, the price is inline, which kills the friction of a separate price reveal and matches Stripe's price-anchored CTA pattern. Fourth, the parenthetical price doesn't strain the typographic system because the existing button uses no parentheses and has room.
 
 The subhead "Dollar costs, recommendations, and the full session timeline. 23 pages." wins because it itemizes contents declaratively, with no verb. The original subhead's deepest problem was the verb-first structure, not the verb itself. By dropping the verb entirely, the new subhead reads as a table of contents rather than a sales pitch. The "23 pages" anchor at the end gives the user a concrete sense of what they're paying for, which is the antidote to the "trust us" feeling of "premium features."
 
 The microcopy "One-time charge. Yours to keep. No subscription." is doing three jobs. It clarifies the billing model, which is the single most common paywall objection. It signals brand confidence by not hiding the terms. And it positions BetAutopsy against the subscription-by-default model that dominates the App Store, which is the brand's structural differentiator.
 
-The compliance line "If gambling has stopped being fun, call 1-800-GAMBLER. We can wait." is treated as primary, not footnote, per Principle 10 and the audit finding that every sportsbook buries this copy. The "We can wait" line is the brand at its sharpest: it is the moment the product proves it is not a sportsbook by accepting that the user might choose not to buy. That acceptance is the brand differentiator. Use it.
+The compliance line "If gambling has stopped being fun, call 1-800-MY-RESET. We can wait." is treated as primary, not footnote, per Principle 10 and the audit finding that every sportsbook buries this copy. The "We can wait" line is the brand at its sharpest: it is the moment the product proves it is not a sportsbook by accepting that the user might choose not to buy. That acceptance is the brand differentiator. Use it.
 
 **What not to ship.**
 
@@ -803,11 +805,11 @@ Do not ship "Limited time" or "Save now" framing. There is no real deadline. Inv
 > 11. Restructure rather than swap when in doubt.
 > 
 > **The default fallback strings.**
-> - Paywall CTA: "Read the full report ($9.99)."
+> - Paywall CTA: "Read the full report ($19.99)."
 > - Error: "[Fact in one sentence]. [Next action in one sentence]."
 > - Empty state: "[Why empty]. [Next action]."
 > - Success: "[Fact]. [Where it went]."
-> - Compliance: "If gambling has stopped being fun, call 1-800-GAMBLER. We can wait."
+> - Compliance: "If gambling has stopped being fun, call 1-800-MY-RESET. We can wait."
 > 
 > **When a spec contradicts this card, stop and ask. Don't ship with a flag.**
 
@@ -817,4 +819,4 @@ The reason "Unlock the full autopsy" shipped is not that the rule against "Unloc
 
 The deeper finding from the audit is that the voice BetAutopsy is reaching for is achievable and underused. The intersection of Whoop's clinical hard-truth, Linear's SaaS restraint, Stripe's number-anchored calm, Apollo Neuro's mechanism-naming, and Robinhood's post-2021 compliance honesty is unoccupied territory. No app in the audit lives there. The brand's opportunity is to be the first that does, which means the voice rules in this document are not stylistic preference. They are the product's competitive position.
 
-The single piece of brand-defining copy in this document is the compliance microcopy on the paywall: "If gambling has stopped being fun, call 1-800-GAMBLER. We can wait." It is the line that, more than any verdict paragraph or any pull quote, demonstrates that BetAutopsy is not a sportsbook. It accepts that the user might choose not to buy. That acceptance is the entire brand. Hold it.
+The single piece of brand-defining copy in this document is the compliance microcopy on the paywall: "If gambling has stopped being fun, call 1-800-MY-RESET. We can wait." It is the line that, more than any verdict paragraph or any pull quote, demonstrates that BetAutopsy is not a sportsbook. It accepts that the user might choose not to buy. That acceptance is the entire brand. Hold it.

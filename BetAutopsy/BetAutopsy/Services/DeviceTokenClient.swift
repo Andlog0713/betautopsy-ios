@@ -25,10 +25,16 @@ import Sentry
 final class DeviceTokenClient {
     static let shared = DeviceTokenClient()
 
-    /// v1 hardcoded constants. DEBUG + TestFlight both ride APNs
-    /// Sandbox. App Store ship will introduce a Production APNs key
-    /// and flip this via build config.
+    /// APNs environment is build-derived, not hardcoded. DEBUG builds
+    /// (Xcode run) attach a Sandbox APNs token; Release builds (TestFlight
+    /// + App Store) attach a Production token. The string reported here
+    /// must match the token's environment or the backend routes pushes to
+    /// the wrong APNs host and delivery silently fails.
+    #if DEBUG
     private static let environment = "sandbox"
+    #else
+    private static let environment = "production"
+    #endif
     private static let bundleID    = "com.diagnosticsports.betautopsy.app"
     private static let platform    = "ios"
 

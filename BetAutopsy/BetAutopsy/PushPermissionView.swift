@@ -82,8 +82,12 @@ struct PushPermissionView: View {
     // MARK: - Actions
 
     private func handleAllowTap() {
+        // v1 ships provisional authorization only (CLAUDE.md notification
+        // rules + COPY_SYSTEM 3F). Provisional grants quiet delivery to
+        // Notification Center with no interruptive system prompt. The
+        // full-authorization prompt is revisited at App Store submission.
         UNUserNotificationCenter.current().requestAuthorization(
-            options: [.alert, .sound]
+            options: [.alert, .sound, .provisional]
         ) { granted, error in
             if let error = error {
                 let crumb = Breadcrumb(level: .error, category: "push")

@@ -203,7 +203,7 @@ struct PaywallView: View {
     // MARK: - Compliance + footer
 
     private var complianceLine: some View {
-        Text("If gambling has stopped being fun, call 1-800-GAMBLER. We can wait.")
+        Text("If gambling has stopped being fun, call 1-800-MY-RESET. We can wait.")
             .font(.system(size: 13))
             .foregroundStyle(DS.Color.V3.ctaText)
             .multilineTextAlignment(.leading)

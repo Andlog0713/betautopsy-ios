@@ -489,3 +489,102 @@ QA findings this PR fixes:
 - Brand rule fix: subtitle "THE TILT FILE" replaced with "THE HEATED
   FILE"; "TOP TILT SESSIONS" section header replaced with "TOP HEATED
   SESSIONS". Internal symbol `TiltSessionCard` kept (not user-visible).
+
+---
+
+## Branch: testflight-prep-brand-coherence (2026-06-10)
+
+TestFlight blockers (List 1) + brand-coherence facts pass. Single PR,
+scope-guarded (no redesign, no new surfaces, no Swift type renames).
+
+### What shipped
+
+List 1:
+- (1) `DeviceTokenClient.environment` is now build-derived: `#if DEBUG`
+  -> "sandbox", else "production". Release/TestFlight report production
+  to match the production APNs token.
+- (3) `TodayView` reads the latest cached report from `ReportStore.shared`:
+  real BetIQ score (hidden when absent or insufficient-data), verdict
+  from `executiveDiagnosisInsight`, real discipline/emotion ranges (range
+  card hidden when both absent), case header from `report.caseNumber`
+  ("TODAY" when none). No fabricated numbers on first screen. Archetype
+  identity stays AppStorage-backed (real, set at quiz reveal).
+- (4) `PushPermissionView` requests `[.alert, .sound, .provisional]`
+  (was `[.alert, .sound]`). Provisional-only per CLAUDE.md + COPY_SYSTEM
+  3F. Full-auth prompt revisited at submission.
+- (6) `SectionAction.projectedImpactLabel` returns "" for non-positive
+  dollars, so "$0 projected next 90 days" hides and the HIGHEST IMPACT
+  tag shows instead. Real projection waits on the deterministic-cost
+  engine.
+
+Brand coherence:
+- (8) Helpline modernized to the current NCPG set (call 1-800-MY-RESET,
+  text 800GAM, chat ncpgambling.org/chat). Swift: SettingsView,
+  ResponsibleUseLink (full set); PaywallView, AuthView,
+  BankrollHealthCallout (call number inline, "We can wait." preserved).
+  Docs: COPY_SYSTEM.md (canonical-set note + all occurrences),
+  CLAUDE.md compliance lines.
+- (9) Pricing facts updated to the May-17 locked model (single $19.99
+  one-time consumable; bundle/annual/monthly retired) across all three
+  docs: COPY_SYSTEM.md, BETAUTOPSY_PRICING_PIVOT_V2.md, CLAUDE.md.
+- (10) Verified: PaywallView already builds the CTA from
+  `RevenueCatStore.shared.priceString` (localized) with a "$19.99"
+  fallback. No hardcoded $9.99 in Swift. No change needed.
+- (11) tilt doc violations fixed: 3B "Tilt risk" range label -> "Emotion";
+  push-body "top-three tilt patterns" -> "heated-session patterns".
+  Swift user-facing copy already clean (no em dashes, no exclamations,
+  no "tilt" in live Text/Label, no "Betautopsy" misspelling).
+- (12) Verified: no raw hex Color literals outside Tokens.swift; severity
+  amber #FFC66D (Tokens.swift:112) and Brand.yellow #FACC15 (:199) are
+  correctly separated in their locked roles. No change needed.
+- 7-chapter -> single-scroll reader: COPY_SYSTEM 3C heading + structural
+  note (live reader is `ReportScrollContainer`, one scroll of seven
+  sections).
+
+### Verification
+
+- xcodebuild Debug (scheme BetAutopsy, generic iOS Simulator):
+  BUILD SUCCEEDED (exit 0).
+- No XCTest target exists in the project; `BetAutopsyTests/` is not wired
+  to a target. "Tests green" is satisfied by a clean xcodebuild only.
+- Device smoke (item 13) is Andrew's: fresh CSV -> analyze SSE -> full
+  report; what-if card; snapshot -> unlock swap (sandbox purchase);
+  vs-last-report; a check-in round trip; eyeball TodayView (3), push
+  primer (4), and the action/protocol section (6).
+
+### Deferred / flagged (NOT in this PR)
+
+- (2) Units/scale "4,872%" / "-2,412pp" double-multiply: NOT REPRODUCIBLE
+  in current main. Every live percent/pp formatter consumes already-
+  percent engine values with no x100: `formatPct` (ReportModels.swift:
+  1485), `signedPercent` (VitalsStripCard.swift:156), and inline
+  `Int(roi/edge/winRate.rounded())%`/`pp` in SectionSports /
+  SectionPatternsTiming. The only `*100` is `BetIQComponentBars.swift:137`
+  (`value/max` ratio, correct). No speculative fix applied (Andrew's
+  decision: defer) — a guess would risk the inverse bug. Needs a real
+  repro (report id / screenshot) or is engine-side.
+- (5) `delete_account` edge function deployment: UNVERIFIABLE here. The
+  connected Supabase MCP account exposes only "Vig Rewards" and
+  "mets-seat-finder" (both zero edge functions); the BetAutopsy project
+  is not reachable. iOS degrades gracefully (local sign-out on 404), so
+  TestFlight is safe, but App Store submission (5.1.1(v)) is gated on
+  Andrew confirming the function is deployed in BetAutopsy's Supabase.
+- (7) `bets.result` strict-enum gate for web's WS-NUMERIC N2 (`cashed_out`):
+  no iOS change needed. iOS has no per-bet decode and no `result` enum;
+  the new value is wire-safe. No pre-ship iOS PR required.
+- ($3,284 / "23 pages"): flagged in COPY_SYSTEM Section 1 as TKTK
+  placeholders (rule 7). Not stripped from examples; must be sourced or
+  replaced before any user-facing use. Live reader is single-scroll, so
+  "23 pages" is not an accurate descriptor.
+- "BETAUTOPSY" all-caps wordmark in AgeGateView is an intentional logo
+  treatment, not a casing error; left as-is.
+- Section count: live reader has SEVEN sections (Verdict, Findings,
+  HeatedDiscipline, PatternsTiming, Sports, Protocol, Action), not six
+  as an earlier recon note stated. Docs reflect seven.
+- Item 14 Notion (sprint rows + command-center update): NOT done by
+  Claude Code, per the standing rule that Notion writes are centralized
+  in the chat/Notion-MCP layer. File the rows from this list.
+- Pricing-doc scope extension: per Andrew's decision, the facts pass
+  updated BETAUTOPSY_PRICING_PIVOT_V2.md and the CLAUDE.md pricing block
+  in addition to COPY_SYSTEM.md (item 9 named only COPY_SYSTEM), so the
+  named source-of-truth doc stops re-rotting downstream copy.

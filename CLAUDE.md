@@ -169,15 +169,13 @@ sameness (Stripe-blurple, royal-blue trust palettes). Pure black on
 pure white (OLED halation). Lime accent (Whoop pattern, dated by 2026).
 Cyan (Polymarket pattern). Orange (Cash App pattern, casino-adjacent).
 
-## Pricing (Pricing Pivot v2, LOCKED May 10, 2026)
+## Pricing (Pricing Pivot v2, RE-LOCKED May 17, 2026)
 
-- Single Report: $9.99 consumable (up from $4.99; matches forensic
-  positioning, higher prices convert better at paywall)
-- 3-Report Season Bundle: $19.99 consumable (NEW SKU; maps to NFL/NBA/MLB
-  seasonal cadence; highest-leverage addition)
-- Pro Annual: $99.99/yr auto-renew (unchanged; matches Action Network Pro)
-- Pro Monthly: $19.99/mo auto-renew OR retire for v1 launch (current
-  $14.99 is in dead zone between Outlier and Action Network)
+- Single Report: $19.99 consumable, one-time (matches forensic
+  positioning; higher prices convert better at paywall)
+- This is the only SKU in v1. The 3-Report Season Bundle, Pro Annual,
+  and Pro Monthly tiers from the May 10 draft are retired. No
+  subscription ships in v1. See BETAUTOPSY_PRICING_PIVOT_V2.md.
 
 Apple Small Business Program enrolled day one. 15 percent commission.
 
@@ -192,13 +190,13 @@ For paywall copy specifically, COPY_SYSTEM.md sections 3D and 8 are
 the authority. The Section 8 fix for the current "Unlock" violation:
 
 - Headline: "The autopsy is ready."
-- Subhead: "Dollar costs, recommendations, and the full session timeline. 23 pages."
-- CTA button: "Read the full report ($9.99)."
+- Subhead: "Dollar costs, recommendations, and the full session timeline."
+- CTA button: "Read the full report ($19.99)."
 - Microcopy: "One-time charge. Yours to keep. No subscription."
-- Compliance: "If gambling has stopped being fun, call 1-800-GAMBLER. We can wait."
+- Compliance: "If gambling has stopped being fun, call 1-800-MY-RESET. We can wait."
 
-Anchor annual on months-free framing, NEVER percentage discounts:
-"Get 5+ months free" or "$80 saved versus monthly."
+No annual or bundle anchoring in v1 (single SKU). The price stands on
+its own: "Full autopsy. $19.99. One-time."
 
 ### No trial
 
@@ -207,7 +205,7 @@ trial value-show without giving away answers.
 
 ### Compliance copy on paywall (required for 5.3 shield)
 
-- "Problem gambling? Call 1-800-GAMBLER" in luminol soft
+- "Problem gambling? Call 1-800-MY-RESET" in luminol soft
 - "By continuing you confirm you are 18 or older" (age gate is 18+ now,
   NOT 21+ — platform-agnostic for sportsbook + DFS + prediction markets)
 - Restore Purchases button

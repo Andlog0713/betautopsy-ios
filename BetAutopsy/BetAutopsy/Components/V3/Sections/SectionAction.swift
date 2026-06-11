@@ -253,6 +253,12 @@ struct SectionAction: View {
     }
 
     private func projectedImpactLabel(_ dollars: Int) -> String {
+        // A non-positive projection has no honest dollar figure to show
+        // (the deterministic per-bias cost engine lands later). Return an
+        // empty label so the impact row hides the "$0 projected next 90
+        // days" placeholder and falls back to the HIGHEST IMPACT tag where
+        // one applies, rather than printing a fabricated $0.
+        guard dollars > 0 else { return "" }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0

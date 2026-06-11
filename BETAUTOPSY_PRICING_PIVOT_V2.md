@@ -1,23 +1,20 @@
 # BetAutopsy Pricing Pivot v2 — One-Shot Product Reality
 
-*Locked May 10, 2026. Path A confirmed (organic-only, no paid ads in v1).*
+*Pricing re-locked May 17, 2026 to a single SKU (this supersedes the May 10 multi-tier model). Path A confirmed (organic-only, no paid ads in v1).*
 
 ## Final v1 pricing
 
 | SKU | Price | Type |
 |---|---|---|
-| Single Report | **$9.99** | Consumable (up from $4.99) |
-| 3-Report Season Bundle | **$19.99** | Consumable (NEW) |
-| Pro Monthly | RETIRE for v1 OR $19.99/mo | Auto-renew |
-| Pro Annual | **$99.99/yr** | Auto-renew (unchanged) |
+| Single Report | **$19.99** | Consumable (one-time) |
+
+This is the only SKU in v1. The 3-Report Season Bundle, Pro Monthly, and Pro Annual tiers from the May 10 draft are all retired. No subscription ships in v1.
 
 ## Why
 
 BetAutopsy is a 23andMe/16Personalities one-shot diagnostic, not a Whoop/Duolingo subscription product. ~85% of users will buy single report and leave. 10-15% upgrade to subscription.
 
-Higher prices convert BETTER at paywall (price filters for intent). $4.99 signals novelty, $9.99 matches forensic positioning. Every comparable diagnostic prices $19-49.
-
-3-Report Bundle is highest-leverage addition. Maps to NFL/NBA/MLB seasonal cadence. Converts one-shot to quarterly repeat without forcing subscription.
+Higher prices convert BETTER at paywall (price filters for intent). $4.99 signals novelty; $19.99 matches forensic positioning and sits inside the $19-49 band every comparable diagnostic prices in. The single $19.99 one-time consumable is the entire v1 monetization surface.
 
 ## Path A: organic-only
 
@@ -36,9 +33,9 @@ Revisit paid ads when: product live + reviewed, organic data shows what converts
 
 **Cut:** streak system, Lock Screen widget, Live Activity, Heated Session Alert, Weekly Autopsy push.
 
-**Add:** 3-Report Bundle SKU, 60/90-day re-engagement, 12-16 archetypes, SEO content from day one, share card per archetype, micro-influencer outreach kit.
+**Add:** 60/90-day re-engagement, 12-16 archetypes, SEO content from day one, share card per archetype, micro-influencer outreach kit.
 
-**Defer to v1.1:** Ask the Analyst (subscription anchor feature), monthly subscription tier.
+**Defer to v1.1:** Ask the Analyst (subscription anchor feature), the subscription tiers (Pro Monthly and Pro Annual), and the 3-Report Season Bundle.
 
 ## Year 1 targets
 

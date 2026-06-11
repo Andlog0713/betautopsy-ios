@@ -93,11 +93,14 @@ struct SettingsView: View {
             Link("Terms of Service",
                  destination: URL(string: "https://www.betautopsy.com/terms")!)
                 .foregroundStyle(DS.Color.V3.textPrimary)
-            Link("1-800-GAMBLER",
-                 destination: URL(string: "tel://18004262537")!)
+            Link("Call 1-800-MY-RESET",
+                 destination: URL(string: "tel://18006973738")!)
                 .foregroundStyle(DS.Color.V3.textPrimary)
-            Link("ncpgambling.org",
-                 destination: URL(string: "https://www.ncpgambling.org")!)
+            Link("Text 800GAM",
+                 destination: URL(string: "sms:800426")!)
+                .foregroundStyle(DS.Color.V3.textPrimary)
+            Link("ncpgambling.org/chat",
+                 destination: URL(string: "https://www.ncpgambling.org/chat")!)
                 .foregroundStyle(DS.Color.V3.textPrimary)
 
             NavigationLink {

@@ -69,6 +69,20 @@ struct PaywallView: View {
     @State private var showingRestoreAlert: Bool = false
     @State private var restoreAlertMessage: String = ""
 
+    /// True once the in-sheet poll window elapses without materialization.
+    /// Swaps the compiling spinner for the calm "in your Reports tab" copy.
+    /// Not an error state.
+    @State private var showStillCompiling: Bool = false
+
+    /// Rotating compile-stage copy index, advanced by the compilingBlock task.
+    @State private var stageIndex: Int = 0
+
+    private let compileStages = [
+        "Analyzing your bets.",
+        "Itemizing the costs.",
+        "Writing your verdict."
+    ]
+
     private let privacyURL = URL(string: "https://betautopsy.com/privacy")!
     private let termsURL   = URL(string: "https://betautopsy.com/terms")!
 
@@ -237,18 +251,20 @@ struct PaywallView: View {
         VStack(spacing: 8) {
             inlineErrorLabel
 
-            if RevenueCatStore.shared.isPollingForUpgrade {
-                pollingIndicator
+            if showStillCompiling {
+                stillCompilingBlock
+            } else if RevenueCatStore.shared.isPollingForUpgrade {
+                compilingBlock
             } else {
                 buyButton
-            }
 
-            Text(PaywallCopy.microcopy)
-                .font(.system(size: 13))
-                .foregroundStyle(DS.Color.V3.textTertiary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(PaywallCopy.microcopy)
+                    .font(.system(size: 13))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
@@ -258,13 +274,12 @@ struct PaywallView: View {
 
     @ViewBuilder
     private var inlineErrorLabel: some View {
-        // lastPurchaseError covers RC purchase / restore failures.
-        // lastPollError covers post-purchase polling failures
-        // (timeout or terminal auth). Either may be set; show whichever
-        // is non-nil. Purchase error takes precedence if both somehow
-        // populated in the same session.
-        if let error = RevenueCatStore.shared.lastPurchaseError
-            ?? RevenueCatStore.shared.lastPollError {
+        // Red inline error is reserved for genuine purchase / restore
+        // failures (and the terminal auth-expired poll case, which routes
+        // into lastPurchaseError). A report that is simply still generating
+        // is never an error and never red - it uses the calm compiling /
+        // still-compiling blocks below.
+        if let error = RevenueCatStore.shared.lastPurchaseError {
             Text(error)
                 .font(.system(size: 13))
                 .foregroundStyle(DS.Color.V3.Severity.red)
@@ -302,17 +317,65 @@ struct PaywallView: View {
         .disabled(RevenueCatStore.shared.isLoading)
     }
 
-    private var pollingIndicator: some View {
-        VStack(spacing: 8) {
-            ProgressView()
-                .tint(DS.Color.V3.textPrimary)
-            Text("Preparing your full report...")
-                .font(.system(size: 14))
-                .foregroundStyle(DS.Color.V3.textSecondary)
+    /// Post-purchase compiling state: confirms payment up front (decoupled
+    /// from generation), shows staged progress with a realistic ETA, and is
+    /// dismissable - closing leaves the persisted pending unlock for the
+    /// resume path to finish out of sheet.
+    private var compilingBlock: some View {
+        VStack(spacing: 10) {
+            Text("Payment received. Your full autopsy is compiling.")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                ProgressView()
+                    .tint(DS.Color.V3.textSecondary)
+                Text(compileStages[stageIndex])
+                    .font(.system(size: 14))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+            }
+
+            Text("This usually takes under two minutes.")
+                .font(.system(size: 13))
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .multilineTextAlignment(.center)
+
+            Button("Close") { dismiss() }
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Color.V3.textTertiary)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 56)
+        .task {
+            // Rotate the stage copy so a long wait reads as motion, not a
+            // hang. Cancels automatically when the block leaves the tree.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(6))
+                stageIndex = (stageIndex + 1) % compileStages.count
+            }
+        }
+    }
+
+    /// In-sheet poll window elapsed. Calm, not red: the report keeps
+    /// generating server-side and the resume path will surface it. Copy
+    /// leads on the Reports-tab guarantee (resume-backed), not a push
+    /// promise, until the report_ready push is live on the backend.
+    private var stillCompilingBlock: some View {
+        VStack(spacing: 12) {
+            Text("Still compiling. Your full report will be in your Reports tab when it's ready.")
+                .font(.system(size: 15))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button("Close") { dismiss() }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.ctaText)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - IAP handlers
@@ -343,24 +406,28 @@ struct PaywallView: View {
                     return
                 }
 
-                // Poll the backend for the webhook-created full report.
-                // Up to 90s; returns nil on timeout.
-                let newReport = await RevenueCatStore.shared
+                // Payment is confirmed here, independent of generation.
+                // Persist the pending unlock immediately so the resume path
+                // owns reliability even if the sheet is closed or the
+                // in-sheet poll window elapses.
+                Analytics.signal("purchase.confirmed")
+                PendingUnlockStore.shared.begin(snapshotId: snapshotReportId)
+                Analytics.signal("compile.started")
+
+                let outcome = await RevenueCatStore.shared
                     .pollForUpgradedReport(snapshotReportId: snapshotReportId)
 
-                if let newReport {
-                    ReportStore.shared.upsert(newReport)
+                switch outcome {
+                case .materialized(let report):
+                    RevenueCatStore.shared.materialize(report, source: "in_sheet")
                     dismiss()
-                } else {
-                    // Timeout. lastPollError is now set with the
-                    // "Pull to refresh on the dashboard..." message
-                    // and renders inline via bottomCTA. Hold visible
-                    // for a beat so the user can read it, then close
-                    // the sheet; the dashboard reactive observation
-                    // will pick up the child row on the user's pull
-                    // to refresh.
-                    try? await Task.sleep(for: .seconds(2.5))
-                    dismiss()
+                case .stillCompiling:
+                    // Calm hand-off to the resume path. Sheet stays open on
+                    // the still-compiling copy; the user closes when ready.
+                    showStillCompiling = true
+                case .authExpired:
+                    // lastPurchaseError set by the poll; red inline surface.
+                    break
                 }
             } catch {
                 // lastPurchaseError was already set by the store's

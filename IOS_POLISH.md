@@ -588,3 +588,73 @@ Brand coherence:
   updated BETAUTOPSY_PRICING_PIVOT_V2.md and the CLAUDE.md pricing block
   in addition to COPY_SYSTEM.md (item 9 named only COPY_SYSTEM), so the
   named source-of-truth doc stops re-rotting downstream copy.
+
+---
+
+## Branch: report-lazy-fetch (2026-06-11)
+
+P0: paid full reports rendered as a minimal shell on iOS. Root cause (proven
+against all 14 of a real user's prod reports, decoded through the exact iOS
+structs): NOT a decode bug. `GET /api/reports` correctly slims `report_json`
+to a ~12-key card whitelist (omits session_detection, behavioral_patterns,
+biases_detected, timing, recommendations, etc.); iOS rendered that slim list
+payload as if it were a full report because the lazy-fetch by id was never
+implemented, and `hydrate()` re-clobbered any full report with the slim row
+on relaunch. Intermittent: full right after purchase (poll path returns full)
+/ push (/:id full); shell after relaunch or open-from-list (slim).
+
+### What shipped (iOS-only; web slimming stays)
+
+Commit 1 - model flag + cache v3:
+- `AutopsyReport.isFullBody` distinguishes slim card from complete body. Set
+  per construction site: list=false; detail(/:id)=true, upgraded_from=true
+  (protects PR #34), analyze-stream=true, mock=true. Not a wire field (every
+  site sets it via the initializer); part of cache Codable.
+- `ReportCache.currentVersion` 2 -> 3: drops pre-flag slim-as-full caches on
+  upgrade so existing users self-heal on first launch.
+
+Commit 2 - hydrate non-clobber:
+- `ReportStore.performHydrate` merges via `mergePreservingFullBodies`: maps
+  over the slim list (server owns membership) but keeps any id already held
+  at full body. Stops the slim clobber and protects #34's materialized full.
+
+Commit 3 - fetch-on-open + gating:
+- `ReportScrollViewModel`: `bodyState` (full/fetching/failed) + `ensureFullBody()`
+  lazy-fetches the full body by id via the existing `ReportFetchClient.fetch`,
+  swaps it in (progressive fill - slim cards render immediately), upserts to
+  heal store+cache. Failure sets `.failed` and does NOT auto-refetch on .task
+  re-fire/re-render; only `retry()` or a new report id re-triggers (no endpoint
+  loop on flaky network).
+- `ReportScrollContainer`: `.task(id: report.id)` drives the fetch; body
+  sections render only when `.full`; `.fetching` shows a loading row, `.failed`
+  shows a retry block. The degraded snapshot/fallback copy ("Pattern analysis
+  lives in the full report" / WARNING SIGNS) can no longer render on a slim
+  payload - the masquerade is gone. SectionVerdict (slim-safe) always renders.
+
+### Verification
+
+- xcodebuild Debug SUCCEEDED after each of the 3 commits.
+- Root cause reproduced via a Foundation-only harness decoding all 14 prod
+  reports with the exact structs (all decoded clean; degradation only on the
+  slim list payload). Pulled prod data was confined to /tmp and deleted; the
+  temporary diagnostic do/catch prints lived only on branch
+  `diag/full-report-decode` and were discarded when this branch was cut.
+- Device smoke owed (Andrew): open a report from the Reports list (cards
+  instant, body fills in), kill network mid-open (retry block, not the
+  masquerade), relaunch and re-open a previously-opened report (stays full,
+  no re-shell), snapshot opened from list fills its redacted body.
+
+### Composition with PR #34
+
+#34's materialize -> upsert -> cache delivers a full body (isFullBody=true via
+the upgraded_from path); the hydrate merge here preserves it against the slim
+clobber. Without this merge, #34's full report rotted back to a shell on the
+next hydrate. They compose; this PR sequences ahead of #34 in merge order.
+
+### Notes / deviations
+
+- Failure UX is the gating approach (hide degraded sections + retry), per
+  Andrew, not the lighter-touch banner that would leave the masquerade on
+  screen.
+- Notion: sprint rows / command-center update not filed by Claude Code
+  (standing rule); file from this entry.

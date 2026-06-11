@@ -45,37 +45,24 @@ struct ReportScrollContainer: View {
                                 .id("cta_after_verdict")
                         }
 
-                        SectionFindings(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_findings")
-                            .id("section_findings")
-
-                        if isSnapshot {
-                            RepeatedCTABlock(variant: .mid, onTap: { handlePaywallTap("section_findings_repeated_cta") })
-                                .padding(.horizontal, 16)
-                                .id("cta_after_findings")
+                        // Body sections render only when the full body is
+                        // present. While it lazy-fetches (slim list payload) we
+                        // show a loading row; on failure a retry block. We do
+                        // NOT let the sections fall to their snapshot/fallback
+                        // copy on a slim payload - that masquerade ("Pattern
+                        // analysis lives in the full report" / WARNING SIGNS) is
+                        // exactly the shell bug. SectionVerdict above is
+                        // slim-safe and always renders for progressive fill.
+                        switch viewModel.bodyState {
+                        case .full:
+                            fullBodySections
+                        case .fetching:
+                            bodyLoadingRow
+                                .id("body_loading")
+                        case .failed:
+                            bodyRetryBlock
+                                .id("body_retry")
                         }
-
-                        SectionHeatedDiscipline(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_heated_discipline")
-                            .id("section_heated_discipline")
-
-                        SectionPatternsTiming(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_patterns_timing")
-                            .id("section_patterns_timing")
-
-                        SectionSports(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_sports")
-                            .id("section_sports")
-
-                        SectionProtocol(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_protocol")
-                            .id("section_protocol")
-
-                        SectionAction(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_action")
-                            .id("section_action")
-                        // Terminal RepeatedCTABlock lives INSIDE SectionAction
-                        // (Phase 1); not duplicated here.
                     }
                     .padding(.vertical, 32)
                 }
@@ -93,6 +80,13 @@ struct ReportScrollContainer: View {
                             proxy.scrollTo(anchor, anchor: .top)
                         }
                     }
+                }
+                // Lazy-fetch the full body when opened from the slim list.
+                // Keyed on report.id: fires once per report, does not re-fire on
+                // the slim->full swap (same id), and re-fires on a D14
+                // snapshot->full swap (new id, already full -> no-op).
+                .task(id: viewModel.report.id) {
+                    await viewModel.ensureFullBody()
                 }
             }
 
@@ -119,6 +113,86 @@ struct ReportScrollContainer: View {
         }
         .padding(.top, 8)
         .padding(.trailing, 16)
+    }
+
+    // MARK: - Body sections (rendered only when the full body is present)
+
+    @ViewBuilder
+    private var fullBodySections: some View {
+        SectionFindings(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_findings")
+            .id("section_findings")
+
+        if isSnapshot {
+            RepeatedCTABlock(variant: .mid, onTap: { handlePaywallTap("section_findings_repeated_cta") })
+                .padding(.horizontal, 16)
+                .id("cta_after_findings")
+        }
+
+        SectionHeatedDiscipline(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_heated_discipline")
+            .id("section_heated_discipline")
+
+        SectionPatternsTiming(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_patterns_timing")
+            .id("section_patterns_timing")
+
+        SectionSports(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_sports")
+            .id("section_sports")
+
+        SectionProtocol(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_protocol")
+            .id("section_protocol")
+
+        SectionAction(report: viewModel.report, onPaywallTap: handlePaywallTap)
+            .trackSectionTop("section_action")
+            .id("section_action")
+        // Terminal RepeatedCTABlock lives INSIDE SectionAction (Phase 1).
+    }
+
+    /// Progressive-fill loading state: the slim cards (SectionVerdict) are
+    /// already on screen; this sits where the body will appear.
+    private var bodyLoadingRow: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .tint(DS.Color.V3.textSecondary)
+            Text("Loading the rest of your report.")
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
+    /// Body fetch failed (offline / server). Explicit, recoverable, and NOT
+    /// the masquerade fallback: the degraded body sections never render.
+    private var bodyRetryBlock: some View {
+        VStack(spacing: 12) {
+            Text("Couldn't load the full report.")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Button(action: { Task { await viewModel.retry() } }) {
+                Text("Retry")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DS.Color.Brand.canvasDark)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(DS.Color.Brand.yellow)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Scroll position tracking

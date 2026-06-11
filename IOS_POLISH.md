@@ -656,5 +656,77 @@ next hydrate. They compose; this PR sequences ahead of #34 in merge order.
 - Failure UX is the gating approach (hide degraded sections + retry), per
   Andrew, not the lighter-touch banner that would leave the masquerade on
   screen.
+
+---
+
+## Branch: unlock-compiling-flow (2026-06-11)
+
+Reworks the snapshot->full post-purchase loading flow. Today a successful
+purchase shows an indeterminate "Preparing your full report..." spinner,
+then on the 90s poll timeout flips to red text ("Pull to refresh on the
+dashboard") and auto-dismisses. Root cause: server generation is deferred
+(RevenueCat webhook -> engine re-run, 30-120s) but the iOS poll only waited
+90s, so the red timeout fired in NORMAL operation on large reports. Approved
+via Step-0 outline; not a TestFlight blocker; sequences behind the 4
+critical items + PR #33; fresh branch off main.
+
+### What shipped (iOS PR)
+
+- PendingUnlockStore (new): UserDefaults-backed {snapshotId, createdAt},
+  the source of truth for resume + failure detection. 12-min failure
+  ceiling off createdAt.
+- RevenueCatStore: pollForUpgradedReport returns UnlockPollOutcome
+  (.materialized/.stillCompiling/.authExpired), in-sheet window 90s->150s
+  (cosmetic; reliability is the persisted record + resume). Idempotent
+  materialize(_:source:) guarded on PendingUnlockStore.isActive; resume
+  one-shot poll; unlockFailed flag past the ceiling. Red timeout string
+  removed.
+- PaywallView: payment confirmed up front (decoupled from generation);
+  staged compiling block (rotating copy + "usually under two minutes") +
+  dismissable; calm "Still compiling. ...in your Reports tab when it's
+  ready." on window-elapse. Red reserved for genuine failures.
+- Resume wiring: RootTabView scenePhase .active (cold launch + foreground)
+  and ReportListView Reports-tab appear.
+- Failure banner (ReportListView): recoverable, calm, Restore + Contact
+  support; shown only past the ceiling.
+- Push routing: AppDelegate accepts kind=="report_ready"; DeepLinkRouter
+  completes a pending unlock idempotently when a deep-linked report
+  resolves it.
+- Funnel analytics (TelemetryDeck): purchase.confirmed, compile.started,
+  compile.completed (source=in_sheet|resume|push), unlock.failed.
+
+### Idempotency (required)
+
+All three completion paths funnel through RevenueCatStore.materialize,
+guarded on PendingUnlockStore.isActive. First path wins (upsert + clear +
+one compile.completed); the rest no-op. ReportStore.upsert is id-keyed
+(no duplicate row) and ReportScrollViewModel swaps a snapshot only once
+(post-swap it is full, guard fails). Only the push-tap path presents a
+cover; in-sheet/resume mutate data without presenting. So no double-swap,
+no double-present, no duplicate analytics.
+
+### Verification
+
+- xcodebuild Debug SUCCEEDED after each commit (model+sheet; then
+  resume+banner+push).
+- Device smoke owed (Andrew): in-sheet success swap; close-during-compile
+  then report appears on return (resume); 12-min ceiling -> failure banner;
+  staged copy rotation; no red on a successful purchase.
+
+### Cross-repo dependency
+
+- Companion WEB PR (repo /Users/Andrew/betautopsy) adds the report_ready
+  push: widen ApnsKind union, a push-report-ready orchestrator, fire it at
+  the end of processUpgrade after the INSERT. Must deploy before/with any
+  iOS copy that promises a notification; until then iOS copy leads on the
+  Reports-tab guarantee (resume-backed) and the push is additive. Built as
+  a separate PR (halt between repos).
+
+### Notes / deviations
+
+- In-sheet 150s bump is acknowledged cosmetic; resume is the reliability
+  path. Pre-generation is scoped out; the "generate-on-paywall-show"
+  variant (kick off the full run when the paywall is shown, for near-instant
+  unlock) is flagged for a later evaluation, NOT snapshot-time pre-gen.
 - Notion: sprint rows / command-center update not filed by Claude Code
   (standing rule); file from this entry.

@@ -125,14 +125,36 @@ final class ReportStore {
         hydrationError = nil
         do {
             let fetched = try await ReportListClient.shared.fetchList()
-            self.reports = fetched
-            persist(fetched)
+            // CRITICAL: the list endpoint returns SLIM card rows (body omitted).
+            // Merge them over any full bodies we already hold so a refresh can
+            // never clobber a report whose full body was fetched-on-open or
+            // materialized by the IAP unlock (PR #34) back down to a shell.
+            let merged = Self.mergePreservingFullBodies(fetched: fetched, existing: self.reports)
+            self.reports = merged
+            persist(merged)
         } catch {
             self.hydrationError = error
             // CRITICAL: do NOT touch self.reports on error - keep the cached
             // list visible. This is the entire point of cache-first.
         }
         isHydrating = false
+    }
+
+    /// Merge the slim list (server owns membership + ordering) with any full
+    /// bodies already held: for an id we already hold at full body, keep the
+    /// held full report; otherwise take the slim card row. The full body is a
+    /// strict superset of the slim card, so this loses nothing. Reports dropped
+    /// server-side fall out naturally (the result maps over `fetched`). Static
+    /// + pure for testability.
+    static func mergePreservingFullBodies(
+        fetched: [AutopsyReport],
+        existing: [AutopsyReport]
+    ) -> [AutopsyReport] {
+        let existingById = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return fetched.map { slim in
+            if let held = existingById[slim.id], held.isFullBody { return held }
+            return slim
+        }
     }
 
     func add(_ report: AutopsyReport) {

@@ -14,6 +14,7 @@ struct RootTabView: View {
     @State private var uploadCoordinator = UploadFlowCoordinator()
     @State private var reportStore = ReportStore.shared
     @State private var deepLinkRouter = DeepLinkRouter.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         configureTabBarAppearance()
@@ -75,6 +76,16 @@ struct RootTabView: View {
         .onChange(of: AuthState.shared.isAuthenticated) { _, isAuth in
             if isAuth {
                 Task { await deepLinkRouter.consume() }
+            }
+        }
+        // Out-of-sheet unlock resume: a purchase whose full report had not
+        // materialized when the paywall closed completes here when the app
+        // becomes active (cold launch + every foreground). No-op unless a
+        // pending unlock is persisted; past the failure ceiling it surfaces
+        // the recoverable failure banner on the Reports tab.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await RevenueCatStore.shared.resumePendingUnlockIfNeeded() }
             }
         }
     }

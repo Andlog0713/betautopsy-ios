@@ -37,6 +37,11 @@ struct ReportListView: View {
                         .foregroundStyle(DS.Color.V3.textPrimary)
                         .padding(.top, DS.Spacing.xs)
 
+                    if RevenueCatStore.shared.unlockFailed {
+                        failureBanner
+                            .padding(.top, DS.Spacing.md)
+                    }
+
                     content
                 }
                 .padding(.horizontal, DS.Spacing.md)
@@ -72,6 +77,11 @@ struct ReportListView: View {
             if let mostRecentId = store.reports.first?.id {
                 await checkoffStore.load(reportId: mostRecentId)
             }
+        }
+        .task {
+            // Reports-tab appear is a natural resume trigger for a purchase
+            // whose full report is still materializing out of sheet.
+            await RevenueCatStore.shared.resumePendingUnlockIfNeeded()
         }
         .onChange(of: AuthState.shared.isAuthenticated) { _, isAuth in
             if isAuth, let mostRecentId = store.reports.first?.id {
@@ -325,6 +335,59 @@ struct ReportListView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+
+    // MARK: - Unlock failure banner
+
+    /// Recoverable failure surface for a purchased unlock that blew past the
+    /// failure ceiling without materializing (assumed dropped webhook). Calm
+    /// and reassuring, never alarming: the purchase is safe and recovery is
+    /// one tap away. Shown only while RevenueCatStore.unlockFailed is true.
+    private var failureBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Something went wrong finishing your report. Your purchase is safe.")
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 16) {
+                Button(action: handleFailureRestore) {
+                    Text("Restore purchases")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.ctaText)
+                }
+
+                Link("Contact support", destination: URL(string: "https://betautopsy.com/support")!)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.ctaText)
+
+                Spacer()
+
+                Button(action: { RevenueCatStore.shared.dismissUnlockFailure() }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                }
+            }
+        }
+        .padding(DS.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
+    }
+
+    /// Restore re-syncs entitlements and re-checks for the materialized
+    /// report once more. The standard App Store recovery affordance; if it
+    /// still does not surface, the support link is the path.
+    private func handleFailureRestore() {
+        Task {
+            _ = try? await RevenueCatStore.shared.restorePurchases()
+            await store.hydrate()
+        }
     }
 
     // MARK: - Upload flow plumbing

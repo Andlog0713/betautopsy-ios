@@ -53,6 +53,18 @@ final class DeepLinkRouter {
         do {
             let report = try await ReportFetchClient.shared.fetch(id: id)
             pendingReportId = nil
+
+            // If this deep link resolves the active pending unlock (a
+            // report_ready push carrying the full child row), complete it
+            // idempotently: upsert + clear pending + funnel event.
+            // materialize no-ops if the in-sheet or resume path already won,
+            // so the three completion paths can't double-swap or double-count.
+            if PendingUnlockStore.shared.isActive,
+               let snapshotId = PendingUnlockStore.shared.snapshotId,
+               report.upgradedFromSnapshotId == snapshotId {
+                RevenueCatStore.shared.materialize(report, source: "push")
+            }
+
             presentingReport = report
 
             let crumb = Breadcrumb(level: .info, category: "push")

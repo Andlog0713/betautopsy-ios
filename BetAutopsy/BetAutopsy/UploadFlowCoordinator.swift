@@ -123,7 +123,9 @@ final class UploadFlowCoordinator {
                             dateRangeStart: dateRange.0,
                             dateRangeEnd: dateRange.1,
                             createdAt: createdAt,
-                            analysis: analysis
+                            analysis: analysis,
+                            // Analyze stream ships the complete body.
+                            isFullBody: true
                         )
                         state = .succeeded(report)
                         return

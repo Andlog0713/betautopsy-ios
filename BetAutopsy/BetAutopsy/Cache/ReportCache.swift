@@ -101,7 +101,14 @@ enum ReportCacheCodec {
     /// hero" and the "Pattern analysis lives in the full report" leak in full
     /// mode. Bumping invalidates them so the next launch re-fetches and
     /// re-decodes cleanly.
-    static let currentVersion = 2
+    ///
+    /// v3 (lazy-fetch): AutopsyReport gained `isFullBody`, and the list
+    /// endpoint slims the body. v2 blobs may hold slim-card reports cached as
+    /// if full (the shell-render bug) and lack the isFullBody field. Bumping
+    /// drops them on upgrade so existing users self-heal on first launch: the
+    /// empty cache forces a hydrate, and slim reports lazy-fetch their full
+    /// body on open instead of rendering as a shell.
+    static let currentVersion = 3
 
     private static let encoder: JSONEncoder = {
         let e = JSONEncoder()

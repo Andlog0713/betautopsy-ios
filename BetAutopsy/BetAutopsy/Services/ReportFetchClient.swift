@@ -119,7 +119,9 @@ final class ReportFetchClient {
             dateRangeStart: row.dateRangeStart,
             dateRangeEnd: row.dateRangeEnd,
             createdAt: row.createdAt,
-            analysis: row.reportJson
+            analysis: row.reportJson,
+            // /api/reports/:id returns the full report_json (complete body).
+            isFullBody: true
         )
     }
 }

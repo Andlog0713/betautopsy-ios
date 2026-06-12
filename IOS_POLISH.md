@@ -16,6 +16,70 @@ Format per entry:
 
 ---
 
+## Branch: feat/testflight-min
+
+### Why
+
+TESTFLIGHT-MIN: the minimum remaining iOS work for a respectable
+first TestFlight build. Safe-area/back-button audit, WhatChanged
+first-report hide, PR-12 prep. No redesign work (Prompt 4 runs
+during TestFlight).
+
+### Step 0 findings
+
+- Version identity already correct: 1.0 (1) in pbxproj matches the
+  APPLE_REVIEW_COMPLIANCE "Build 1.0 (1)" first-submission plan. No
+  bump made (pbxproj is hands-off for CC; future bumps are manual).
+- Shell map: onboarding NavigationStack (bar hidden) -> 3-tab root ->
+  sheets (Settings with own stack + Done, check-in, paywall with
+  xmark, glossary correctly wrapped) -> covers (report reader with
+  xmark, push primer with Allow/Later, upload progress). No journal
+  screen exists; check-in is the only text-input surface.
+- WhatChanged first-report hole: the unlock child carries a
+  no-filter FULL-HISTORY date range, different from its snapshot
+  twin, so the date-range exclusion matched the user's own snapshot
+  as "previous" on their first purchased report and diffed against
+  redacted zeros.
+- ITSAppUsesNonExemptEncryption was missing from Info.plist.
+
+### Per-screen safe-area audit
+
+| Screen | Status |
+|---|---|
+| Report reader (ReportScrollContainer) | FOUND: scrolled content collides with clock (bar-less). FIXED: StatusBarScrim under the xmark. |
+| Reports tab (ReportListView) | FOUND: same collision. FIXED: scrim. |
+| Sessions tab (SessionsTabView) | FOUND: same collision. FIXED: scrim. |
+| Today tab | OK (NavigationStack + toolbar; system bar material on scroll). |
+| Settings / Glossary | OK (own NavigationStack, Done button; glossary pushed or sheet-wrapped correctly). |
+| Onboarding (age gate, sample preview, quiz, reveal, auth, Pikkit) | OK (content respects safe area; backgrounds full-bleed by design; forward-only flow has no back buttons by design). |
+| Paywall | OK (sheet, xmark, scroll content inset). |
+| Push primer | OK (Allow / Maybe later both dismiss). |
+| Upload progress | OK (fixed-top layout inside safe area; no dismiss mid-flight by design). |
+| Pre-bet check-in | FOUND: decimal pad had no dismiss. FIXED: keyboard Done accessory. Sheet otherwise OK. |
+| Reviewer bypass sheet | OK. |
+| DEFERRED to Prompt 4: bottom-edge fade polish on the report reader, UploadProgressView fixed 60pt top offset (cosmetic), Dynamic Type pass. |
+
+### What shipped
+
+1. StatusBarScrim component (safe-area-inset-sized canvas gradient,
+   overlay, non-interactive) on the three bar-less scroll surfaces.
+2. Check-in stake keyboard Done accessory; VsLastReportCard previous
+   pool excludes snapshots (signal: prior FULL report existence;
+   covers snapshot + full renders).
+3. ITSAppUsesNonExemptEncryption = false committed with the
+   placeholder-key procedure (real anon key never staged; verified
+   against the committed blob). TESTFLIGHT_NOTES.md added: What to
+   Test copy (COPY_SYSTEM + DO-NOT-MARKET clean) + the numbered
+   manual upload checklist.
+
+### Verification
+
+xcodebuild green per commit. Andrew walks every screen on device
+(the audit IS the visual pass), then runs the TESTFLIGHT_NOTES.md
+checklist for archive + upload.
+
+---
+
 ## Branch: feat/3b2-charts-breadth
 
 ### Why

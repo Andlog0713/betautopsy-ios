@@ -19,10 +19,20 @@ import SwiftUI
 struct PreBetCheckInView: View {
     @State private var coordinator = PreBetCheckInCoordinator()
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var stakeFocused: Bool
 
     #if DEBUG
     @State private var showDebugMenu = false
     #endif
+
+    /// DEBUG visual-harness hook: focuses the stake field shortly after
+    /// appear so the keyboard + Done row can be screenshot-verified
+    /// without simulated taps. No-op in production call sites.
+    private let autoFocusStakeForHarness: Bool
+
+    init(autoFocusStakeForHarness: Bool = false) {
+        self.autoFocusStakeForHarness = autoFocusStakeForHarness
+    }
 
     var body: some View {
         ZStack {
@@ -48,7 +58,35 @@ struct PreBetCheckInView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onAppear { Analytics.signal("prebet.viewed") }
+        // The decimal pad has no return key, and ToolbarItem(.keyboard)
+        // silently renders NOTHING without a toolbar-hosting context
+        // (this sheet has no NavigationStack) - the first version of
+        // this fix shipped as a no-op that way. A safeAreaInset row is
+        // immune: keyboard avoidance lifts the bottom safe area above
+        // the keyboard, so the row rides up with it while focused.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if stakeFocused {
+                HStack {
+                    Spacer()
+                    Button("Done") { stakeFocused = false }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DS.Color.Brand.yellow)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(DS.Color.V3.surfaceRaised)
+            }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onAppear {
+            Analytics.signal("prebet.viewed")
+            if autoFocusStakeForHarness {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    stakeFocused = true
+                }
+            }
+        }
         #if DEBUG
         .confirmationDialog(
             "Debug time override",
@@ -155,7 +193,7 @@ struct PreBetCheckInView: View {
                     }
                 }
 
-                StakeField(stake: $coordinator.stake)
+                StakeField(stake: $coordinator.stake, focus: $stakeFocused)
 
                 OddsField(odds: $coordinator.odds)
 
@@ -391,8 +429,8 @@ private struct FieldRow<Content: View>: View {
 
 private struct StakeField: View {
     @Binding var stake: Decimal
+    var focus: FocusState<Bool>.Binding
     @State private var text: String = ""
-    @FocusState private var isFocused: Bool
 
     var body: some View {
         FieldRow(label: "Stake") {
@@ -402,17 +440,10 @@ private struct StakeField: View {
                     .foregroundStyle(DS.Color.V3.textTertiary)
                 TextField("0", text: $text)
                     .keyboardType(.decimalPad)
-                    .focused($isFocused)
-                    // The decimal pad has no return key, so without a Done
-                    // accessory the keyboard cannot be dismissed at all
-                    // (TESTFLIGHT-MIN keyboard audit).
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") { isFocused = false }
-                                .foregroundStyle(DS.Color.Brand.yellow)
-                        }
-                    }
+                    // Focus is owned by PreBetCheckInView, which renders the
+                    // Done dismiss row in its bottom safeAreaInset while this
+                    // field is focused.
+                    .focused(focus)
                     .font(.system(size: 18, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)

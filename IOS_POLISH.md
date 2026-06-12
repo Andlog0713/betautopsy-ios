@@ -16,6 +16,82 @@ Format per entry:
 
 ---
 
+## Branch: feat/3a-report-trust-decode
+
+### Why
+
+Web PR #74 (report-trust wire format) is deployed and verified live:
+schema_version 3 reports carry a top-level `recovery` object, a
+`charts` object (7 keys including sessionTimeline + heroSession), and
+per-finding confidence/severity/sub_splits. 3A scope: iOS decodes all
+of it and renders ONE hero chart (the heated-session stake-escalation
+curve). The other 8 charts and the reusable components are the next
+prompt, deliberately not built here.
+
+### Step 0 findings
+
+- All three network decode paths (AnalyzeClient:542, ReportFetchClient,
+  ReportListClient) use a global .convertFromSnakeCase; the disk cache
+  uses default keys (symmetric round-trip, safe).
+- Pulled the real deployed row (autopsy_reports table, id 406e226d,
+  created 2026-06-12 17:37:05) via the web repo's local service-role
+  creds; the MCP Supabase account does not include this project. All
+  wire keys confirmed exactly as specced; fixture saved to /tmp.
+- Directive correction (validated by the proof): explicit CodingKeys
+  do NOT bypass .convertFromSnakeCase. The decoder converts wire keys
+  FIRST, then matches stringValue. camelCase keys (netUSD, tOffsetMin,
+  no underscores) pass through unchanged, so exact-wire CodingKeys
+  work. snake_case keys (sub_splits' roi_pct/net_usd) must be pinned
+  to POST-conversion spellings (roiPct, netUsd -> property netUSD).
+  A raw value of "net_usd" silently decodes nil - the acronym trap,
+  one level deeper than the brief assumed.
+
+### What shipped
+
+Two commits, build verified between each:
+
+1. Decode layer: ReportRecovery, ReportCharts + 7 nested point types
+   (betClass mapped from reserved wire key "class"), FindingSubSplit;
+   optional additive fields on AutopsyAnalysis (recovery, charts),
+   DetectedSession (framing), BiasDetected / StrategicLeak /
+   SportSpecificFinding (confidence, subSplits, + severity string on
+   leaks). Tolerant try? decode throughout; ReportCharts degrades
+   per-array. ReportCache.currentVersion 3 -> 4 (v3 blobs pre-date
+   the fields and would pin charts == nil forever).
+   Decode proof: BetAutopsyTests/DecodeProofV3.swift, a standalone
+   swiftc harness (no test target exists) decoding the REAL deployed
+   report through production structs with the production decoder
+   config. 32/32 assertions pass, including roi_pct:null tolerance
+   and a cache-codec round-trip.
+2. SessionTimelineChart (Swift Charts): framing-tinted line + area,
+   outcome-colored points, severity-amber chase halos, BAFormat
+   everywhere (adds BAFormat.minutes). Placed in SectionVerdict after
+   the archetype name, before TotalRecoverableHero. Gated full-mode +
+   heroSession + non-empty timeline; component requires >= 2 points.
+   Empty state renders nothing (the section is unchanged from
+   pre-#74), never an empty chart frame.
+
+### Verification
+
+xcodebuild green after each commit; decode proof ALL PASS against the
+live report. Device smoke is Andrew's step: hero chart renders on the
+fresh 2026-06-12 report (4 points, 3 amber halos, "Heated session.
+Finished down.", May 22, 2026 meta), and an older/snapshot report
+shows no chart and no gap artifacts.
+
+### Notes / deviations
+
+- Spec's framing label "Heated session - finished down" restructured
+  to "Heated session. Finished down." (em dashes banned, COPY_SYSTEM).
+- The decode-proof fixture (real betting data) stays in /tmp,
+  deliberately not committed; the harness header documents how to
+  re-pull and re-run it.
+- charts.timeOfDayPnl / dayOfWeekPnl now decode, but the BY HOUR
+  chart swap to typed arrays remains out of scope (next prompt), per
+  the brief.
+
+---
+
 ## Branch: fix/p0-renderer-polish
 
 ### Why

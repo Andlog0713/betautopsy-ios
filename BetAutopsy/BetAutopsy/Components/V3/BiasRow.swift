@@ -35,6 +35,14 @@ struct BiasRow: View {
         let fix: String?
         let isLockedCost: Bool       // snapshot mode -> LockedDollarBar replaces "-$N"
 
+        // 3B evidence layer (web PR #74). subSplits render through
+        // EvidenceBlock in the expanded view; suppressDollars carries the
+        // snapshot contract (net_usd is null there). All optional so the
+        // legacy chapter call site compiles unchanged.
+        let subSplits: [FindingSubSplit]?
+        let confidence: String?
+        let suppressDollars: Bool
+
         init(
             biasName: String,
             costAbs: Int,
@@ -45,7 +53,10 @@ struct BiasRow: View {
             evidenceVisible: Bool = true,
             translation: String? = nil,
             fix: String? = nil,
-            isLockedCost: Bool = false
+            isLockedCost: Bool = false,
+            subSplits: [FindingSubSplit]? = nil,
+            confidence: String? = nil,
+            suppressDollars: Bool = false
         ) {
             self.id = UUID()
             self.biasName = biasName
@@ -58,6 +69,9 @@ struct BiasRow: View {
             self.translation = translation
             self.fix = fix
             self.isLockedCost = isLockedCost
+            self.subSplits = subSplits
+            self.confidence = confidence
+            self.suppressDollars = suppressDollars
         }
     }
 
@@ -69,11 +83,17 @@ struct BiasRow: View {
 
     /// Tap target for the row itself. When non-nil, the chevron rotates
     /// to a navigational rest pose and the row fires onTap on tap
-    /// (instead of the existing expand toggle). Used by Ch 4 to present
-    /// the BiasEvidenceSheet.
+    /// (instead of the existing expand toggle). Legacy sheet path only
+    /// (ChapterYourBiasesView); SectionFindings uses inline expansion.
     var onTap: (() -> Void)? = nil
 
+    /// Fired once per row instance when the inline expansion first opens.
+    /// SectionFindings hangs the ch4.bias_evidence.opened signal here
+    /// (the signal previously fired on BiasEvidenceSheet presentation).
+    var onExpanded: (() -> Void)? = nil
+
     @State private var expanded: Bool = false
+    @State private var hasFiredExpandSignal = false
 
     private var evidenceFirstSentence: String? {
         guard bias.evidenceVisible,
@@ -92,6 +112,8 @@ struct BiasRow: View {
                     .font(DS.Font.V3.rowCapsLabel)
                     .tracking(1.1)
                     .foregroundStyle(DS.Color.V3.textPrimary)
+
+                SeverityChip(tier: bias.severityLabel)
 
                 Spacer()
 
@@ -132,11 +154,6 @@ struct BiasRow: View {
             }
             .frame(height: 3)
 
-            Text(bias.severityLabel)
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.0)
-                .foregroundStyle(bias.severityColor)
-
             if let evidenceText = evidenceFirstSentence {
                 Text(evidenceText)
                     .font(.system(size: 13, weight: .regular))
@@ -149,6 +166,17 @@ struct BiasRow: View {
 
             if expanded {
                 VStack(alignment: .leading, spacing: 10) {
+                    // Evidence layer: sub_splits comparison rows when the
+                    // wire ships them (web PR #74), full evidence prose as
+                    // the pre-#74 fallback. Rendered open inside the
+                    // already-expanded row.
+                    EvidenceBlock(
+                        splits: bias.subSplits ?? [],
+                        confidence: bias.confidence,
+                        fallbackProse: bias.evidenceVisible ? bias.evidence : nil,
+                        isSnapshot: bias.suppressDollars,
+                        initiallyExpanded: true
+                    )
                     if let translation = bias.translation, !translation.isEmpty {
                         labeled("TRANSLATION", body: translation)
                     }
@@ -171,6 +199,10 @@ struct BiasRow: View {
             } else {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     expanded.toggle()
+                }
+                if expanded, !hasFiredExpandSignal {
+                    hasFiredExpandSignal = true
+                    onExpanded?()
                 }
             }
         }

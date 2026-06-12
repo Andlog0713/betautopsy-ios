@@ -48,6 +48,12 @@ struct StrategicLeakCard: View {
                     .truncationMode(.tail)
                     .fixedSize(horizontal: false, vertical: true)
 
+                // Web PR #74 metadata: severity ships as a raw wire string
+                // on leaks. Absent on pre-#74 reports -> no chip.
+                if let severity = leak.severity, !severity.isEmpty {
+                    SeverityChip(tier: severity)
+                }
+
                 Spacer(minLength: 8)
 
                 roiBadge
@@ -61,6 +67,17 @@ struct StrategicLeakCard: View {
             V3Divider()
 
             detailBlock
+
+            // 3B evidence layer: sub_splits comparison rows (web PR #74).
+            // Collapsed by default; snapshot suppresses the dollar segment
+            // (net_usd is null there). Absent on pre-#74 reports.
+            if let splits = leak.subSplits, !splits.isEmpty {
+                EvidenceBlock(
+                    splits: splits,
+                    confidence: leak.confidence,
+                    isSnapshot: isLockedDetail
+                )
+            }
 
             // FIX block gated entirely (blocker #9): snapshot ships
             // suggestion="" + suggestion_visibility="hidden", so the label

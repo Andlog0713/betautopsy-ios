@@ -1118,7 +1118,7 @@ struct Contradiction: Codable, Identifiable {
 /// Per-finding evidence split (e.g. "Bets after a loss" vs "Bets after
 /// a win"). Wire object is snake_case: { label, bets, roi_pct, net_usd }
 /// with roi_pct / net_usd individually nullable.
-struct FindingSubSplit: Codable, Identifiable {
+struct FindingSubSplit: Codable, Identifiable, Hashable {
     var id: String { label }
     let label: String
     let bets: Int

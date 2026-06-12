@@ -51,6 +51,9 @@ struct ReportListView: View {
                 await store.hydrate()
             }
         }
+        // Bar-less full-bleed scroll surface: scrim keeps scrolled content
+        // from colliding with the clock (TESTFLIGHT-MIN safe-area audit).
+        .statusBarScrim()
         .sheet(isPresented: $showingPicker) {
             CSVPickerView(
                 onPicked: { url in

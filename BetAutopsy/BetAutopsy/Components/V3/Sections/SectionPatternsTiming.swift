@@ -254,54 +254,122 @@ struct SectionPatternsTiming: View {
 
     // MARK: - Timing sub-views (from ChapterYourSportsView)
 
+    /// One BY HOUR bar, keyed by parsed hour-of-day. The engine ships
+    /// byHour labels as "9pm"-style strings live (and "0"-"23" in older
+    /// fixtures); parsing to a numeric hour makes the axis, ordering, and
+    /// best/worst callouts data-driven instead of label-string-driven.
+    private struct HourDatum: Identifiable {
+        let hour: Int
+        let roi: Double
+        let bets: Int
+        var id: Int { hour }
+    }
+
+    private var hourData: [HourDatum] {
+        byHour.compactMap { bucket in
+            guard let hour = parseHour(bucket.label) else { return nil }
+            return HourDatum(hour: hour, roi: bucket.roi, bets: bucket.bets)
+        }
+        .sorted { $0.hour < $1.hour }
+    }
+
+    /// Best/worst hours computed from the underlying byHour data, never
+    /// from the engine's bestWindow/worstWindow label strings (those are
+    /// free-form and have shipped day labels like "Wed" under the HOURLY
+    /// chart). Buckets need a minimum sample so a 1-bet fluke can't own
+    /// the callout; the floor relaxes when nothing qualifies.
+    private var hourCalloutPool: [HourDatum] {
+        let qualified = hourData.filter { $0.bets >= 3 }
+        if !qualified.isEmpty { return qualified }
+        return hourData.filter { $0.bets > 0 }
+    }
+
+    private var bestHourDatum: HourDatum? {
+        hourCalloutPool.max { $0.roi < $1.roi }
+    }
+
+    private var worstHourDatum: HourDatum? {
+        hourCalloutPool.min { $0.roi < $1.roi }
+    }
+
     @ViewBuilder
     private var hourChartSection: some View {
         // D6: the BY HOUR bar shape is the moat and stays visible in every
         // mode. Bars encode ROI percent (non-redacted) with hour labels;
         // no per-bar tap or dollar/bet-count tooltip surface to gate.
-        if let timing = report.analysis.timingAnalysis, !timing.byHour.isEmpty {
+        //
+        // TODO(engine raw-values): the engine is adding typed
+        // timeOfDayPnl/dayOfWeekPnl arrays in a parallel change; move this
+        // chart onto them when they land. Until then it parses the byHour
+        // bucket labels (which carry the same raw hour data).
+        if !hourData.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 Text("BY HOUR")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.6)
                     .foregroundStyle(DS.Color.V3.textTertiary)
 
-                Chart(timing.byHour) { bucket in
+                Chart(hourData) { datum in
                     BarMark(
-                        x: .value("Hour", bucket.label),
-                        y: .value("ROI", bucket.roi)
+                        x: .value("Hour", datum.hour),
+                        y: .value("ROI", datum.roi),
+                        width: .ratio(0.7)
                     )
-                    .foregroundStyle(bucket.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
+                    .foregroundStyle(datum.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
                 }
+                .chartXScale(domain: -0.5...23.5)
                 .chartXAxis {
-                    AxisMarks(values: ["0", "4", "8", "12", "16", "20"]) { _ in
-                        AxisValueLabel()
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundStyle(DS.Color.V3.textTertiary)
+                    AxisMarks(values: [0, 4, 8, 12, 16, 20]) { value in
+                        AxisValueLabel {
+                            if let hour = value.as(Int.self) {
+                                Text(BAFormat.hourLabel(hour))
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .foregroundStyle(DS.Color.V3.textTertiary)
+                            }
+                        }
                     }
                 }
                 .chartYAxis(.hidden)
                 .frame(height: 100)
                 .padding(.top, 8)
 
-                HStack {
-                    if let best = timing.bestWindow {
-                        Text("BEST: \(best.label.uppercased())")
+                // Both callouts render only when there are at least two
+                // distinct qualifying hours; a single bucket can't be both
+                // the best and the worst hour of the day.
+                if let best = bestHourDatum,
+                   let worst = worstHourDatum,
+                   best.hour != worst.hour {
+                    HStack {
+                        Text("BEST: \(BAFormat.hourLabel(best.hour))")
                             .font(.system(size: 10, weight: .semibold))
                             .tracking(1.5)
                             .foregroundStyle(DS.Color.V3.Severity.green)
-                    }
-                    Spacer()
-                    if let worst = timing.worstWindow {
-                        Text("WORST: \(worst.label.uppercased())")
+                        Spacer()
+                        Text("WORST: \(BAFormat.hourLabel(worst.hour))")
                             .font(.system(size: 10, weight: .semibold))
                             .tracking(1.5)
                             .foregroundStyle(DS.Color.V3.Severity.red)
                     }
+                    .padding(.top, 4)
                 }
-                .padding(.top, 4)
             }
         }
+    }
+
+    /// Parses an engine byHour label into an hour of day. Accepts "0"-"23"
+    /// and "12am"/"9pm" shapes (case-insensitive, optional space).
+    private func parseHour(_ raw: String) -> Int? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let plain = Int(trimmed) {
+            return (0...23).contains(plain) ? plain : nil
+        }
+        let isPM = trimmed.hasSuffix("pm")
+        let isAM = trimmed.hasSuffix("am")
+        guard isPM || isAM else { return nil }
+        let digits = trimmed.dropLast(2).trimmingCharacters(in: .whitespaces)
+        guard let hour12 = Int(digits), (1...12).contains(hour12) else { return nil }
+        if isAM { return hour12 == 12 ? 0 : hour12 }
+        return hour12 == 12 ? 12 : hour12 + 12
     }
 
     @ViewBuilder
@@ -320,8 +388,8 @@ struct SectionPatternsTiming: View {
                 }
                 .padding(.top, 16)
 
-                if let lateNight = timing.lateNightStats {
-                    Text("\(lateNight.count.pluralized("bet", "bets")) after 10pm. ROI: \(Int(lateNight.roi.rounded()))%. Cut these and recover most of the bleed.")
+                if let lateNight = timing.lateNightStats, lateNight.count > 0 {
+                    Text(lateNightLine(lateNight))
                         .font(.system(size: 14))
                         .foregroundStyle(DS.Color.V3.textSecondary)
                         .lineSpacing(3)
@@ -330,6 +398,24 @@ struct SectionPatternsTiming: View {
                 }
             }
         }
+    }
+
+    /// The late-night summary line. The "cut these" recommendation only
+    /// attaches to a NEGATIVE-ROI window; the old copy recommended cutting
+    /// the bucket unconditionally, which read as incoherent when the
+    /// window was profitable. Absurd outlier ROIs drop the percent (cap
+    /// rule); the recommendation still keys off the raw sign.
+    private func lateNightLine(_ stats: LateNightStats) -> String {
+        let lead: String
+        if abs(stats.roi) >= BAFormat.roiDisplayCap {
+            lead = "\(BAFormat.sampleSize(stats.count)) after 10pm."
+        } else {
+            lead = "\(BAFormat.sampleSize(stats.count)) after 10pm, ROI \(BAFormat.percent(stats.roi, signed: true, headline: true))."
+        }
+        if stats.roi < 0 {
+            return "\(lead) Cut these and recover most of the bleed."
+        }
+        return "\(lead) Late night is not your leak."
     }
 
     private func dayTile(_ day: TimingBucket) -> some View {

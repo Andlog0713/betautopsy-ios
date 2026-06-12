@@ -2,22 +2,20 @@
 //  TotalRecoverableHero.swift
 //  BetAutopsy
 //
-//  Chapter 1 hero: the single dollar figure that summarizes how much
-//  money the detected biases and strategic leaks left on the table.
+//  Chapter 1 hero: the recoverable-money range. NON-ADDITIVE since 3B:
+//  the old client-side sum of every bias and leak (web's retired
+//  totalRecoverable formula) double-counted overlapping findings and
+//  contradicted the engine's recovery object - the exact defect web
+//  PR #74 killed. The additive sum never renders again, for any
+//  report vintage.
 //
-//  FULL MODE ONLY (D1 lock, REBUILD-PHASE-1). The number is a client-side
-//  port of web's AutopsyReport.tsx totalRecoverable formula. In snapshot
-//  mode every dollar input (avg_stake, estimated_cost, leak costs) is
-//  redacted to 0 by the engine, so a real figure is unavailable and the
-//  hero hides entirely. There is no engine `total_recoverable` wire field;
-//  adding one is deferred (no engine work this phase).
-//
-//  Compute (full mode):
-//    bias term  = |estimatedCost|, else avgStake x severityMultiplier
-//                 (critical 8 / high 5 / medium 3 / low 1) when cost is 0
-//    leak term  = |roiImpact / 100 x avgStake x sampleSize|  (fallback only;
-//                 iOS has no raw bets array for web's matched-bet path)
-//    dedup overlapping bias/leak (keep higher cost), sum.
+//  Sources, in order (same data the Findings DollarImpactCard shows,
+//  so the two surfaces can never contradict):
+//    1. analysis.recovery rangeLow-rangeHigh (full v3 reports)
+//    2. the single LARGEST prioritized leak, rounded through
+//       RecoveryRange (web's roundRecoveryRange) - pre-#74 reports
+//    3. neither -> hides entirely (snapshots: every dollar input is
+//       redacted and recovery is absent)
 //
 //  Surface conventions match DamagesCard: surfaceCard bg, 0.5pt
 //  borderSubtle stroke, 12pt continuous corner radius. Dollar value in
@@ -31,31 +29,36 @@ struct TotalRecoverableHero: View {
 
     private var isSnapshot: Bool { report.reportType == "snapshot" }
 
-    /// Client-side port of web's totalRecoverable. Returns 0 when no
-    /// dollar-bearing input survives (which is always true in snapshot,
-    /// where avg_stake and estimated_cost are redacted to 0).
-    private var totalRecoverable: Int {
-        Int(TotalRecoverable.compute(for: report.analysis).rounded())
+    private var range: (low: Double, high: Double)? {
+        if let recovery = report.analysis.recovery {
+            return (recovery.rangeLow, recovery.rangeHigh)
+        }
+        if let leak = TotalRecoverable.ranked(for: report.analysis).first?.costDollars,
+           leak > 0 {
+            let rounded = RecoveryRange.rounded(from: leak)
+            return (rounded.low, rounded.high)
+        }
+        return nil
     }
 
     var body: some View {
-        // FULL MODE ONLY. Snapshot hides entirely (D1: inputs are redacted
-        // to 0 and there is no engine aggregate to fall back on).
-        if !isSnapshot, totalRecoverable > 0 {
+        // FULL MODE ONLY. Snapshot hides entirely (recovery is absent and
+        // every leak dollar input is redacted to 0).
+        if !isSnapshot, let range {
             VStack(alignment: .leading, spacing: 4) {
-                Text("TOTAL RECOVERABLE")
+                Text("RECOVERABLE")
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(10 * 0.18)
                     .foregroundStyle(DS.Color.V3.textTertiary)
 
-                Text(dollarString)
+                Text("~\(BAFormat.currency(range.low))-\(BAFormat.currency(range.high))")
                     .font(.custom("JetBrainsMono-Bold", size: 40))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                     .lineLimit(1)
 
-                Text("Money left on the table from your detected leaks and biases. Some overlap.")
+                Text("What a single change could have kept. Not every fix stacked.")
                     .font(DS.Font.V3.captionLabel)
                     .foregroundStyle(DS.Color.V3.textSecondary)
                     .lineSpacing(2)
@@ -71,12 +74,10 @@ struct TotalRecoverableHero: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Total recoverable, \(totalRecoverable) dollars left on the table.")
+            .accessibilityLabel(
+                "Recoverable, roughly \(BAFormat.currency(range.low)) to \(BAFormat.currency(range.high)). What a single change could have kept."
+            )
         }
-    }
-
-    private var dollarString: String {
-        BAFormat.currency(totalRecoverable)
     }
 }
 
@@ -100,13 +101,15 @@ struct PrioritizedItem: Identifiable {
     var id: String { "\(type.rawValue)-\(name)" }
 }
 
-/// Client-side totalRecoverable computation, factored out so it can be
-/// unit-reasoned and reused. Mirrors web's AutopsyReport.tsx formula,
+/// Client-side leak/bias prioritization, factored out so it can be
+/// unit-reasoned and reused. Mirrors web's AutopsyReport.tsx ranking,
 /// including the bias/leak overlap de-duplication (keep higher cost).
 ///
-/// `ranked(for:)` returns the full dedup'd + sorted fix-sequence; the
-/// hero figure `compute(for:)` is just the sum of those costs. The
-/// LeakPrioritizerCard renders the ranked list directly.
+/// `ranked(for:)` returns the dedup'd + sorted fix-sequence consumed by
+/// LeakPrioritizerCard, and its LARGEST entry feeds the recovery-range
+/// fallback on pre-#74 reports. The old `compute(for:)` additive sum was
+/// REMOVED in 3B (the defect web PR #74 retired); do not reintroduce a
+/// summed total from this list.
 enum TotalRecoverable {
     /// Intermediate item carrying cost + the display payload, before
     /// dedup and ranking.
@@ -223,10 +226,6 @@ enum TotalRecoverable {
                     fix: candidate.fix
                 )
             }
-    }
-
-    static func compute(for analysis: AutopsyAnalysis) -> Double {
-        ranked(for: analysis).reduce(0.0) { $0 + $1.costDollars }
     }
 
     private static func severityMultiplier(_ severity: BiasSeverity) -> Double {

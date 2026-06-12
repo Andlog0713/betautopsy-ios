@@ -16,6 +16,78 @@ Format per entry:
 
 ---
 
+## Branch: feat/3b-component-library
+
+### Why
+
+3B proof-of-vocabulary step: the reusable component library the
+three-layer redesign (60-second skim / 5-8 minute read / tap-expand
+evidence) is made of, proven by refactoring ONE section onto it. Plus
+one approved scope addition: kill the additive recoverable total on
+iOS now, so one report never shows two contradictory dollar claims.
+
+### Step 0 findings
+
+- Refactor target: SectionFindings (densest mix - biases + leaks +
+  prioritizer + counts, severity/dollar/confidence/sub_splits on both
+  finding types, zero chart dependency).
+- SeverityChip already existed (BiasSeverity-typed). Extended with
+  init(tier:) per Andrew's call, no second type; unknown tiers render
+  raw display-cased in gray, never relabeled onto the scale.
+- BiasSeverity.displayLabel medium reverted NOTABLE -> MEDIUM
+  (ordinal scale must read as ordered intensity at skim speed).
+- Web roundRecoveryRange (lib/engine/recovery.ts:38) mirrored in
+  Swift as RecoveryRange: step 1000/500/100 by magnitude, 0.8x floor
+  / 1.2x ceil bounds.
+
+### What shipped
+
+Five commits, build verified between each:
+
+1. SeverityChip init(tier:) + MEDIUM label revert.
+2. Seven component files (Components/V3/, each with #Preview), all
+   value-driven with BAFormat applied inside: StatCard (typed Value
+   enum), DollarImpactCard (recovery range + method label + verified
+   net; pre-#74 fallback rounds the single largest leak through
+   RecoveryRange; the never-additive invariant lives in the
+   component), EvidenceBlock (tap-expand sub_splits comparison rows,
+   snapshot dollar suppression, pre-#74 prose fallback, onExpand
+   analytics hook), ScoreGauge, ContributorBars, Callout
+   (info/caution/severe - severity amber, never brand yellow, for
+   caution), ActionRow.
+3. SectionFindings proof refactor (render-only; data, snapshot locks,
+   top-3 selection, teasers unchanged): StatCard count row, chips in
+   bias-row headers, inline EvidenceBlock expansion replacing
+   BiasEvidenceSheet (ch4.bias_evidence.opened preserved on first
+   expand; sheet file unused on disk), leak cards with chips +
+   evidence, DollarImpactCard after FIX IN THIS ORDER.
+4. Verdict hero swap: TotalRecoverableHero renders the recovery
+   range (engine object, else largest-leak rounded range, else
+   hides). TotalRecoverable.compute() deleted outright - the
+   additive sum never renders again for any vintage. Caption and
+   label rewritten to non-additive copy.
+5. This entry.
+
+### Verification
+
+xcodebuild green after each commit; every component has a #Preview.
+Device smoke is Andrew's step: SectionFindings + Verdict hero on a
+real full v3 report (recovery range matches in both surfaces), on a
+snapshot (locks/teasers unchanged, no recovery surface), and on a
+pre-#74 report (fallback range, evidence prose in expansion).
+
+### Notes / deviations
+
+- BiasRow kept its legacy onTap sheet path so ChapterYourBiasesView
+  (Phase 3 deletion target) still compiles; SectionFindings no
+  longer passes it.
+- FindingsCounterChips is now unconsumed by live code but untouched
+  on disk per the approved plan (Prompt 4 retires it).
+- No fixed heights on text containers in any new component (Dynamic
+  Type pass comes in Prompt 4).
+
+---
+
 ## Branch: feat/3a-report-trust-decode
 
 ### Why

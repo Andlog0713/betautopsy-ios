@@ -15,10 +15,14 @@ import SwiftUI
 enum BiasSeverity: String, Codable {
     case low, medium, high, critical
 
+    // Canonical caps set CRITICAL/HIGH/MEDIUM/LOW (CLAUDE.md). The chip is
+    // an ordinal scale and must read as ordered intensity at skim speed;
+    // the earlier "NOTABLE" relabel of medium broke the ordering and was
+    // reverted in 3B.
     var displayLabel: String {
         switch self {
         case .low: return "LOW"
-        case .medium: return "NOTABLE"
+        case .medium: return "MEDIUM"
         case .high: return "HIGH"
         case .critical: return "CRITICAL"
         }
@@ -1114,7 +1118,7 @@ struct Contradiction: Codable, Identifiable {
 /// Per-finding evidence split (e.g. "Bets after a loss" vs "Bets after
 /// a win"). Wire object is snake_case: { label, bets, roi_pct, net_usd }
 /// with roi_pct / net_usd individually nullable.
-struct FindingSubSplit: Codable, Identifiable {
+struct FindingSubSplit: Codable, Identifiable, Hashable {
     var id: String { label }
     let label: String
     let bets: Int
@@ -1859,15 +1863,37 @@ func formatPct(_ value: Double, signed: Bool = false, decimals: Int = 0) -> Stri
 // MARK: - Shared views
 
 struct SeverityChip: View {
-    let severity: BiasSeverity
+    let label: String
+    let color: Color
+
+    init(severity: BiasSeverity) {
+        self.label = severity.displayLabel
+        self.color = severity.color
+    }
+
+    /// Wire-string variant for severities that ship as raw strings
+    /// (StrategicLeak.severity, web PR #74). Known tiers map onto the
+    /// BiasSeverity scale; an UNKNOWN tier renders its raw value
+    /// display-cased in neutral gray, never relabeled onto the scale.
+    init(tier: String) {
+        let trimmed = tier.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let severity = BiasSeverity(rawValue: trimmed.lowercased()) {
+            self.label = severity.displayLabel
+            self.color = severity.color
+        } else {
+            self.label = trimmed.uppercased()
+            self.color = DS.Color.V3.Severity.gray
+        }
+    }
+
     var body: some View {
-        Text(severity.displayLabel)
+        Text(label)
             .font(.custom("JetBrainsMono-Regular", size: 10))
             .tracking(10 * 0.15)
-            .foregroundStyle(severity.color)
+            .foregroundStyle(color)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(severity.color.opacity(0.18))
+            .background(color.opacity(0.18))
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tile))
     }
 }

@@ -21,9 +21,30 @@ struct SectionFindings: View {
     let report: AutopsyReport
     let onPaywallTap: (String) -> Void
 
-    @State private var expandedBias: BiasDetected?
-
     private var isSnapshot: Bool { report.reportType == "snapshot" }
+
+    // MARK: - Headline counts (3B: StatCard row)
+    //
+    // Same sources FindingsCounterChips used: snapshotCounts in snapshot
+    // mode (the engine's pre-redaction tallies), decoded arrays in full
+    // mode. The chips component itself is untouched (Prompt 4 retires it).
+
+    private var biasCount: Int {
+        if isSnapshot, let c = report.analysis.snapshotCounts { return c.totalBiases }
+        return report.analysis.biasesDetected.count
+    }
+
+    private var leakCount: Int {
+        if isSnapshot, let c = report.analysis.snapshotCounts { return c.leaks }
+        return report.analysis.strategicLeaks.count
+    }
+
+    private var patternCount: Int {
+        if isSnapshot, let c = report.analysis.snapshotCounts { return c.patterns }
+        return report.analysis.behavioralPatterns.count
+    }
+
+    private var totalFindings: Int { biasCount + leakCount + patternCount }
 
     private var materialBiases: [BiasDetected] {
         if isSnapshot {
@@ -68,7 +89,10 @@ struct SectionFindings: View {
                 evidenceVisible: evidenceVisible,
                 translation: bias.description,
                 fix: bias.fix,
-                isLockedCost: lockedCost
+                isLockedCost: lockedCost,
+                subSplits: bias.subSplits,
+                confidence: bias.confidence,
+                suppressDollars: isSnapshot
             )
             return BiasRowEntry(row: row, source: bias)
         }
@@ -98,6 +122,16 @@ struct SectionFindings: View {
         Array(report.analysis.strategicLeaks.prefix(5))
     }
 
+    /// 3B recovery surface inputs. The fallback mirrors the Verdict hero:
+    /// the single largest prioritized leak, never a sum.
+    private var largestPrioritizedLeakUSD: Double? {
+        TotalRecoverable.ranked(for: report.analysis).first?.costDollars
+    }
+
+    private var showRecoverySurface: Bool {
+        report.analysis.recovery != nil || (largestPrioritizedLeakUSD ?? 0) > 0
+    }
+
     /// #4 leak prioritizer gate. Full mode needs at least one dollar-bearing
     /// ranked item; snapshot needs a bias or a negative-ROI leak to preview
     /// (costs are locked). Mirrors LeakPrioritizerCard's own emptiness check
@@ -112,8 +146,28 @@ struct SectionFindings: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FindingsCounterChips(report: report)
+            // 3B skim layer: headline sentence + StatCard count row
+            // (replaces FindingsCounterChips in this section; same data).
+            if totalFindings > 0 {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("We found \(totalFindings.pluralized("finding", "findings")).")
+                        .font(DS.Font.V3.sectionTitle)
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 10) {
+                        StatCard(label: "BIASES", value: .count(biasCount))
+                        StatCard(label: "LEAKS", value: .count(leakCount))
+                        StatCard(label: "PATTERNS", value: .count(patternCount))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "We found \(totalFindings) findings: \(biasCount) biases, \(leakCount) leaks, \(patternCount) patterns."
+                )
+            }
 
             if !strategicLeaks.isEmpty {
                 Spacer().frame(height: 24)
@@ -177,6 +231,20 @@ struct SectionFindings: View {
                     .padding(.horizontal, 16)
             }
 
+            // 3B recovery surface: the engine's non-additive recoverable
+            // range right after the fix-order list (what to fix -> what
+            // fixing it is worth). Full mode only; pre-#74 reports fall
+            // back to the single largest prioritized leak, and the spacer
+            // is gated with the card so an empty card leaves no gap.
+            if !isSnapshot, showRecoverySurface {
+                Spacer().frame(height: 16)
+                DollarImpactCard(
+                    recovery: report.analysis.recovery,
+                    fallbackLargestLeakUSD: largestPrioritizedLeakUSD
+                )
+                .padding(.horizontal, 16)
+            }
+
             if !pertinentNegatives.isEmpty {
                 Spacer().frame(height: 28)
 
@@ -213,13 +281,6 @@ struct SectionFindings: View {
             // SectionVerdict's insight. Section-specific prose is unaffected.
         }
         .frame(maxWidth: .infinity)
-        .sheet(item: $expandedBias) { bias in
-            BiasEvidenceSheet(
-                bias: bias,
-                isSnapshot: isSnapshot,
-                onLockedTap: { onPaywallTap("section_findings_bias_locked") }
-            )
-        }
     }
 
     private var biasCard: some View {
@@ -243,20 +304,20 @@ struct SectionFindings: View {
 
     @ViewBuilder
     private func biasRowView(for entry: BiasRowEntry) -> some View {
+        // 3B: inline EvidenceBlock expansion replaces the
+        // BiasEvidenceSheet presentation. The signal name and parameters
+        // are preserved; it now fires on first inline expand.
         BiasRow(
             bias: entry.row,
             onLockedTap: { onPaywallTap("section_findings_bias_locked") },
-            onTap: { handleBiasRowTap(entry.source) }
+            onExpanded: {
+                Analytics.signal(
+                    "ch4.bias_evidence.opened",
+                    parameters: ["bias_name": entry.source.biasName]
+                )
+            }
         )
         .padding(.horizontal, 16)
-    }
-
-    private func handleBiasRowTap(_ bias: BiasDetected) {
-        Analytics.signal(
-            "ch4.bias_evidence.opened",
-            parameters: ["bias_name": bias.biasName]
-        )
-        expandedBias = bias
     }
 
     /// #5 clean-finding row. Web shows pattern (win-colored), finding, and

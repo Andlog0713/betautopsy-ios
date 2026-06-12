@@ -16,6 +16,90 @@ Format per entry:
 
 ---
 
+## Branch: fix/p0-renderer-polish
+
+### Why
+
+A redesign audit flagged a cluster of P0 bug-class issues, all
+pure-iOS renderer-side with no engine dependency: inconsistent number
+formatting across the report ("$-4087" vs "-$4,087", "28.29%" vs
+"-25.8%", "+1,411.1% ROI"), a snapshot LOCKED dollar pill leaking
+into a PAID action plan, a duplicated insight callout in the heated
+section, an hour chart with no axis labels plus day labels and a
+"cut a profitable bucket" contradiction in its callouts, and
+CLAUDE.md still documenting the retired Luminol V2 palette.
+
+### Step 0 findings
+
+- No shared formatter existed: 14+ independent dollar/percent
+  formatters across live V3 surfaces, with no-thousands-separator and
+  "$-N" sign-order bugs, mixed U+2212/ASCII minus glyphs, and three
+  duplicated DateFormatter stacks.
+- Locked-pill leak root cause (SectionAction): locked = isSnapshot ||
+  redacted_dollar tag || dollars <= 0, so a paid action with no
+  parseable dollar rendered the lock. Same conditional class in
+  SectionSports, SectionFindings, BiasEvidenceSheet,
+  LeakPrioritizerCard.
+- Duplicate callout: worstTrigger rendered italic inside
+  TiltSignalBreakdownCard AND as the InsightCallout body directly
+  below.
+- Hour chart: live engine byHour labels are "9pm"-style but the axis
+  marks expected "0"/"4"/"8" (mock shape), so no labels rendered;
+  BEST/WORST used engine bestWindow/worstWindow free-form label
+  strings (day labels under the hour chart); the late-night line
+  recommended cutting the window unconditionally, even at +21% ROI.
+- Tokens.swift is the YELLOW brand (#FACC15 on #131A20 → #0A0E12
+  gradient; V2 Luminol namespace already retired). The doc was stale,
+  not the code. No brand-color code change was needed or made.
+
+### What shipped
+
+Five commits, build verified between each:
+
+1. BAFormat.swift (new) + every live call site routed through it.
+   formatCurrency/formatPct in ReportModels.swift reduced to shims
+   for the legacy Chapter*View files (these are Phase-3 deletion
+   targets and were deliberately NOT migrated). Absurd-ROI display
+   cap at 200 percent magnitude. Renderer rule documented: never
+   render LLM pre-formatted number strings; TODOs mark
+   Contradiction.volumeData/edgeData (no raw value on the wire yet)
+   and the expectedImprovement dollar parser.
+2. Locked-dollar pill scoped to snapshot mode in all five surfaces;
+   paid reports with no honest dollar hide the row or fall back to
+   the HIGHEST IMPACT tag.
+3. Heated section worst-trigger insight renders once (callout skipped
+   when the breakdown card already shows it).
+4. Hour chart parses bucket labels to numeric hours ("9pm" and "23"
+   shapes), draws 12AM/4AM/.../8PM axis labels, computes BEST/WORST
+   from byHour data with a 3-bet sample floor, hides the callouts
+   below two qualifying hours. Late-night "cut these" line only
+   attaches to negative ROI; profitable windows read "Late night is
+   not your leak." TODO: move onto typed timeOfDayPnl/dayOfWeekPnl
+   arrays when the parallel engine change lands.
+5. CLAUDE.md visual identity section rewritten to match Tokens.swift;
+   Luminol V2 explicitly archived; BAFormat rules added; this entry.
+
+### Verification
+
+xcodebuild (iOS Simulator, Debug) green after every commit. Device
+pass on a real paid report is Andrew's verification step: check the
+action plan shows no LOCKED pill, the heated insight appears once,
+the BY HOUR chart has hour axis labels and hour-valued BEST/WORST,
+and dollar/percent formatting is uniform across all seven sections.
+
+### Notes / deviations
+
+- Legacy Chapter*View + ReportView formatters untouched (Phase 3
+  deletes those files); they compile via the ReportModels shims.
+- StrategicLeakCard's ROI badge and the vitals ROI cell now use
+  headline percent (integer at >= 10 magnitude) per the new rules,
+  so e.g. "-18.7%" renders "-19%". Flag if the extra decimal should
+  be kept on those two surfaces.
+- SectionSports odds-bucket ROI badge gained a "+" on positives
+  (signed ROI rule).
+
+---
+
 ## Branch: claude/ios-betiq-codable
 
 ### Why

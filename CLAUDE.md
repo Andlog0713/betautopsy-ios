@@ -329,7 +329,9 @@ suggest packages whose latest release predates iOS 17 SDK.
 
 ## App Store rules
 
-- Bundle ID: `com.diagnosticsports.BetAutopsy`
+- Bundle ID: `com.diagnosticsports.betautopsy.app` (verified against the
+  built product, TESTFLIGHT-MIN fix round; the previously documented
+  `com.diagnosticsports.BetAutopsy` was never the real id)
 - Developer team: `PAU6GLBN86`
 - Age rating: 17+ with Mild/Infrequent Mature/Suggestive Themes
 - Age gate inside app: 18+ (platform-agnostic across sportsbook + DFS

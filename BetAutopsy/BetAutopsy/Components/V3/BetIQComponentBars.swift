@@ -81,11 +81,15 @@ struct BetIQComponentBars: View {
                 if isSnapshot {
                     lockedTeaser
                 } else {
-                    VStack(spacing: 14) {
-                        ForEach(components) { component in
-                            barRow(component, locked: false)
+                    // 3B-2: full-mode rows recomposed onto ContributorBars
+                    // (same zone-tinted ratio bars, BAFormat.score readout).
+                    // The snapshot teaser keeps the legacy shell rows so the
+                    // blurred lock renders byte-identical to before.
+                    ContributorBars(
+                        contributors: components.map {
+                            ContributorBars.Contributor(label: $0.label, value: $0.value, max: $0.max)
                         }
-                    }
+                    )
                 }
             }
             .padding(16)

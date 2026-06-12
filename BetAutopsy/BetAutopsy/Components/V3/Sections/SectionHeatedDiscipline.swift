@@ -322,26 +322,13 @@ struct SectionHeatedDiscipline: View {
 
     // MARK: - Mind sub-views
 
+    // 3B-2: insufficient-data cards recomposed onto Callout(.info).
     private var heatedInsufficientCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("HEATED SESSIONS")
-                .font(DS.Font.V3.rowCapsLabel)
-                .tracking(1.5)
-                .foregroundStyle(DS.Color.V3.textTertiary)
-
-            Text("Heated session detection needs more bet history.")
-                .font(DS.Font.V3.bodyRegular)
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(DS.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
+        Callout(
+            variant: .info,
+            title: "Heated sessions",
+            text: "Heated session detection needs more bet history."
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.top, 28)
     }
@@ -425,25 +412,11 @@ struct SectionHeatedDiscipline: View {
     // MARK: - Discipline sub-views
 
     private var disciplineInsufficientCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("DISCIPLINE AUDIT")
-                .font(DS.Font.V3.rowCapsLabel)
-                .tracking(1.5)
-                .foregroundStyle(DS.Color.V3.textTertiary)
-
-            Text("Discipline scoring needs more bet history.")
-                .font(DS.Font.V3.bodyRegular)
-                .foregroundStyle(DS.Color.V3.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(DS.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
+        Callout(
+            variant: .info,
+            title: "Discipline audit",
+            text: "Discipline scoring needs more bet history."
         )
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.top, 28)
     }
@@ -484,9 +457,16 @@ struct SectionHeatedDiscipline: View {
                 .padding(.horizontal, 16)
         }
 
-        if let streak = annotations.streakInfluence,
-           streak.avgStakeNeutral > 0,
-           (streak.avgStakeAfterWinStreak3 > 0 || streak.avgStakeAfterLossStreak3 > 0) {
+        // 3B-2: full v3 reports with a qualifying typed object render the
+        // StakeByStreakChart; snapshots (the locked variant lives in the
+        // card) and pre-#74 reports keep StreakInfluenceCard.
+        if !isSnapshot, StakeByStreakChart.qualifies(report.analysis.charts?.stakeByStreak) {
+            Spacer().frame(height: 20)
+            StakeByStreakChart(streak: report.analysis.charts?.stakeByStreak)
+                .padding(.horizontal, 16)
+        } else if let streak = annotations.streakInfluence,
+                  streak.avgStakeNeutral > 0,
+                  (streak.avgStakeAfterWinStreak3 > 0 || streak.avgStakeAfterLossStreak3 > 0) {
             Spacer().frame(height: 20)
             StreakInfluenceCard(
                 influence: streak,
@@ -577,28 +557,20 @@ struct SectionHeatedDiscipline: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // 3B-2: the four plain score lines recomposed onto ContributorBars
+    // (zone-tinted ratio bars + BAFormat.score readouts). D7 gate is
+    // unchanged: full mode only, the caller hides this in snapshot.
+    @ViewBuilder
     private var componentBreakdown: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let d = report.analysis.disciplineScore {
-                Text("TRACKING \(BAFormat.score(d.tracking, outOf: 25))")
-                    .font(.system(size: 12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("SIZING \(BAFormat.score(d.sizing, outOf: 25))")
-                    .font(.system(size: 12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("CONTROL \(BAFormat.score(d.control, outOf: 25))")
-                    .font(.system(size: 12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("STRATEGY \(BAFormat.score(d.strategy, outOf: 25))")
-                    .font(.system(size: 12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-            }
+        if let d = report.analysis.disciplineScore {
+            ContributorBars(contributors: [
+                ContributorBars.Contributor(label: "Tracking", value: d.tracking, max: 25),
+                ContributorBars.Contributor(label: "Sizing", value: d.sizing, max: 25),
+                ContributorBars.Contributor(label: "Control", value: d.control, max: 25),
+                ContributorBars.Contributor(label: "Strategy", value: d.strategy, max: 25)
+            ])
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

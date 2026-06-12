@@ -392,6 +392,7 @@ private struct FieldRow<Content: View>: View {
 private struct StakeField: View {
     @Binding var stake: Decimal
     @State private var text: String = ""
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         FieldRow(label: "Stake") {
@@ -401,6 +402,17 @@ private struct StakeField: View {
                     .foregroundStyle(DS.Color.V3.textTertiary)
                 TextField("0", text: $text)
                     .keyboardType(.decimalPad)
+                    .focused($isFocused)
+                    // The decimal pad has no return key, so without a Done
+                    // accessory the keyboard cannot be dismissed at all
+                    // (TESTFLIGHT-MIN keyboard audit).
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { isFocused = false }
+                                .foregroundStyle(DS.Color.Brand.yellow)
+                        }
+                    }
                     .font(.system(size: 18, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)

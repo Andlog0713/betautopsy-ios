@@ -41,13 +41,21 @@ struct SectionVerdict: View {
     }
 
     /// Previous report for the VsLastReportCard client-side diff. Picks the
-    /// most-recent in-memory report from a DIFFERENT upload window (skips
-    /// the snapshot/full twin of the current upload, which shares the same
-    /// date range). Nil when this is the first report or in previews where
-    /// the store is empty; the card then hides.
+    /// most-recent in-memory FULL report from a DIFFERENT upload window.
+    /// Nil when this is the user's first report; the card then hides.
+    ///
+    /// TESTFLIGHT-MIN first-report fix: candidates must be FULL reports.
+    /// The date-range exclusion alone was not enough - the unlock flow
+    /// creates a full child with a no-filter FULL-HISTORY date range,
+    /// different from its snapshot twin's, so a user's first purchased
+    /// report matched their own snapshot as "previous" and diffed against
+    /// engine-redacted zeros (every dollar 0 in snapshot mode) - junk
+    /// deltas on exactly the report that should show none. Snapshot
+    /// analyses are never a valid diff baseline.
     private var previousAnalysis: AutopsyAnalysis? {
         ReportStore.shared.reports.first { other in
             other.id != report.id
+                && other.reportType != "snapshot"
                 && !(other.dateRangeStart == report.dateRangeStart
                      && other.dateRangeEnd == report.dateRangeEnd)
         }?.analysis

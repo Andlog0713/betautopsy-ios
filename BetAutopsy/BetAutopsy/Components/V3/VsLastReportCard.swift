@@ -277,9 +277,7 @@ struct VsLastReportCard: View {
     }
 
     private func signedPercentString(_ value: Int) -> String {
-        if value > 0 { return "+\(value)%" }
-        if value < 0 { return "\u{2212}\(abs(value))%" }
-        return "0%"
+        BAFormat.percent(Double(value), signed: true, headline: true)
     }
 
     private func signedString(_ value: Int) -> String {

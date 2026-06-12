@@ -384,20 +384,7 @@ struct SectionHeatedDiscipline: View {
     }
 
     private func shortDateLabel(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parsers: [String] = ["MMM d, yyyy", "MMMM d, yyyy", "yyyy-MM-dd"]
-        for fmt in parsers {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.dateFormat = fmt
-            if let date = formatter.date(from: trimmed) {
-                let out = DateFormatter()
-                out.locale = Locale(identifier: "en_US_POSIX")
-                out.dateFormat = "MMM d"
-                return out.string(from: date).uppercased()
-            }
-        }
-        return trimmed.uppercased()
+        BAFormat.date(parsing: raw).uppercased()
     }
 
     private func previewDateLabel(date: String, dayOfWeek: String, startTime: String) -> String {
@@ -509,11 +496,11 @@ struct SectionHeatedDiscipline: View {
                 )
             } else {
                 // emotionalCost ships negative (a P&L delta, e.g. -8839.78).
-                // formatCurrency on the forced-negative magnitude renders a
-                // single "-$8,840" (comma, one minus) matching the other loss
+                // Formatting the forced-negative magnitude renders a single
+                // "-$8,840" (comma, one minus) matching the other loss
                 // cards; the old hardcoded "-$\(value)" prepended a second
                 // minus onto the already-negative value ("-$-8,840").
-                Text(formatCurrency(-abs(annotations.emotionalCost)))
+                Text(BAFormat.currency(-abs(annotations.emotionalCost)))
                     .font(.system(size: 52, weight: .bold).monospacedDigit())
                     .foregroundStyle(emotionalCostTint)
             }
@@ -576,19 +563,19 @@ struct SectionHeatedDiscipline: View {
     private var componentBreakdown: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let d = report.analysis.disciplineScore {
-                Text("TRACKING \(d.tracking)/25")
+                Text("TRACKING \(BAFormat.score(d.tracking, outOf: 25))")
                     .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("SIZING \(d.sizing)/25")
+                Text("SIZING \(BAFormat.score(d.sizing, outOf: 25))")
                     .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("CONTROL \(d.control)/25")
+                Text("CONTROL \(BAFormat.score(d.control, outOf: 25))")
                     .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textSecondary)
-                Text("STRATEGY \(d.strategy)/25")
+                Text("STRATEGY \(BAFormat.score(d.strategy, outOf: 25))")
                     .font(.system(size: 12, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textSecondary)

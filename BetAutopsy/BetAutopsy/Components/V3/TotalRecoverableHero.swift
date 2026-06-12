@@ -76,11 +76,7 @@ struct TotalRecoverableHero: View {
     }
 
     private var dollarString: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formatted = formatter.string(from: NSNumber(value: totalRecoverable)) ?? "\(totalRecoverable)"
-        return "$\(formatted)"
+        BAFormat.currency(totalRecoverable)
     }
 }
 

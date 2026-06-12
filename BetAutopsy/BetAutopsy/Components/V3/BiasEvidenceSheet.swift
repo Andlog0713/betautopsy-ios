@@ -127,7 +127,7 @@ struct BiasEvidenceSheet: View {
             if locked {
                 LockedDollarBar(width: 110, onTap: { onLockedTap?() })
             } else {
-                Text("-$\(Int(abs(bias.estimatedCost).rounded()))")
+                Text(BAFormat.currency(-abs(bias.estimatedCost)))
                     .font(DS.Font.V3.rowValue)
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.Severity.red)

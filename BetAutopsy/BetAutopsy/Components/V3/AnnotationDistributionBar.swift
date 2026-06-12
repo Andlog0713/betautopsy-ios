@@ -89,7 +89,7 @@ struct AnnotationDistributionBar: View {
                         .font(.system(size: 10, weight: .regular))
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.textSecondary)
-                    Text("\(Int(stat.percent.rounded()))%")
+                    Text(BAFormat.percent(stat.percent, headline: true))
                         .font(.system(size: 10, weight: .regular))
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.textTertiary)

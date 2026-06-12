@@ -55,10 +55,10 @@ struct SectionPatternsTiming: View {
                                 .min(by: { $0.profit < $1.profit }) {
             result.append(PatternCard.Pattern(
                 title: "BIGGEST LOSS",
-                bigNumber: signedDollar(Int(worst.profit.rounded())),
+                bigNumber: BAFormat.currency(worst.profit, signed: true),
                 bigNumberColor: DS.Color.V3.Severity.red,
                 namedEntity: worst.date,
-                supportingLine: "\(worst.bets.pluralized("bet", "bets")) in a \(worst.durationMinutes)-minute session."
+                supportingLine: "\(BAFormat.sampleSize(worst.bets)) in a \(worst.durationMinutes)-minute session."
             ))
         }
 
@@ -66,10 +66,10 @@ struct SectionPatternsTiming: View {
                                 .min(by: { $0.profit < $1.profit }) {
             result.append(PatternCard.Pattern(
                 title: "WORST DAY",
-                bigNumber: signedDollar(Int(worstDay.profit.rounded())),
+                bigNumber: BAFormat.currency(worstDay.profit, signed: true),
                 bigNumberColor: DS.Color.V3.Severity.red,
                 namedEntity: singularizedEntityLabel(dayLabel(worstDay.label), betCount: worstDay.bets),
-                supportingLine: "\(worstDay.bets.pluralized("bet", "bets")), \(formatPct(worstDay.roi, signed: true, decimals: 1)) ROI."
+                supportingLine: roiSupportingLine(bets: worstDay.bets, roi: worstDay.roi, winRate: worstDay.winRate)
             ))
         }
 
@@ -77,10 +77,10 @@ struct SectionPatternsTiming: View {
                                   .min(by: { $0.profit < $1.profit }) {
             result.append(PatternCard.Pattern(
                 title: "WORST HOUR",
-                bigNumber: signedDollar(Int(worstHour.profit.rounded())),
+                bigNumber: BAFormat.currency(worstHour.profit, signed: true),
                 bigNumberColor: DS.Color.V3.Severity.red,
-                namedEntity: hourLabel(worstHour.label),
-                supportingLine: "\(worstHour.bets.pluralized("bet", "bets")), \(formatPct(worstHour.roi, signed: true, decimals: 1)) ROI."
+                namedEntity: hourEntityLabel(worstHour.label),
+                supportingLine: roiSupportingLine(bets: worstHour.bets, roi: worstHour.roi, winRate: worstHour.winRate)
             ))
         }
 
@@ -90,16 +90,31 @@ struct SectionPatternsTiming: View {
 
         if let best = sessions.filter({ $0.profit > 0 })
                                .max(by: { $0.profit < $1.profit }) {
+            let winRate = best.bets > 0 ? Double(best.wins) / Double(best.bets) * 100 : 0
             result.append(PatternCard.Pattern(
                 title: "BIGGEST WIN",
-                bigNumber: signedDollar(Int(best.profit.rounded())),
+                bigNumber: BAFormat.currency(best.profit, signed: true),
                 bigNumberColor: DS.Color.V3.textPrimary,
                 namedEntity: best.date,
-                supportingLine: "\(best.bets.pluralized("bet", "bets")), \(formatPct(best.roi, signed: true, decimals: 1)) ROI."
+                supportingLine: roiSupportingLine(bets: best.bets, roi: best.roi, winRate: winRate)
             ))
         }
 
         return result
+    }
+
+    /// Supporting line under a dollar big-number. ROI display is capped:
+    /// tiny-stake outliers produce four-digit ROIs ("+1,411.1%") that
+    /// read as broken, so past the cap the line shows win rate instead
+    /// (the dollar figure is already the card's big number).
+    private func roiSupportingLine(bets: Int, roi: Double, winRate: Double?) -> String {
+        if abs(roi) >= BAFormat.roiDisplayCap {
+            if let winRate {
+                return "\(BAFormat.sampleSize(bets)), \(BAFormat.percent(winRate, headline: true)) win rate."
+            }
+            return "\(BAFormat.sampleSize(bets))."
+        }
+        return "\(BAFormat.sampleSize(bets)), \(BAFormat.percent(roi, signed: true)) ROI."
     }
 
     private var snapshotPatternCards: [PatternCard.Pattern] {
@@ -135,7 +150,7 @@ struct SectionPatternsTiming: View {
             }
             return PatternCard.Pattern(
                 title: title,
-                bigNumber: signedDollar(Int((entry.dollarValue ?? 0).rounded())),
+                bigNumber: BAFormat.currency(entry.dollarValue ?? 0, signed: true),
                 bigNumberColor: color,
                 namedEntity: entity,
                 supportingLine: snapshotSupportingLine(entry)
@@ -165,7 +180,9 @@ struct SectionPatternsTiming: View {
     }
 
     private func snapshotSupportingLine(_ entry: PatternsSnapshotEntry) -> String {
-        "\(entry.betCount.pluralized("bet", "bets")), \(formatPct(entry.roi, signed: true, decimals: 1)) ROI."
+        // ROI cap: PatternsSnapshotEntry carries no win rate, so a capped
+        // outlier line falls back to the bet count alone.
+        roiSupportingLine(bets: entry.betCount, roi: entry.roi, winRate: nil)
     }
 
     private func skidSupportingLine(_ entry: PatternsSnapshotEntry) -> String {
@@ -333,7 +350,7 @@ struct SectionPatternsTiming: View {
                 if isSnapshot {
                     LockedDollarBar(width: 56, onTap: { onPaywallTap("section_patterns_timing_dollar_locked") })
                 } else {
-                    Text(formatCurrency(day.profit, signed: true))
+                    Text(BAFormat.currency(day.profit, signed: true))
                         .font(.system(size: 13, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.textPrimary)
@@ -382,10 +399,7 @@ struct SectionPatternsTiming: View {
             return nil
         }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dateFormatter.dateFormat = "MMM d"
-        let range = "\(dateFormatter.string(from: start)) to \(dateFormatter.string(from: end))"
+        let range = "\(BAFormat.date(start)) to \(BAFormat.date(end))"
 
         return PatternCard.Pattern(
             title: "LONGEST SKID",
@@ -397,27 +411,7 @@ struct SectionPatternsTiming: View {
     }
 
     private func parseSessionDate(_ raw: String) -> Date? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let formats = ["MMM d, yyyy", "MMMM d, yyyy", "yyyy-MM-dd"]
-        for fmt in formats {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.dateFormat = fmt
-            if let date = formatter.date(from: trimmed) {
-                return date
-            }
-        }
-        return nil
-    }
-
-    private func signedDollar(_ value: Int) -> String {
-        let absVal = abs(value)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formatted = formatter.string(from: NSNumber(value: absVal)) ?? "\(absVal)"
-        let sign = value < 0 ? "-" : (value > 0 ? "+" : "")
-        return "\(sign)$\(formatted)"
+        BAFormat.parseEngineDate(raw)
     }
 
     private func dayLabel(_ raw: String) -> String {
@@ -430,7 +424,7 @@ struct SectionPatternsTiming: View {
         return raw
     }
 
-    private func hourLabel(_ raw: String) -> String {
+    private func hourEntityLabel(_ raw: String) -> String {
         guard let hour = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return raw
         }

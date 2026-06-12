@@ -170,7 +170,7 @@ struct LeakPrioritizerCard: View {
         if isLocked(item) {
             LockedDollarBar(width: 90, onTap: { onPaywallTap("section_findings_leak_prioritizer_dollar_locked") })
         } else {
-            Text("\u{2212}$\(Int(item.costDollars.rounded()))")
+            Text(BAFormat.currency(-abs(item.costDollars)))
                 .font(.system(size: 14, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.V3.Severity.red)

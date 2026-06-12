@@ -104,7 +104,7 @@ struct BiasRow: View {
                         LockedDollarBar(width: 110, onTap: { onLockedTap?() })
                     }
                 } else {
-                    Text("-$\(bias.costAbs)")
+                    Text(BAFormat.currency(-bias.costAbs))
                         .font(DS.Font.V3.rowValue)
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.Severity.red)

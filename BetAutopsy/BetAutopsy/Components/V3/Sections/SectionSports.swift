@@ -103,7 +103,7 @@ struct SectionSports: View {
                 if redactedPercents {
                     oddsMetricBadge(locked: isSnapshot)
                 } else {
-                    Text("ROI \(formatPct(b.roi, signed: false))")
+                    Text("ROI \(BAFormat.percent(b.roi, signed: true, headline: true))")
                         .font(.system(size: 12, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(b.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
@@ -131,7 +131,7 @@ struct SectionSports: View {
                         .tracking(1.5)
                         .foregroundStyle(DS.Color.V3.textTertiary)
                     Spacer()
-                    Text("\(Int(b.actualWinRate.rounded()))% WIN")
+                    Text("\(BAFormat.percent(b.actualWinRate, headline: true)) WIN")
                         .font(.system(size: 10, weight: .semibold))
                         .monospacedDigit()
                         .tracking(1.5)
@@ -269,7 +269,7 @@ struct SectionSports: View {
                 }
                 .padding(.top, 8)
             } else if let cost = f.estimatedCost {
-                Text("ESTIMATED COST \(formatCurrency(cost))")
+                Text("ESTIMATED COST \(BAFormat.currency(cost))")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
                     .tracking(1.5)

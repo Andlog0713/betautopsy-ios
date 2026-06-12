@@ -39,6 +39,11 @@ struct ContradictionCard: View {
             V3Divider()
                 .padding(.vertical, 4)
 
+            // TODO(engine raw-values): volumeData / edgeData are engine
+            // pre-formatted strings ("47 bets", "-28.0%") with no raw
+            // numeric fields on the Contradiction wire model. When the
+            // engine ships raw values, decode them and route through
+            // BAFormat here instead of rendering the strings verbatim.
             HStack(alignment: .top, spacing: 16) {
                 column(label: contradiction.volumeLabel, value: contradiction.volumeData)
                 column(label: contradiction.edgeLabel,   value: contradiction.edgeData)
@@ -87,7 +92,7 @@ struct ContradictionCard: View {
             if isLockedCost {
                 LockedDollarBar(width: 110, onTap: { onLockedTap?() })
             } else {
-                Text("-$\(Int(abs(annualCost).rounded()))/yr")
+                Text("\(BAFormat.currency(-abs(annualCost)))/yr")
                     .font(DS.Font.V3.rowValue)
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.Severity.red)

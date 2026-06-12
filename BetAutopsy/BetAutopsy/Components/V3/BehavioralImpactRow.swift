@@ -32,11 +32,7 @@ struct BehavioralImpactRow: View {
     let impact: Impact
 
     private var dollarLabel: String {
-        let absVal = abs(impact.dollarImpact)
-        // Magnitude zero renders "$0", never "-$0" / "+$0".
-        if absVal == 0 { return "$0" }
-        let sign = impact.dollarImpact < 0 ? "-" : "+"
-        return "\(sign)$\(absVal)"
+        BAFormat.currency(impact.dollarImpact, signed: true)
     }
 
     private var dollarColor: Color {

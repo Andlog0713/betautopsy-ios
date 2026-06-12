@@ -97,7 +97,7 @@ struct TiltSignalBreakdownCard: View {
             severityBar(score: row.score, tint: tint)
                 .frame(maxWidth: 80)
 
-            Text("\(row.score)/100")
+            Text(BAFormat.score(row.score, outOf: 100))
                 .font(DS.Font.V3.rowValue)
                 .monospacedDigit()
                 .foregroundStyle(tint)

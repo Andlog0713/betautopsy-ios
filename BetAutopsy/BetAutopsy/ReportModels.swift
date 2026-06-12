@@ -1596,39 +1596,16 @@ struct AutopsyReport: Codable, Identifiable {
 }
 
 // MARK: - Display helpers
+//
+// Legacy shims for the pre-Phase-3 Chapter*View files only. All live
+// surfaces call BAFormat directly; these delete with the chapter views.
 
 func formatCurrency(_ value: Double, signed: Bool = false) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = 0
-    let absVal = abs(value)
-    let intMag = Int(absVal)
-    let absStr = formatter.string(from: NSNumber(value: intMag)) ?? "0"
-    // A value whose magnitude rounds to zero never carries a sign:
-    // "$0", never "-$0" or "+$0".
-    if intMag == 0 {
-        return "$0"
-    }
-    if signed {
-        let sign = value >= 0 ? "+" : "-"
-        return "\(sign)$\(absStr)"
-    } else {
-        return value < 0 ? "-$\(absStr)" : "$\(absStr)"
-    }
+    BAFormat.currency(value, signed: signed)
 }
 
 func formatPct(_ value: Double, signed: Bool = false, decimals: Int = 0) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.maximumFractionDigits = decimals
-    formatter.minimumFractionDigits = decimals
-    let str = formatter.string(from: NSNumber(value: abs(value))) ?? "0"
-    if signed {
-        let sign = value >= 0 ? "+" : "-"
-        return "\(sign)\(str)%"
-    } else {
-        return value < 0 ? "-\(str)%" : "\(str)%"
-    }
+    BAFormat.percent(value, signed: signed, headline: decimals == 0)
 }
 
 // MARK: - Shared views

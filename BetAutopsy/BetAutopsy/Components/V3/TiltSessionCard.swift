@@ -46,9 +46,7 @@ struct TiltSessionCard: View {
     let session: Session
 
     private var pnlLabel: String {
-        let absVal = abs(session.pnl)
-        let sign = session.pnl < 0 ? "-" : "+"
-        return "\(sign)$\(absVal)"
+        BAFormat.currency(session.pnl, signed: true)
     }
 
     private var pnlColor: Color {

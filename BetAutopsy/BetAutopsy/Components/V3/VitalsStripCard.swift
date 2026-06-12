@@ -72,7 +72,7 @@ struct VitalsStripCard: View {
             if netPnLLocked {
                 LockedDollarBar(width: 96, onTap: { onPaywallTap("section_verdict_vitals_dollar_locked") })
             } else {
-                Text(signedDollars(summary.totalProfit))
+                Text(BAFormat.currency(summary.totalProfit, signed: true))
                     .font(.system(size: 18, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(summary.totalProfit >= 0
@@ -86,7 +86,7 @@ struct VitalsStripCard: View {
 
     private var roiCell: some View {
         cell(label: "ROI") {
-            Text(signedPercent(summary.roiPercent))
+            Text(BAFormat.percent(summary.roiPercent, signed: true, headline: true))
                 .font(.system(size: 18, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(summary.roiPercent >= 0
@@ -102,7 +102,7 @@ struct VitalsStripCard: View {
             if avgStakeLocked {
                 LockedDollarBar(width: 96, onTap: { onPaywallTap("section_verdict_vitals_dollar_locked") })
             } else {
-                Text("$\(Int(summary.avgStake.rounded()))")
+                Text(BAFormat.currency(summary.avgStake))
                     .font(.system(size: 18, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)
@@ -139,23 +139,6 @@ struct VitalsStripCard: View {
         Rectangle()
             .fill(DS.Color.V3.borderSubtle)
             .frame(height: 0.5)
-    }
-
-    // MARK: - Formatting
-
-    private func signedDollars(_ value: Double) -> String {
-        let magnitude = Int(abs(value).rounded())
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formatted = formatter.string(from: NSNumber(value: magnitude)) ?? "\(magnitude)"
-        let sign = value < 0 ? "\u{2212}" : "+"
-        return "\(sign)$\(formatted)"
-    }
-
-    private func signedPercent(_ value: Double) -> String {
-        let sign = value < 0 ? "\u{2212}" : "+"
-        return "\(sign)\(String(format: "%.1f", abs(value)))%"
     }
 }
 

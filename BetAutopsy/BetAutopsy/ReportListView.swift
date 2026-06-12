@@ -308,7 +308,7 @@ struct ReportListView: View {
                 }
                 .padding(.top, DS.Spacing.md)
             } else {
-                Text("Your impatience cost you \(formatCurrency(abs(report.analysis.summary.totalProfit))) since November.")
+                Text("Your impatience cost you \(BAFormat.currency(abs(report.analysis.summary.totalProfit))) since November.")
                     .font(.system(size: 14, weight: .regular).italic())
                     .foregroundStyle(DS.Color.V3.textSecondary)
                     .lineSpacing(3)

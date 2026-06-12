@@ -97,8 +97,11 @@ struct LeakPrioritizerCard: View {
 
     // MARK: - Row
 
+    // Locked pill is snapshot-only redaction UI. Full-mode items come from
+    // TotalRecoverable.ranked, which only emits cost > 0 entries, so a paid
+    // report never shows a lock here.
     private func isLocked(_ item: PrioritizedItem) -> Bool {
-        isSnapshot || item.costVisibility == "redacted_dollar" || item.costDollars <= 0
+        isSnapshot
     }
 
     @ViewBuilder
@@ -170,7 +173,7 @@ struct LeakPrioritizerCard: View {
         if isLocked(item) {
             LockedDollarBar(width: 90, onTap: { onPaywallTap("section_findings_leak_prioritizer_dollar_locked") })
         } else {
-            Text("\u{2212}$\(Int(item.costDollars.rounded()))")
+            Text(BAFormat.currency(-abs(item.costDollars)))
                 .font(.system(size: 14, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(DS.Color.V3.Severity.red)

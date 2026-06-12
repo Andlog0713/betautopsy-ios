@@ -60,17 +60,17 @@ struct WhatIfCard: View {
             HStack(alignment: .top, spacing: 8) {
                 metricColumn(
                     label: "ACTUAL",
-                    text: signedDollars(scenario.actual),
+                    text: BAFormat.currency(scenario.actual, signed: true),
                     tint: pnlTint(scenario.actual)
                 )
                 metricColumn(
                     label: "IF FIXED",
-                    text: signedDollars(scenario.hypothetical),
+                    text: BAFormat.currency(scenario.hypothetical, signed: true),
                     tint: pnlTint(scenario.hypothetical)
                 )
                 metricColumn(
                     label: "DELTA",
-                    text: signedDollars(scenario.deltaDollars),
+                    text: BAFormat.currency(scenario.deltaDollars, signed: true),
                     tint: scenario.deltaDollars > 0
                         ? DS.Color.V3.Severity.green
                         : (scenario.deltaDollars < 0 ? DS.Color.V3.Severity.red : DS.Color.V3.textSecondary)
@@ -103,20 +103,8 @@ struct WhatIfCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Formatting
-
     private func pnlTint(_ value: Double) -> Color {
         value >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red
-    }
-
-    private func signedDollars(_ value: Double) -> String {
-        let magnitude = Int(abs(value).rounded())
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formatted = formatter.string(from: NSNumber(value: magnitude)) ?? "\(magnitude)"
-        let sign = value < 0 ? "\u{2212}" : "+"
-        return "\(sign)$\(formatted)"
     }
 }
 

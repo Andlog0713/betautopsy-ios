@@ -34,14 +34,7 @@ struct StrategicLeakCard: View {
     }
 
     private var roiLabel: String {
-        let value = leak.roiImpact
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 1
-        formatter.maximumFractionDigits = 1
-        let str = formatter.string(from: NSNumber(value: abs(value))) ?? "0.0"
-        let sign = value < 0 ? "-" : "+"
-        return "\(sign)\(str)%"
+        BAFormat.percent(leak.roiImpact, signed: true, headline: true)
     }
 
     var body: some View {

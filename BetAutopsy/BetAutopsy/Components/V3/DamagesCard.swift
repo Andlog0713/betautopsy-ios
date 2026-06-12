@@ -41,7 +41,7 @@ struct DamagesCard: View {
                         .foregroundStyle(DS.Color.V3.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text("\u{2212}$\(damage.cost)")
+                    Text(BAFormat.currency(-damage.cost))
                         .font(DS.Font.V3.rowValue)
                         .monospacedDigit()
                         .foregroundStyle(DS.Color.V3.textPrimary)

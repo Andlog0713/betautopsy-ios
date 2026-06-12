@@ -86,7 +86,7 @@ struct StreakInfluenceCard: View {
             if isLocked {
                 LockedDollarBar(width: lockedBarWidth, onTap: { onLockedTap?() })
             } else {
-                Text("$\(Int(value.rounded()))")
+                Text(BAFormat.currency(value))
                     .font(DS.Font.V3.rowValue)
                     .monospacedDigit()
                     .foregroundStyle(tint)

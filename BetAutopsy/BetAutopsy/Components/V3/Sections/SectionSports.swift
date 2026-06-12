@@ -103,7 +103,7 @@ struct SectionSports: View {
                 if redactedPercents {
                     oddsMetricBadge(locked: isSnapshot)
                 } else {
-                    Text("ROI \(formatPct(b.roi, signed: false))")
+                    Text("ROI \(BAFormat.percent(b.roi, signed: true, headline: true))")
                         .font(.system(size: 12, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(b.roi >= 0 ? DS.Color.V3.Severity.green : DS.Color.V3.Severity.red)
@@ -131,7 +131,7 @@ struct SectionSports: View {
                         .tracking(1.5)
                         .foregroundStyle(DS.Color.V3.textTertiary)
                     Spacer()
-                    Text("\(Int(b.actualWinRate.rounded()))% WIN")
+                    Text("\(BAFormat.percent(b.actualWinRate, headline: true)) WIN")
                         .font(.system(size: 10, weight: .semibold))
                         .monospacedDigit()
                         .tracking(1.5)
@@ -255,11 +255,10 @@ struct SectionSports: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            let lockedCost = isSnapshot
-                || f.estimatedCostVisibility == "redacted_dollar"
-                || f.estimatedCost == nil
-                || (f.estimatedCost ?? 0) == 0
-            if lockedCost {
+            // The locked pill is snapshot-redaction UI only. A full report
+            // finding without a real dollar hides the cost row instead of
+            // rendering a lock in a paid surface.
+            if isSnapshot {
                 HStack(spacing: 8) {
                     Text("ESTIMATED COST")
                         .font(.system(size: 10, weight: .semibold))
@@ -268,8 +267,9 @@ struct SectionSports: View {
                     LockedDollarBar(width: 110, onTap: { onPaywallTap("section_sports_dollar_locked") })
                 }
                 .padding(.top, 8)
-            } else if let cost = f.estimatedCost {
-                Text("ESTIMATED COST \(formatCurrency(cost))")
+            } else if let cost = f.estimatedCost, cost != 0,
+                      f.estimatedCostVisibility != "redacted_dollar" {
+                Text("ESTIMATED COST \(BAFormat.currency(cost))")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
                     .tracking(1.5)

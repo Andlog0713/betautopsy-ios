@@ -115,7 +115,7 @@ struct SessionsTabView: View {
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)
                 Spacer()
-                Text(formatCurrency(s.profit, signed: true))
+                Text(BAFormat.currency(s.profit, signed: true))
                     .font(.system(size: 13, weight: .medium).monospacedDigit())
                     .monospacedDigit()
                     .foregroundStyle(s.profit >= 0

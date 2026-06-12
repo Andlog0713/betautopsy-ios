@@ -69,105 +69,76 @@ The full voice principles (11 of them) and banned phrase replacement
 matrix live in COPY_SYSTEM.md. The voice rules above are the working
 memory. The full system is one fetch away.
 
-## Visual identity: Luminol V2 (LOCKED May 10, 2026)
+## Visual identity: V3 (WHOOP-style) + brand yellow
 
-iOS uses Luminol V2. Web uses a different forensic case-file brand.
-Same product, same voice, same archetypes, same engine. Visual register
-only diverges. Do not import web color tokens into iOS.
+`Tokens.swift` is the source of truth for every color, font, spacing,
+and radius token. The Notion pages "V3 spec" (35e5964c) and "Brand
+System v3 — LOCKED" (3645964c) are the design references behind it.
 
-### Surface tokens
+ARCHIVED: the "Luminol V2" palette that previously lived in this
+section (purple `#6B5BFF` accent on `#14151D` canvas, "LOCKED May 10,
+2026") was RETIRED in the V2-RETIREMENT pass; its namespace no longer
+exists in Tokens.swift. The live brand is yellow chrome on a dark
+canvas gradient. Do not reintroduce purple accent tokens, and do not
+"fix" code to match any Luminol value you find in old docs or specs.
 
-- Canvas: `#14151D` (this is the lifted canvas, intentionally lighter
-  than the original `#0A0B14` which read as cypherpunk. Do not lower
-  again without explicit decision.)
-- Card: `#1B1D27`
-- Card raised: `#232636`
-- Border: `#292B38` always at 0.5pt hairline. Never thicker.
+### Surface tokens (DS.Color.V3, DS.Gradient)
 
-### Accent tokens
+- Canvas: vertical gradient `#131A20` → `#0A0E12`
+  (`DS.Gradient.ambientCanvas`). Do not flatten to a single hex.
+- Card: white at 4 percent opacity. Raised: white at 7 percent.
+  Three tiers maximum: canvas → card → raised. Never deeper.
+- Borders: white at 6 to 8 percent opacity, always 0.5pt hairline.
+  Never thicker. No shadows in dark mode; elevation is surface tier
+  plus border.
 
-- Luminol: `#6B5BFF`. Used ONLY for archetype labels, hero metric rings,
-  selected states, active page indicators, value-leading CTAs, brand
-  wordmark accent. Surgical use only.
-- Luminol soft: `#8B7DFF`. Hover and softer archetype label states.
+### Brand accent (DS.Color.Brand)
 
-### Text hierarchy (4-tier)
+- Yellow `#FACC15`: solid CTAs, wordmark, key text, icons. Interaction
+  ladder: pressed `#E5BA0E`, dim 35 percent, border 25 percent, wash
+  8 percent.
+- Foreground on yellow is canvas dark `#0A0E12`, never white (fails
+  contrast).
+- Severity scale (DS.Color.V3.Severity): red `#FF4D4D`, orange
+  `#FF7847`, amber `#FFC66D` (intentionally distinct from brand
+  yellow), green `#00DC82`, gray `#7A7E8B`. Severity colors are for
+  scores, losses, and P/L only. Never for chrome.
 
-Never use pure white `#FFFFFF` anywhere. Off-white plus tiered greys.
+### Text hierarchy
 
-- Bone (primary): `#ECEDF1` — hero numbers, headlines, body, section headers
-- Secondary: `#8E90A6` — italic verdict, subheadings, captions, range labels
-- Tertiary: `#5F6178` — meta, timestamps, table column headers, caps labels
-- Quaternary: `#3D3F50` — placeholders, disabled, watermarks
+V3 uses a white-with-opacity ladder (not the retired off-white tiers):
+primary white, secondary 70 percent, tertiary 50 percent, watermark
+32 percent. Red/green never encodes gain/loss without sign characters
+(8 percent of men are red-green colorblind).
 
-### Semantic tokens
+### Archetype colors
 
-- Blood: `#FF5454` — critical severity ONLY, losses, alert states. Never
-  for chrome.
-- Win: `#5BFFA8` — positive P/L only. Never for chrome.
+Live tokens at `DS.Color.Archetype.*` (chaser, tilter, sharp,
+lotteryBettor, grinder, actionJunkie, methodical). Path A targets 12
+to 16 archetype variants; add new tokens as the set expands. Never
+reuse a chrome, severity, or brand color for an archetype.
 
-### Archetype colors (locked, never reused for chrome)
+### Number formatting (BAFormat)
 
-- Heat Chaser: `#FF5454`
-- Surgeon: `#6B5BFF`
-- Parlay Dreamer: `#FF8FB1`
-- Grinder: `#A89472`
-- Gut Bettor: `#FFCB47`
-
-PR-2 fix expanded the scoring engine to 9 canonical archetype names from
-8-dimension threshold scoring. Path A roadmap targets 12 to 16 archetype
-variants in v1. Add new archetype colors to `DS.Color.Archetype.*` as the
-set expands. Never reuse a chrome color (luminol, blood, win, bone tiers)
-for an archetype.
-
-### Typography
-
-- Inter Variable (body, UI, titles) — ~165KB
-- Inter Display (display sizes >=24pt, applied via OpenType opsz)
-- JetBrains Mono (every number that could change: scores, dollars,
-  percentages, timestamps, identifiers). Tabular figures via
-  `.monospacedDigit()` always. Never proportional digits on numbers.
-- Georgia (system) or IBM Plex Serif Italic — analyst voice ONLY.
-  Verdict paragraphs, pull-quotes, archetype descriptions.
-
-Never mix mono and sans inside the same word. Never set bold on grey
-text. Never UPPERCASE on bone-tier body text. Never use `.system` font
-for the verdict (kills the analyst voice distinction).
-
-### Type scale
-
-HERO 96pt semibold (BetIQ score), HERO-XL 128pt (share card),
-DISPLAY 56pt (archetype name on cover), TITLE 34pt (section openers),
-SUBTITLE 24pt (bias names), LEAD 19pt italic regular (serif verdict),
-BODY 16pt regular, BODY-S 14pt, LABEL 11pt semibold caps,
-MONO-S 10.5pt regular (identifiers).
-
-### Surface and radius
-
-- Three tiers maximum: canvas → card → raised. Never deeper.
-- Radius mix: 4pt chips, 6pt tiles, 10pt cards, 16pt sheets. All
-  `.continuous`.
-- No shadows in dark mode. Elevation comes from surface tier + 0.5pt
-  borders.
-- Dark mode default. No in-app light/dark toggle. System-driven with
-  dark-default bias.
-
-### Visual mistakes to never make
-
-Pure `#FFFFFF` text. One grey tier. Accent on body text. Mono and sans
-inside one word. Red/green for gain/loss without sign characters
-(8 percent of men are red-green colorblind). Important text smaller
-than 14pt. `.system` font on the verdict. Mixing tabular and
-proportional digits. Bold on grey text. Uppercase on bone-tier body.
+Every number the report renderer draws routes through
+`BAFormat.swift`: currency, percent, sample size, score, odds, date.
+Never format numbers at the call site, and never render an LLM- or
+engine-provided pre-formatted number string; format the raw value.
+Canonical shapes: `-$7,862` (sign before symbol, separators always),
+percent one decimal max (integer in headlines at magnitude >= 10),
+rates always paired with sample size, ROI display capped at 200
+percent magnitude, dates "Apr 1" style, never ISO in UI. JetBrains
+Mono with `.monospacedDigit()` on every number that can change.
 
 ### What to absolutely avoid
 
-Casino gold + black (BetMGM, Caesars cliche). DraftKings green-orange.
-FanDuel royal-chartreuse. Confetti, slot iconography, gamified copy.
-Generic AI conventions (gradient purple, system colors only). Fintech
-sameness (Stripe-blurple, royal-blue trust palettes). Pure black on
-pure white (OLED halation). Lime accent (Whoop pattern, dated by 2026).
-Cyan (Polymarket pattern). Orange (Cash App pattern, casino-adjacent).
+DraftKings green-orange. FanDuel royal-chartreuse. Confetti, slot
+iconography, gamified copy. Generic AI conventions (gradient purple,
+system colors only). Fintech sameness (Stripe-blurple, royal-blue
+trust palettes). Pure black on pure white (OLED halation). Lime accent
+(Whoop pattern, dated by 2026). Cyan (Polymarket pattern). Orange
+(Cash App pattern, casino-adjacent). The brand yellow is specced in
+the brand deck; never drift it toward casino gold-on-black.
 
 ## Pricing (Pricing Pivot v2, RE-LOCKED May 17, 2026)
 
@@ -205,7 +176,8 @@ trial value-show without giving away answers.
 
 ### Compliance copy on paywall (required for 5.3 shield)
 
-- "Problem gambling? Call 1-800-MY-RESET" in luminol soft
+- "Problem gambling? Call 1-800-MY-RESET" in a dim brand-yellow tier
+  (DS.Color.Brand.yellowDim)
 - "By continuing you confirm you are 18 or older" (age gate is 18+ now,
   NOT 21+ — platform-agnostic for sportsbook + DFS + prediction markets)
 - Restore Purchases button
@@ -422,7 +394,9 @@ runs verification.
 
 ---
 
-*Last updated: May 11, 2026. Reflects Luminol V2 LOCKED, Pricing Pivot v2,
-Path A confirmed, PR-1 through PR-4 shipped and pushed, COPY_SYSTEM.md
-added as canonical voice reference. Edit only when a Notion
-source-of-truth page changes.*
+*Last updated: June 12, 2026. Visual identity section rewritten to
+match Tokens.swift (V3 WHOOP-style + brand yellow #FACC15); the
+retired Luminol V2 palette is archived above. BAFormat number rules
+added. Previously: Pricing Pivot v2, Path A confirmed, COPY_SYSTEM.md
+canonical. Edit only when a Notion source-of-truth page or Tokens.swift
+changes.*

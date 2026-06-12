@@ -38,9 +38,12 @@ struct SectionAction: View {
                 let costSavings = rec.costSavings.map { Int($0.rounded()) } ?? 0
                 let parsed = parseDollars(rec.expectedImprovement)
                 let dollars = max(costSavings, parsed)
+                // The locked-pill variant is snapshot-redaction UI and must
+                // NEVER render in a paid full report. A full-report action
+                // with no honest dollar (unparseable improvement, zero or
+                // redaction-tagged costSavings) shows no impact row and
+                // falls back to the HIGHEST IMPACT tag where one applies.
                 let locked = isSnapshot
-                    || rec.costSavingsVisibility == "redacted_dollar"
-                    || dollars <= 0
                 return RankedAction(
                     recommendation: rec,
                     parsedDollars: dollars,
@@ -119,7 +122,7 @@ struct SectionAction: View {
             ? ""
             : projectedImpactLabel(ranked.parsedDollars)
         let showsHighestImpactTag = !ranked.isLocked
-            && ranked.parsedDollars == 0
+            && ranked.parsedDollars <= 0
             && ranked.recommendation.priority == 1
         let fallback: String? = showsHighestImpactTag ? "HIGHEST IMPACT" : nil
         let cardAction = ActionCard.Action(
@@ -242,6 +245,11 @@ struct SectionAction: View {
 
     // MARK: - Helpers
 
+    // TODO(engine raw-values): expectedImprovement is an LLM pre-formatted
+    // prose string; this regex recovers a raw dollar value from it. The
+    // numeric costSavings field is preferred wherever the engine ships it
+    // (rankedActions takes max(costSavings, parsed)). Once the engine is
+    // raw-values-only, delete this parser and read costSavings alone.
     private func parseDollars(_ raw: String) -> Int {
         let pattern = #"\$([0-9][0-9,]*)"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return 0 }
@@ -259,11 +267,7 @@ struct SectionAction: View {
         // days" placeholder and falls back to the HIGHEST IMPACT tag where
         // one applies, rather than printing a fabricated $0.
         guard dollars > 0 else { return "" }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formatted = formatter.string(from: NSNumber(value: dollars)) ?? "\(dollars)"
-        return "$\(formatted) projected next 90 days"
+        return "\(BAFormat.currency(dollars)) projected next 90 days"
     }
 
     private func difficultyCaps(_ raw: String) -> String {

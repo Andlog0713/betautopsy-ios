@@ -108,7 +108,7 @@ struct AnnotatedBetCard: View {
                 }
             }
 
-            Text("CONFIDENCE \(Int(annotation.confidence.rounded()))%")
+            Text("CONFIDENCE \(BAFormat.percent(annotation.confidence, headline: true))")
                 .font(DS.Font.V3.rowCapsLabel)
                 .tracking(1.0)
                 .foregroundStyle(DS.Color.V3.textTertiary)

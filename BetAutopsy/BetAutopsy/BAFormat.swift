@@ -143,6 +143,15 @@ enum BAFormat {
         return date(parsed, includeYear: includeYear)
     }
 
+    /// Minutes-elapsed label for session timelines: "0m", "45m", "1h 30m".
+    static func minutes(_ value: Double) -> String {
+        let total = max(0, Int(value.rounded()))
+        if total < 60 { return "\(total)m" }
+        let hours = total / 60
+        let mins = total % 60
+        return mins == 0 ? "\(hours)h" : "\(hours)h \(mins)m"
+    }
+
     /// Hour-of-day label for timing charts: 0 -> "12AM", 13 -> "1PM".
     static func hourLabel(_ hour: Int) -> String {
         let clamped = ((hour % 24) + 24) % 24

@@ -55,21 +55,16 @@ struct SectionAction: View {
             .map { $0 }
     }
 
-    private var aggregateAction: ActionCard.Action? {
-        guard !rankedActions.isEmpty else { return nil }
-        let allLocked = rankedActions.allSatisfy { $0.isLocked }
-        guard !allLocked else { return nil }
-        let sum = rankedActions
-            .filter { !$0.isLocked }
-            .reduce(0) { $0 + $1.parsedDollars }
-        guard sum > 0 else { return nil }
-        return ActionCard.Action(
-            title: "IF YOU DID ALL OF THESE",
-            tiedToFinding: "",
-            projectedImpact: projectedImpactLabel(sum),
-            difficulty: "",
-            isAggregate: true
-        )
+    // 3B-2: the aggregate card previously SUMMED the per-action
+    // projections ("IF YOU DID ALL OF THESE: $2,847") - the additive-
+    // counterfactual defect in a third costume. The projections derive
+    // from overlapping leak counterfactuals, so a summed total directly
+    // contradicted the Verdict's not-every-fix-stacked framing in the
+    // same report. The card survives as qualitative framing with NO
+    // summed figure; individual per-action projections stay (individual
+    // counterfactuals shown individually are fine).
+    private var showAggregateNote: Bool {
+        !isSnapshot && rankedActions.filter { $0.parsedDollars > 0 }.count >= 2
     }
 
     var body: some View {
@@ -87,15 +82,32 @@ struct SectionAction: View {
 
             if !rankedActions.isEmpty {
                 Spacer().frame(height: 24)
-                VStack(spacing: 12) {
-                    ForEach(rankedActions) { ranked in
-                        checkoffActionCard(for: ranked)
+                if isSnapshot {
+                    // Snapshot renders exactly as before: locked ActionCards
+                    // with the LockedDollarBar + paywall tap.
+                    VStack(spacing: 12) {
+                        ForEach(rankedActions) { ranked in
+                            checkoffActionCard(for: ranked)
+                        }
                     }
-                    if let agg = aggregateAction {
-                        ActionCard(action: agg)
+                    .padding(.horizontal, 16)
+                } else {
+                    // 3B-2: full-mode ranked actions recomposed onto
+                    // ActionRow inside one container card. Check-off store
+                    // wiring (recId scheme, flip semantics) is unchanged.
+                    actionRowsCard
+                        .padding(.horizontal, 16)
+
+                    if showAggregateNote {
+                        Spacer().frame(height: 12)
+                        Callout(
+                            variant: .info,
+                            title: "If you did all of these",
+                            text: "These projections overlap, so they do not add up to one big number. Start at the top."
+                        )
+                        .padding(.horizontal, 16)
                     }
                 }
-                .padding(.horizontal, 16)
             }
 
             Spacer().frame(height: 24)
@@ -112,6 +124,65 @@ struct SectionAction: View {
         .task(id: report.id) {
             await checkoffStore.load(reportId: report.id)
         }
+    }
+
+    // MARK: - Full-mode ActionRow recompose (3B-2)
+
+    private var actionRowsCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rankedActions.enumerated()), id: \.element.id) { index, ranked in
+                actionRow(for: ranked)
+                if index < rankedActions.count - 1 {
+                    V3Divider()
+                        .padding(.horizontal, 16)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func actionRow(for ranked: RankedAction) -> some View {
+        let recId = "\(report.id):\(ranked.recommendation.priority)"
+        let isCompleted = checkoffStore.completed(for: recId)
+        ActionRow(
+            title: ranked.recommendation.title,
+            detail: actionDetailLine(for: ranked),
+            isCompleted: isCompleted,
+            onToggle: {
+                checkoffStore.flip(
+                    recommendationId: recId,
+                    reportId: report.id,
+                    to: !isCompleted
+                )
+            }
+        )
+        .padding(.horizontal, 16)
+    }
+
+    /// Detail line under the action title: the projected impact (already
+    /// BAFormat-shaped by projectedImpactLabel) plus the difficulty tag,
+    /// dot-separated. The priority-1 HIGHEST IMPACT fallback survives
+    /// from the card variant.
+    private func actionDetailLine(for ranked: RankedAction) -> String? {
+        var parts: [String] = []
+        let impact = projectedImpactLabel(ranked.parsedDollars)
+        if !impact.isEmpty {
+            parts.append(impact)
+        } else if ranked.parsedDollars <= 0, ranked.recommendation.priority == 1 {
+            parts.append("HIGHEST IMPACT")
+        }
+        let difficulty = difficultyCaps(ranked.recommendation.difficulty)
+        if !difficulty.isEmpty {
+            parts.append(difficulty)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }
 
     @ViewBuilder

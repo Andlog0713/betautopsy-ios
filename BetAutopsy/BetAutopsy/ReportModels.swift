@@ -166,6 +166,13 @@ struct BiasDetected: Codable, Identifiable {
     let descriptionVisibility: String?
     let fixVisibility: String?
 
+    // Report-trust metadata (web PR #74, schema_version 3). confidence is
+    // "high"/"medium"/"low" prose-trust; subSplits carries the evidence
+    // breakdown. Wire key sub_splits -> subSplits under the
+    // convertFromSnakeCase strategy, matching the synthesized key.
+    let confidence: String?
+    let subSplits: [FindingSubSplit]?
+
     init(
         biasName: String,
         severity: BiasSeverity,
@@ -177,7 +184,9 @@ struct BiasDetected: Codable, Identifiable {
         estimatedCostVisibility: String? = nil,
         evidenceVisibility: String? = nil,
         descriptionVisibility: String? = nil,
-        fixVisibility: String? = nil
+        fixVisibility: String? = nil,
+        confidence: String? = nil,
+        subSplits: [FindingSubSplit]? = nil
     ) {
         self.biasName = biasName
         self.severity = severity
@@ -190,6 +199,8 @@ struct BiasDetected: Codable, Identifiable {
         self.evidenceVisibility = evidenceVisibility
         self.descriptionVisibility = descriptionVisibility
         self.fixVisibility = fixVisibility
+        self.confidence = confidence
+        self.subSplits = subSplits
     }
 }
 
@@ -207,6 +218,13 @@ struct StrategicLeak: Codable, Identifiable {
     let detailVisibility: String?
     let suggestionVisibility: String?
 
+    // Report-trust metadata (web PR #74, schema_version 3). severity is a
+    // raw string here ("critical"/"high"/...) because StrategicLeak never
+    // carried the BiasSeverity enum; kept String to tolerate new values.
+    let severity: String?
+    let confidence: String?
+    let subSplits: [FindingSubSplit]?
+
     init(
         category: String,
         detail: String,
@@ -214,7 +232,10 @@ struct StrategicLeak: Codable, Identifiable {
         sampleSize: Int,
         suggestion: String,
         detailVisibility: String? = nil,
-        suggestionVisibility: String? = nil
+        suggestionVisibility: String? = nil,
+        severity: String? = nil,
+        confidence: String? = nil,
+        subSplits: [FindingSubSplit]? = nil
     ) {
         self.category = category
         self.detail = detail
@@ -223,6 +244,9 @@ struct StrategicLeak: Codable, Identifiable {
         self.suggestion = suggestion
         self.detailVisibility = detailVisibility
         self.suggestionVisibility = suggestionVisibility
+        self.severity = severity
+        self.confidence = confidence
+        self.subSplits = subSplits
     }
 }
 
@@ -651,6 +675,10 @@ struct DetectedSession: Codable, Identifiable {
     let heatSignals: [String]
     let triggerEvent: TriggerEvent?
 
+    // Report-trust metadata (web PR #74, schema_version 3). Present on
+    // heated sessions only: "loss" | "win-but-risky".
+    let framing: String?
+
     init(
         id: String,
         date: String,
@@ -674,7 +702,8 @@ struct DetectedSession: Codable, Identifiable {
         gradeReasons: [String],
         isHeated: Bool,
         heatSignals: [String],
-        triggerEvent: TriggerEvent? = nil
+        triggerEvent: TriggerEvent? = nil,
+        framing: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -699,6 +728,7 @@ struct DetectedSession: Codable, Identifiable {
         self.isHeated = isHeated
         self.heatSignals = heatSignals
         self.triggerEvent = triggerEvent
+        self.framing = framing
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -707,7 +737,7 @@ struct DetectedSession: Codable, Identifiable {
         case staked, profit, roi, avgStake, stakeEscalation
         case betsPerHour, chaseCount, lateNight, grade
         case gradeReasons, isHeated, heatSignals
-        case triggerEvent
+        case triggerEvent, framing
     }
 
     /// Tolerant decoder. Every field uses try? with a neutral default so
@@ -741,6 +771,7 @@ struct DetectedSession: Codable, Identifiable {
         self.isHeated        = (try? c.decode(Bool.self,     forKey: .isHeated))        ?? false
         self.heatSignals     = (try? c.decode([String].self, forKey: .heatSignals))     ?? []
         self.triggerEvent    = try? c.decode(TriggerEvent.self, forKey: .triggerEvent)
+        self.framing         = try? c.decode(String.self, forKey: .framing)
     }
 }
 
@@ -982,6 +1013,11 @@ struct SportSpecificFinding: Codable, Identifiable {
     let descriptionVisibility: String?
     let recommendationVisibility: String?
 
+    // Report-trust metadata (web PR #74, schema_version 3). The wire
+    // severity string already feeds the existing BiasSeverity field.
+    let confidence: String?
+    let subSplits: [FindingSubSplit]?
+
     init(
         findingId: String?,
         name: String,
@@ -993,7 +1029,9 @@ struct SportSpecificFinding: Codable, Identifiable {
         recommendation: String,
         estimatedCostVisibility: String? = nil,
         descriptionVisibility: String? = nil,
-        recommendationVisibility: String? = nil
+        recommendationVisibility: String? = nil,
+        confidence: String? = nil,
+        subSplits: [FindingSubSplit]? = nil
     ) {
         self.findingId = findingId
         self.name = name
@@ -1006,6 +1044,8 @@ struct SportSpecificFinding: Codable, Identifiable {
         self.estimatedCostVisibility = estimatedCostVisibility
         self.descriptionVisibility = descriptionVisibility
         self.recommendationVisibility = recommendationVisibility
+        self.confidence = confidence
+        self.subSplits = subSplits
     }
 }
 
@@ -1052,6 +1092,200 @@ struct Contradiction: Codable, Identifiable {
     let edgeLabel: String
     let edgeData: String
     let annualCost: Double?
+}
+
+// MARK: - Report-trust wire format (web PR #74, schema_version 3)
+//
+// The new `recovery` and `charts` objects are CAMELCASE on the wire
+// (netUSD, tOffsetMin, biggestSingleLeakUSD, ...), unlike the legacy
+// snake_case report fields. Decode mechanics under the network
+// decoder's .convertFromSnakeCase strategy: JSON keys are converted
+// BEFORE CodingKeys matching, and keys WITHOUT underscores pass
+// through unchanged. So the explicit CodingKeys below pin the exact
+// camelCase wire strings (identity under the strategy), while keys
+// that ARE snake_case on the wire (sub_splits' roi_pct / net_usd)
+// must be pinned to their POST-conversion spellings (roiPct / netUsd).
+// A raw value of "net_usd" would never match: the strategy produces
+// "netUsd" (not "netUSD"), which is exactly the acronym mis-map this
+// block exists to prevent. Every type is additive and optional;
+// decode proof against the live 2026-06-12 report is in
+// BetAutopsyTests/DecodeProofV3.swift.
+
+/// Per-finding evidence split (e.g. "Bets after a loss" vs "Bets after
+/// a win"). Wire object is snake_case: { label, bets, roi_pct, net_usd }
+/// with roi_pct / net_usd individually nullable.
+struct FindingSubSplit: Codable, Identifiable {
+    var id: String { label }
+    let label: String
+    let bets: Int
+    let roiPct: Double?
+    let netUSD: Double?
+
+    private enum CodingKeys: String, CodingKey {
+        case label, bets
+        // Wire keys roi_pct / net_usd; by match time the strategy has
+        // converted them to roiPct / netUsd.
+        case roiPct
+        case netUSD = "netUsd"
+    }
+}
+
+/// Top-level `recovery` object: the dollar-recovery framing the engine
+/// computes for the full report. method is one of flat_staking |
+/// no_long_parlays | profitable_categories_only | exit_worst_category
+/// (kept as String so unknown future methods decode, not crash).
+struct ReportRecovery: Codable {
+    let biggestSingleLeakUSD: Double
+    let method: String
+    let overlapsExist: Bool
+    let rangeLow: Double
+    let rangeHigh: Double
+    let netUSD: Double
+
+    private enum CodingKeys: String, CodingKey {
+        // Exact camelCase wire keys; no underscores, so the strategy
+        // leaves them untouched.
+        case biggestSingleLeakUSD, method, overlapsExist
+        case rangeLow, rangeHigh, netUSD
+    }
+}
+
+/// charts.timeOfDayPnl row. 24 rows, hour 0-23.
+struct HourPnlPoint: Codable, Identifiable {
+    var id: Int { hour }
+    let hour: Int
+    let netUSD: Double
+    let bets: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case hour, bets, netUSD
+    }
+}
+
+/// charts.dayOfWeekPnl row. 7 rows, day 0 = Sunday.
+struct DayPnlPoint: Codable, Identifiable {
+    var id: Int { day }
+    let day: Int
+    let netUSD: Double
+    let bets: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case day, bets, netUSD
+    }
+}
+
+/// charts.oddsBuckets row. Distinct from the legacy OddsBucket (that
+/// one is snake_case under odds_analysis; this one is camelCase).
+struct ChartOddsBucket: Codable, Identifiable {
+    var id: String { bucket }
+    let bucket: String
+    let roiPct: Double
+    let bets: Int
+    let winPct: Double
+    let edgePP: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case bucket, bets, roiPct, winPct, edgePP
+    }
+}
+
+/// charts.stakeByStreak (nullable on the wire).
+struct StakeByStreak: Codable {
+    let after3WinsUSD: Double
+    let neutralUSD: Double
+    let after3LossesUSD: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case after3WinsUSD, neutralUSD, after3LossesUSD
+    }
+}
+
+/// charts.sessionTimeline point: one bet in the hero heated session.
+/// x = minutes since the session's first bet, y = stake.
+struct SessionTimelinePoint: Codable, Hashable {
+    let tOffsetMin: Double
+    let stakeUSD: Double
+    let outcome: String        // "win" | "loss"
+    let isChaseMarker: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case tOffsetMin, stakeUSD, outcome, isChaseMarker
+    }
+}
+
+/// charts.heroSession (nullable): which heated session the timeline
+/// belongs to, plus the framing ("loss" | "win-but-risky").
+struct HeroSession: Codable {
+    let sessionId: String
+    let date: String
+    let framing: String
+    let bets: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionId, date, framing, bets
+    }
+}
+
+/// charts.betTypeMix row. Wire key "class" is reserved in Swift; mapped
+/// to betClass.
+struct BetTypeMixEntry: Codable, Identifiable {
+    var id: String { betClass }
+    let betClass: String
+    let count: Int
+    let pct: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case betClass = "class"
+        case count, pct
+    }
+}
+
+/// Top-level `charts` object. Arrays default to [] and the two nullable
+/// members to nil; each field decodes via try? so one malformed array
+/// degrades that chart only, never the whole charts object (mirrors the
+/// AutopsyAnalysis tolerant-decode pattern).
+struct ReportCharts: Codable {
+    let timeOfDayPnl: [HourPnlPoint]
+    let dayOfWeekPnl: [DayPnlPoint]
+    let oddsBuckets: [ChartOddsBucket]
+    let stakeByStreak: StakeByStreak?
+    let sessionTimeline: [SessionTimelinePoint]
+    let heroSession: HeroSession?
+    let betTypeMix: [BetTypeMixEntry]
+
+    private enum CodingKeys: String, CodingKey {
+        case timeOfDayPnl, dayOfWeekPnl, oddsBuckets, stakeByStreak
+        case sessionTimeline, heroSession, betTypeMix
+    }
+
+    init(
+        timeOfDayPnl: [HourPnlPoint] = [],
+        dayOfWeekPnl: [DayPnlPoint] = [],
+        oddsBuckets: [ChartOddsBucket] = [],
+        stakeByStreak: StakeByStreak? = nil,
+        sessionTimeline: [SessionTimelinePoint] = [],
+        heroSession: HeroSession? = nil,
+        betTypeMix: [BetTypeMixEntry] = []
+    ) {
+        self.timeOfDayPnl = timeOfDayPnl
+        self.dayOfWeekPnl = dayOfWeekPnl
+        self.oddsBuckets = oddsBuckets
+        self.stakeByStreak = stakeByStreak
+        self.sessionTimeline = sessionTimeline
+        self.heroSession = heroSession
+        self.betTypeMix = betTypeMix
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.timeOfDayPnl    = (try? c.decode([HourPnlPoint].self, forKey: .timeOfDayPnl)) ?? []
+        self.dayOfWeekPnl    = (try? c.decode([DayPnlPoint].self, forKey: .dayOfWeekPnl)) ?? []
+        self.oddsBuckets     = (try? c.decode([ChartOddsBucket].self, forKey: .oddsBuckets)) ?? []
+        self.stakeByStreak   = try? c.decode(StakeByStreak.self, forKey: .stakeByStreak)
+        self.sessionTimeline = (try? c.decode([SessionTimelinePoint].self, forKey: .sessionTimeline)) ?? []
+        self.heroSession     = try? c.decode(HeroSession.self, forKey: .heroSession)
+        self.betTypeMix      = (try? c.decode([BetTypeMixEntry].self, forKey: .betTypeMix)) ?? []
+    }
 }
 
 // MARK: - Snapshot side-channel (PR-7.5 Phase 2)
@@ -1389,6 +1623,12 @@ struct AutopsyAnalysis: Codable {
     // report. Drives the elevated note + recovery recommendation card.
     let controlSystem: ReportControlSystem?
 
+    // Report-trust wire format (web PR #74, schema_version 3). Both nil on
+    // pre-#74 reports and in snapshot mode. recovery is TOP-LEVEL on the
+    // wire (a sibling of charts, not nested under it).
+    let recovery: ReportRecovery?
+    let charts: ReportCharts?
+
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
          behavioralPatterns: [BehavioralPattern], recommendations: [Recommendation],
@@ -1411,7 +1651,9 @@ struct AutopsyAnalysis: Codable {
          emotionPercentile: Int? = nil,
          patternsSnapshot: [PatternsSnapshotEntry]? = nil,
          whatIfScenarios: [WhatIfScenario]? = nil,
-         controlSystem: ReportControlSystem? = nil) {
+         controlSystem: ReportControlSystem? = nil,
+         recovery: ReportRecovery? = nil,
+         charts: ReportCharts? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -1447,6 +1689,8 @@ struct AutopsyAnalysis: Codable {
         self.patternsSnapshot = patternsSnapshot
         self.whatIfScenarios = whatIfScenarios
         self.controlSystem = controlSystem
+        self.recovery = recovery
+        self.charts = charts
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1472,6 +1716,8 @@ struct AutopsyAnalysis: Codable {
         case whatIfScenarios
         // convertFromSnakeCase maps control_system -> controlSystem.
         case controlSystem
+        // Web PR #74: single-word wire keys, unaffected by the strategy.
+        case recovery, charts
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -1525,6 +1771,8 @@ struct AutopsyAnalysis: Codable {
         self.patternsSnapshot     = try? c.decode([PatternsSnapshotEntry].self, forKey: .patternsSnapshot)
         self.whatIfScenarios      = try? c.decode([WhatIfScenario].self, forKey: .whatIfScenarios)
         self.controlSystem        = try? c.decode(ReportControlSystem.self, forKey: .controlSystem)
+        self.recovery             = try? c.decode(ReportRecovery.self, forKey: .recovery)
+        self.charts               = try? c.decode(ReportCharts.self, forKey: .charts)
     }
 
     /// Insight prose for the verdict callout. Full mode prefers the full

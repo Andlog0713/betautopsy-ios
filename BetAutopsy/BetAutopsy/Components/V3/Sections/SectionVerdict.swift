@@ -158,6 +158,23 @@ struct SectionVerdict: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
+            // 3A hero chart (report-trust wire): the heated-session stake
+            // escalation, full-mode only, gated so snapshots and pre-#74
+            // reports render exactly what they rendered before. The chart
+            // itself also requires >= 2 timeline points (it returns nothing
+            // otherwise, never an empty frame).
+            if !isSnapshot,
+               let charts = report.analysis.charts,
+               let heroSession = charts.heroSession,
+               !charts.sessionTimeline.isEmpty {
+                Spacer().frame(height: 24)
+                SessionTimelineChart(
+                    timeline: charts.sessionTimeline,
+                    hero: heroSession
+                )
+                .padding(.horizontal, 16)
+            }
+
             conversionMechanics
 
             if !topDamages.isEmpty, !archetypeBuildingSample {

@@ -35,6 +35,17 @@ struct SectionProtocol: View {
         ThreeMovesCard.Moves(analysis: report.analysis)
     }
 
+    /// The control system iff this full report is at the recovery tier.
+    /// nil on snapshots (controlSystem absent), pre-#71 reports, and the
+    /// none/elevated tiers. The recovery card + support resources surface
+    /// ONLY here (recovery tier), matching web's message-fatigue gating.
+    private var recoveryControlSystem: ReportControlSystem? {
+        guard !isSnapshot,
+              let cs = report.analysis.controlSystem,
+              cs.effectiveRiskTier == .recovery else { return nil }
+        return cs
+    }
+
     var body: some View {
         if isSnapshot {
             VStack(alignment: .leading, spacing: 0) {
@@ -43,10 +54,18 @@ struct SectionProtocol: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)
-        } else if moves.hasContent {
+        } else if recoveryControlSystem != nil || moves.hasContent {
             VStack(alignment: .leading, spacing: 0) {
-                header
-                ThreeMovesCard(moves: moves).padding(.top, 16)
+                if let recoveryControlSystem {
+                    RecoveryRecommendationCard(controlSystem: recoveryControlSystem)
+                    if moves.hasContent {
+                        Spacer().frame(height: 24)
+                    }
+                }
+                if moves.hasContent {
+                    header
+                    ThreeMovesCard(moves: moves).padding(.top, 16)
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)

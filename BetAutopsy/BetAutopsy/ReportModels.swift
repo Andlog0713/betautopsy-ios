@@ -1224,6 +1224,115 @@ private struct ExecutiveDiagnosisPayload: Decodable {
 
 // MARK: - Top-level analysis
 
+// MARK: - Control system (recovery tier)
+
+/// Report-baked risk tier (web ReportRiskTier, PR #71). Drives the elevated
+/// note and the recovery recommendation card. The web render-time
+/// `recoveryModeActive` (live recovery state) is intentionally NOT ported:
+/// iOS has no control-center / control-system endpoint to read it from, so
+/// iOS renders the report-baked tier only.
+enum RiskTier: String, Codable {
+    case none, elevated, recovery
+}
+
+/// One support resource (helpline / chat / crisis line), shipped by the
+/// engine inside control_system.supportResources. Rendered ONLY at the
+/// recovery tier (message-fatigue gating, matching web).
+struct SupportResource: Codable, Identifiable {
+    let label: String
+    let value: String
+    let href: String?
+
+    var id: String { label + value }
+
+    init(label: String, value: String, href: String?) {
+        self.label = label
+        self.value = value
+        self.href = href
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.label = (try? c.decode(String.self, forKey: .label)) ?? ""
+        self.value = (try? c.decode(String.self, forKey: .value)) ?? ""
+        self.href  = try? c.decode(String.self, forKey: .href)
+    }
+
+    private enum CodingKeys: String, CodingKey { case label, value, href }
+}
+
+/// One ranked risk summary (web ReportRiskSummary), shown in the recovery
+/// card body.
+struct ReportRiskSummary: Codable, Identifiable {
+    let title: String
+    let detail: String
+    let evidence: String
+
+    var id: String { title }
+
+    init(title: String, detail: String, evidence: String) {
+        self.title = title
+        self.detail = detail
+        self.evidence = evidence
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.title    = (try? c.decode(String.self, forKey: .title))    ?? ""
+        self.detail   = (try? c.decode(String.self, forKey: .detail))   ?? ""
+        self.evidence = (try? c.decode(String.self, forKey: .evidence)) ?? ""
+    }
+
+    private enum CodingKeys: String, CodingKey { case title, detail, evidence }
+}
+
+/// Minimal port of web ReportControlSystem (PR #71). iOS decodes only the
+/// fields it renders; the rules engine / cooldowns / plan template are
+/// Control-Center surfaces iOS does not have, so they are left off the wire
+/// model (tolerant decode ignores them). Optional on the analysis: nil on
+/// every snapshot (the engine omits control_system entirely) and on every
+/// pre-#71 report. The tolerant init degrades a partial/malformed object
+/// per-field rather than collapsing the parent.
+struct ReportControlSystem: Codable {
+    let riskTier: RiskTier?
+    let recoveryModeRecommended: Bool
+    let headline: String?
+    let topRisks: [ReportRiskSummary]
+    let supportResources: [SupportResource]
+
+    /// Back-compat with pre-#71 reports (recoveryModeRecommended but no
+    /// riskTier) and forward-compat with any future/unknown tier string
+    /// (which decodes to nil). Mirrors web AutopsyReport.tsx:426-431.
+    var effectiveRiskTier: RiskTier {
+        riskTier ?? (recoveryModeRecommended ? .recovery : .none)
+    }
+
+    init(riskTier: RiskTier?, recoveryModeRecommended: Bool, headline: String?,
+         topRisks: [ReportRiskSummary], supportResources: [SupportResource]) {
+        self.riskTier = riskTier
+        self.recoveryModeRecommended = recoveryModeRecommended
+        self.headline = headline
+        self.topRisks = topRisks
+        self.supportResources = supportResources
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        // try? with no default: an unknown / future tier string decodes to
+        // nil, then effectiveRiskTier applies the recoveryModeRecommended
+        // fallback (exactly as specified for crash-safety on every report).
+        self.riskTier = try? c.decode(RiskTier.self, forKey: .riskTier)
+        self.recoveryModeRecommended = (try? c.decode(Bool.self, forKey: .recoveryModeRecommended)) ?? false
+        self.headline = try? c.decode(String.self, forKey: .headline)
+        self.topRisks = (try? c.decode([ReportRiskSummary].self, forKey: .topRisks)) ?? []
+        self.supportResources = (try? c.decode([SupportResource].self, forKey: .supportResources)) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case riskTier, recoveryModeRecommended, headline, topRisks, supportResources
+    }
+}
+
 struct AutopsyAnalysis: Codable {
     let schemaVersion: Int?
     let summary: AutopsySummary
@@ -1275,6 +1384,11 @@ struct AutopsyAnalysis: Codable {
     // and on older pre-deploy reports.
     let whatIfScenarios: [WhatIfScenario]?
 
+    // Report-baked control system + risk tier (web PR #71). Full-mode only:
+    // nil in snapshot (engine omits control_system) and on every pre-#71
+    // report. Drives the elevated note + recovery recommendation card.
+    let controlSystem: ReportControlSystem?
+
     init(schemaVersion: Int?, summary: AutopsySummary,
          biasesDetected: [BiasDetected], strategicLeaks: [StrategicLeak],
          behavioralPatterns: [BehavioralPattern], recommendations: [Recommendation],
@@ -1296,7 +1410,8 @@ struct AutopsyAnalysis: Codable {
          tiltScoreInsufficientData: Bool? = nil,
          emotionPercentile: Int? = nil,
          patternsSnapshot: [PatternsSnapshotEntry]? = nil,
-         whatIfScenarios: [WhatIfScenario]? = nil) {
+         whatIfScenarios: [WhatIfScenario]? = nil,
+         controlSystem: ReportControlSystem? = nil) {
         self.schemaVersion = schemaVersion
         self.summary = summary
         self.biasesDetected = biasesDetected
@@ -1331,6 +1446,7 @@ struct AutopsyAnalysis: Codable {
         self.emotionPercentile = emotionPercentile
         self.patternsSnapshot = patternsSnapshot
         self.whatIfScenarios = whatIfScenarios
+        self.controlSystem = controlSystem
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1354,6 +1470,8 @@ struct AutopsyAnalysis: Codable {
         // convertFromSnakeCase maps what_if_scenarios -> whatIfScenarios,
         // so no explicit raw value (matches whatChanged / patternsSnapshot).
         case whatIfScenarios
+        // convertFromSnakeCase maps control_system -> controlSystem.
+        case controlSystem
     }
 
     /// Tolerant decoder. Every nested struct is wrapped in `try?` so any
@@ -1406,6 +1524,7 @@ struct AutopsyAnalysis: Codable {
         self.emotionPercentile    = try? c.decode(Int.self, forKey: .emotionPercentile)
         self.patternsSnapshot     = try? c.decode([PatternsSnapshotEntry].self, forKey: .patternsSnapshot)
         self.whatIfScenarios      = try? c.decode([WhatIfScenario].self, forKey: .whatIfScenarios)
+        self.controlSystem        = try? c.decode(ReportControlSystem.self, forKey: .controlSystem)
     }
 
     /// Insight prose for the verdict callout. Full mode prefers the full

@@ -255,11 +255,10 @@ struct SectionSports: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            let lockedCost = isSnapshot
-                || f.estimatedCostVisibility == "redacted_dollar"
-                || f.estimatedCost == nil
-                || (f.estimatedCost ?? 0) == 0
-            if lockedCost {
+            // The locked pill is snapshot-redaction UI only. A full report
+            // finding without a real dollar hides the cost row instead of
+            // rendering a lock in a paid surface.
+            if isSnapshot {
                 HStack(spacing: 8) {
                     Text("ESTIMATED COST")
                         .font(.system(size: 10, weight: .semibold))
@@ -268,7 +267,8 @@ struct SectionSports: View {
                     LockedDollarBar(width: 110, onTap: { onPaywallTap("section_sports_dollar_locked") })
                 }
                 .padding(.top, 8)
-            } else if let cost = f.estimatedCost {
+            } else if let cost = f.estimatedCost, cost != 0,
+                      f.estimatedCostVisibility != "redacted_dollar" {
                 Text("ESTIMATED COST \(BAFormat.currency(cost))")
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()

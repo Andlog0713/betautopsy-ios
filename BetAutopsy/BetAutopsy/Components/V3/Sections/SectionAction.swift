@@ -38,9 +38,12 @@ struct SectionAction: View {
                 let costSavings = rec.costSavings.map { Int($0.rounded()) } ?? 0
                 let parsed = parseDollars(rec.expectedImprovement)
                 let dollars = max(costSavings, parsed)
+                // The locked-pill variant is snapshot-redaction UI and must
+                // NEVER render in a paid full report. A full-report action
+                // with no honest dollar (unparseable improvement, zero or
+                // redaction-tagged costSavings) shows no impact row and
+                // falls back to the HIGHEST IMPACT tag where one applies.
                 let locked = isSnapshot
-                    || rec.costSavingsVisibility == "redacted_dollar"
-                    || dollars <= 0
                 return RankedAction(
                     recommendation: rec,
                     parsedDollars: dollars,
@@ -119,7 +122,7 @@ struct SectionAction: View {
             ? ""
             : projectedImpactLabel(ranked.parsedDollars)
         let showsHighestImpactTag = !ranked.isLocked
-            && ranked.parsedDollars == 0
+            && ranked.parsedDollars <= 0
             && ranked.recommendation.priority == 1
         let fallback: String? = showsHighestImpactTag ? "HIGHEST IMPACT" : nil
         let cardAction = ActionCard.Action(

@@ -116,9 +116,8 @@ struct BiasEvidenceSheet: View {
 
     @ViewBuilder
     private var costBlock: some View {
+        // Locked pill is snapshot-only redaction UI; never in a paid report.
         let locked = isSnapshot
-            || bias.estimatedCostVisibility == "redacted_dollar"
-            || bias.estimatedCost == 0
         HStack(spacing: 8) {
             Text("EST. COST")
                 .font(.system(size: 10, weight: .bold))

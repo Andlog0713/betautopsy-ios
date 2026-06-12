@@ -51,9 +51,10 @@ struct SectionFindings: View {
     private var biasRowEntries: [BiasRowEntry] {
         let useFixedWidths = isSnapshot || materialBiases.count == 1
         return materialBiases.map { bias in
+            // Locked pill is snapshot-only redaction UI; full-mode rows are
+            // already filtered to estimatedCost > 0 above, so a paid report
+            // never shows a lock here.
             let lockedCost = isSnapshot
-                || bias.estimatedCostVisibility == "redacted_dollar"
-                || bias.estimatedCost == 0
             let evidenceVisible = bias.evidenceVisibility != "hidden"
             let row = BiasRow.Bias(
                 biasName: bias.biasName.uppercased(),

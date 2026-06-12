@@ -62,6 +62,20 @@ struct BetAutopsyApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if let harness = DebugVisualHarness.active {
+                DebugVisualHarnessRoot(kind: harness)
+                    .preferredColorScheme(.dark)
+            } else {
+                appRoot
+            }
+            #else
+            appRoot
+            #endif
+        }
+    }
+
+    private var appRoot: some View {
             RootTabView()
                 .preferredColorScheme(.dark)
                 .environment(coordinator)
@@ -88,7 +102,6 @@ struct BetAutopsyApp: App {
                         .environment(coordinator)
                         .preferredColorScheme(.dark)
                 }
-        }
     }
 
     private var onboardingPresented: Binding<Bool> {

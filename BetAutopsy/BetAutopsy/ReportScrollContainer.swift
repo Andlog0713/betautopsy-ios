@@ -90,6 +90,12 @@ struct ReportScrollContainer: View {
                 }
             }
 
+            // Scrim under the floating xmark: scrolled report content fades
+            // out beneath the status bar instead of colliding with the clock
+            // (TESTFLIGHT-MIN safe-area audit). Sits below dismissButton in
+            // the ZStack so the button stays fully legible.
+            StatusBarScrim()
+
             dismissButton
         }
         .sheet(isPresented: $showingPaywall) {

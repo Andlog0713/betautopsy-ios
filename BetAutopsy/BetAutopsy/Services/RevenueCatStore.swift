@@ -57,10 +57,12 @@ final class RevenueCatStore {
     /// this window.
     private(set) var isPollingForUpgrade: Bool = false
 
-    /// Surfaced on timeout (and on terminal poll failures like an
-    /// expired refresh token). PaywallView renders this via the same
-    /// inline error path as lastPurchaseError.
-    private(set) var lastPollError: String?
+    /// True when a purchased unlock has blown past the failure ceiling
+    /// without materializing (assumed dropped webhook or engine error).
+    /// Surfaced as a recoverable banner on the Reports tab, never as red
+    /// inline error. Set by resumePendingUnlockIfNeeded; cleared on a
+    /// successful materialize or when the user dismisses the banner.
+    private(set) var unlockFailed: Bool = false
 
     // MARK: - Internal state
 
@@ -209,7 +211,12 @@ final class RevenueCatStore {
     /// sheet presentation don't render on a fresh open.
     func clearError() {
         lastPurchaseError = nil
-        lastPollError = nil
+    }
+
+    /// Clears the recoverable unlock-failure banner. Called when the user
+    /// dismisses it on the Reports tab.
+    func dismissUnlockFailure() {
+        unlockFailed = false
     }
 
     /// Surfaces an error message to PaywallView without going through
@@ -255,33 +262,31 @@ final class RevenueCatStore {
 // MARK: - Post-purchase polling
 
 extension RevenueCatStore {
-    /// After a successful Purchases.purchase, the RC webhook receives
-    /// the transaction, reads the pending_report_unlock_id subscriber
-    /// attribute, and creates a child row in autopsy_reports with
-    /// report_type='full' and upgraded_from_snapshot_id pointing back
-    /// at the snapshot. Webhook completion is asynchronous (waitUntil
-    /// + processUpgrade), so iOS polls GET /api/reports?upgraded_from=
-    /// every 3 seconds until the child row appears or the timeout
-    /// elapses.
+    /// In-sheet poll after a confirmed purchase. The RC webhook reads the
+    /// pending_report_unlock_id subscriber attribute and creates a full
+    /// child row in autopsy_reports (upgraded_from_snapshot_id -> snapshot).
+    /// Webhook completion is asynchronous (waitUntil + processUpgrade, a
+    /// 30-120s engine re-run), so this polls GET /api/reports?upgraded_from=
+    /// every 3 seconds up to the timeout.
     ///
-    /// On success: returns the materialized full report. PaywallView
-    /// upserts it into ReportStore and dismisses.
+    /// Outcomes:
+    ///   .materialized(report) - the full row appeared; caller hands it to
+    ///     materialize(_:source:).
+    ///   .stillCompiling - the in-sheet window elapsed (or the poll was
+    ///     cancelled). NOT an error: generation can exceed the in-sheet
+    ///     wait, and the resume path (foreground / Reports tab / push) will
+    ///     materialize it. The pending-unlock record persists.
+    ///   .authExpired - the refresh token failed; a real error. lastPurchaseError
+    ///     is set for the inline red surface.
     ///
-    /// On timeout: sets lastPollError to the "preparing your full
-    /// report" message and returns nil. PaywallView holds the message
-    /// visible briefly, then dismisses.
-    ///
-    /// On terminal auth failure (refresh fails after 401): sets
-    /// lastPollError to a sign-in message and returns nil.
-    ///
-    /// Transient network/decode failures are swallowed per-attempt
-    /// (Sentry breadcrumb) and polling continues until timeout.
+    /// The in-sheet timeout is intentionally generous (covers the common
+    /// generation window) but is cosmetic: reliability comes from the
+    /// persisted pending-unlock + resume, not from this wait.
     func pollForUpgradedReport(
         snapshotReportId: String,
-        timeoutSec: Int = 90
-    ) async -> AutopsyReport? {
+        timeoutSec: Int = 150
+    ) async -> UnlockPollOutcome {
         isPollingForUpgrade = true
-        lastPollError = nil
         defer { isPollingForUpgrade = false }
 
         let pollInterval: TimeInterval = 3
@@ -305,24 +310,24 @@ extension RevenueCatStore {
                     okCrumb.message = "Upgraded report materialized"
                     okCrumb.data = ["attempt": attempt]
                     SentrySDK.addBreadcrumb(okCrumb)
-                    return report
+                    return .materialized(report)
                 }
             } catch PollError.unauthorized {
                 do {
                     try await SupabaseService.refreshSession()
                     if let report = try? await Self.attemptPollFetch(snapshotReportId: snapshotReportId) {
-                        return report
+                        return .materialized(report)
                     }
                 } catch {
-                    lastPollError = "Sign in expired. Try again from the dashboard."
+                    lastPurchaseError = "Sign in expired. Try again from the dashboard."
                     SentrySDK.capture(error: error) { scope in
                         scope.setTag(value: "iap", key: "kind")
                         scope.setTag(value: "rc_poll_refresh", key: "failure_source")
                     }
-                    return nil
+                    return .authExpired
                 }
             } catch let urlError as URLError where urlError.code == .cancelled {
-                return nil
+                return .stillCompiling
             } catch {
                 let warn = Breadcrumb(level: .warning, category: "iap")
                 warn.message = "Poll attempt \(attempt) failed"
@@ -333,8 +338,47 @@ extension RevenueCatStore {
             try? await Task.sleep(for: .seconds(pollInterval))
         }
 
-        lastPollError = "Your full report is being prepared. Pull to refresh on the dashboard in a moment."
-        return nil
+        // Window elapsed without materialization. Not an error; the resume
+        // path owns reliability from here. The pending-unlock record stays.
+        return .stillCompiling
+    }
+
+    /// Idempotent completion entry point shared by all three paths
+    /// (in-sheet poll, resume, push-tap). The first path to call this wins:
+    /// it upserts the full report, clears the pending-unlock record, and
+    /// emits the funnel event. Subsequent paths see an inactive record and
+    /// no-op, so there is no double-swap and no duplicate analytics.
+    /// ReportStore.upsert is itself id-keyed, so even a redundant upsert
+    /// cannot duplicate a row, and ReportScrollViewModel only swaps a
+    /// snapshot once.
+    func materialize(_ report: AutopsyReport, source: String) {
+        guard PendingUnlockStore.shared.isActive else { return }
+        ReportStore.shared.upsert(report)
+        PendingUnlockStore.shared.clear()
+        unlockFailed = false
+        Analytics.signal("compile.completed", parameters: ["source": source])
+    }
+
+    /// Out-of-sheet completion. Called on app foreground, cold launch, and
+    /// Reports-tab appear. No-op unless a pending unlock is active. Past the
+    /// failure ceiling, surfaces the recoverable failure banner (a dropped
+    /// webhook can't leave the user waiting forever). Otherwise does one
+    /// poll attempt and materializes on success; if still not ready it
+    /// leaves the record for the next resume.
+    func resumePendingUnlockIfNeeded() async {
+        guard PendingUnlockStore.shared.isActive,
+              let snapshotId = PendingUnlockStore.shared.snapshotId else { return }
+
+        if PendingUnlockStore.shared.isPastFailureCeiling {
+            unlockFailed = true
+            Analytics.signal("unlock.failed")
+            PendingUnlockStore.shared.clear()
+            return
+        }
+
+        if let report = try? await Self.attemptPollFetch(snapshotReportId: snapshotId) {
+            materialize(report, source: "resume")
+        }
     }
 
     /// Single GET against /api/reports?upgraded_from=X. Returns the
@@ -406,6 +450,16 @@ extension RevenueCatStore {
 private enum PollError: Error {
     case unauthorized
     case unexpectedStatus(Int)
+}
+
+/// Result of the in-sheet post-purchase poll. `.stillCompiling` is the
+/// benign "not ready yet" outcome (window elapsed or poll cancelled) that
+/// hands off to the resume path; `.authExpired` is a real error surfaced
+/// inline.
+enum UnlockPollOutcome {
+    case materialized(AutopsyReport)
+    case stillCompiling
+    case authExpired
 }
 
 private struct UpgradedListResponse: Decodable {

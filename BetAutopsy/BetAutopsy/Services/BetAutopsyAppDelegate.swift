@@ -116,13 +116,15 @@ final class BetAutopsyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
     /// Reads betautopsy.kind + betautopsy.report_id from a notification
     /// userInfo dictionary. APNs delivers these as flat top-level keys
-    /// with literal dots in the key name (not nested objects). On a
-    /// "heated_session" kind with a report_id present, stashes the id
-    /// into DeepLinkRouter.shared.pendingReportId for RootTabView to
-    /// consume after auth completes.
+    /// with literal dots in the key name (not nested objects). Both
+    /// "heated_session" and "report_ready" kinds carry a report_id and
+    /// deep-link to that report; the id is stashed into
+    /// DeepLinkRouter.shared.pendingReportId for RootTabView to consume
+    /// after auth completes. (report_ready additionally completes a
+    /// pending unlock inside DeepLinkRouter.consume.)
     private func parseAndStashReportId(userInfo: [AnyHashable: Any]) {
         guard let kind = userInfo["betautopsy.kind"] as? String,
-              kind == "heated_session",
+              kind == "heated_session" || kind == "report_ready",
               let reportId = userInfo["betautopsy.report_id"] as? String
         else {
             let crumb = Breadcrumb(level: .warning, category: "push")

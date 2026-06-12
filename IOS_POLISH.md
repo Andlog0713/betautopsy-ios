@@ -16,6 +16,75 @@ Format per entry:
 
 ---
 
+## Branch: feat/3b2-charts-breadth
+
+### Why
+
+3B-2 breadth pass: the remaining five charts from the typed
+charts.* arrays, and the remaining sections recomposed onto the 3B-1
+component library. After this the report renders fully on the new
+system; Prompt 4 is IA/share/polish.
+
+### Step 0 findings (approved placement map)
+
+- BY HOUR interim (PR #36) lived in SectionPatternsTiming
+  (hourChartSection + label-parsing helpers); odds rendering in
+  SectionSports.oddsBucketCard. Both swapped with fallbacks.
+- Collision resolved per approval: StakeByStreakChart (typed)
+  replaces StreakInfluenceCard in full+v3; the card (with its locked
+  variant) stays for snapshot/pre-#74.
+- SectionProtocol approved as a NO-OP (RecoveryRecommendationCard is
+  a safety surface - untouched). ScoreGauge stays library-only.
+- The "IF YOU DID ALL OF THESE" aggregate SUMMED per-action
+  projections - confirmed and removed (third costume of the additive
+  defect).
+
+### What shipped
+
+Six commits, build verified between each:
+
+1. Five charts (each #Preview, SessionTimelineChart pattern, sample
+   floors, BAFormat axes): TimeOfDayChart (typed dollars preferred,
+   PR #36 label-parsing ROI fallback absorbed for pre-#74/snapshot;
+   UTC bucketing caveat documented, WS-TEMPORAL), DayOfWeekChart,
+   OddsBucketsChart, StakeByStreakChart, BetTypeMixChart.
+2. SectionPatternsTiming: BY HOUR onto TimeOfDayChart (D6
+   always-visible preserved via fallback), BY DAY onto DayOfWeekChart
+   in full+v3 with tiles kept for snapshot/pre-#74; late-night line
+   position/gates unchanged.
+3. SectionSports: odds chart swap with card fallback, EvidenceBlock
+   on sport findings, BetTypeMixChart added (new surface, full v3
+   only).
+4. SectionHeatedDiscipline + SectionVerdict: discipline breakdown +
+   BetIQ full-mode bars onto ContributorBars (BetIQ snapshot teaser
+   shell kept byte-identical, its paywall signal untouched),
+   insufficient-data cards + bankroll health onto Callout (danger
+   helpline compliance line carried verbatim), StakeByStreakChart
+   swap. TiltSignalBreakdownCard kept (icons + worst-trigger dedup).
+5. SectionAction: full-mode actions onto ActionRow (check-off wiring
+   unchanged, HIGHEST IMPACT fallback kept, no analytics on this
+   path); snapshot keeps locked ActionCards; aggregate summed dollar
+   REMOVED, qualitative Callout framing kept.
+6. This entry.
+
+### Verification
+
+xcodebuild green per commit. Device smoke is Andrew's: full v3
+walk-through of every section, a snapshot (locks/teasers identical,
+charts gated out), and the pre-#74 BY-HOUR ROI fallback.
+
+### Notes / deviations
+
+- BY HOUR y-axis changes ROI -> net dollars on the typed path
+  (approved); the fallback stays ROI.
+- BankrollHealthCallout and StreakInfluenceCard remain on disk but
+  StreakInfluenceCard still serves snapshot/pre-#74;
+  BankrollHealthCallout is now unconsumed by live code (Prompt 4).
+- BetIQComponentBars keeps its legacy shell rows for the snapshot
+  blur so the locked state is byte-identical.
+
+---
+
 ## Branch: feat/3b-component-library
 
 ### Why

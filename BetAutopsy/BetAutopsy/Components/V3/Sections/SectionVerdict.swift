@@ -101,10 +101,27 @@ struct SectionVerdict: View {
                 .padding(.horizontal, 16)
         }
 
-        if report.analysis.bankrollHealth != .healthy {
+        // 3B-2: bankroll health recomposed onto Callout (caution/severe
+        // variants). Copy is carried over from BankrollHealthCallout
+        // verbatim, including the danger-tier helpline line (compliance
+        // copy, COPY_SYSTEM). The legacy component file is unconsumed by
+        // live code; Prompt 4 retires it.
+        if report.analysis.bankrollHealth == .danger {
             Spacer().frame(height: 24)
-            BankrollHealthCallout(health: report.analysis.bankrollHealth)
-                .padding(.horizontal, 16)
+            Callout(
+                variant: .severe,
+                title: "Bankroll under strain",
+                text: "Your stake sizing relative to your results points to bankroll stress. This is the pattern that precedes the sessions people regret.\n\nIf gambling has stopped being fun, call 1-800-MY-RESET."
+            )
+            .padding(.horizontal, 16)
+        } else if report.analysis.bankrollHealth == .caution {
+            Spacer().frame(height: 24)
+            Callout(
+                variant: .caution,
+                title: "Bankroll worth watching",
+                text: "Stake sizing is drifting relative to your results. Worth keeping an eye on before it compounds."
+            )
+            .padding(.horizontal, 16)
         }
 
         if let previousAnalysis, !archetypeBuildingSample {

@@ -28,6 +28,7 @@ struct SectionSports: View {
         VStack(alignment: .leading, spacing: 0) {
             oddsSection
             sportFindingsSection.padding(.top, 32)
+            betTypeMixSection
 
             // Snapshot keeps the volume-anchor counts module. The full-mode
             // exec-diagnosis InsightCallout is removed (Q3 dedup): it
@@ -46,6 +47,10 @@ struct SectionSports: View {
 
     // MARK: - Odds buckets
 
+    private var typedOddsBuckets: [ChartOddsBucket] {
+        report.analysis.charts?.oddsBuckets ?? []
+    }
+
     @ViewBuilder
     private var oddsSection: some View {
         if let odds = report.analysis.oddsAnalysis {
@@ -60,12 +65,20 @@ struct SectionSports: View {
                     .foregroundStyle(DS.Color.V3.textSecondary)
                     .padding(.top, 4)
 
-                VStack(spacing: 12) {
-                    ForEach(odds.buckets) { bucket in
-                        oddsBucketCard(bucket)
+                // 3B-2: full v3 reports with a qualifying typed array render
+                // the OddsBucketsChart; snapshots (LOCKED badges live in the
+                // cards) and pre-#74 reports keep the bespoke bucket cards.
+                if !isSnapshot, OddsBucketsChart.qualifies(typedOddsBuckets) {
+                    OddsBucketsChart(buckets: typedOddsBuckets)
+                        .padding(.top, 16)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(odds.buckets) { bucket in
+                            oddsBucketCard(bucket)
+                        }
                     }
+                    .padding(.top, 16)
                 }
-                .padding(.top, 16)
 
                 // D8: the luck rating label stays visible in every mode (it
                 // carries the "running hot/cold" direction). The precise
@@ -178,6 +191,19 @@ struct SectionSports: View {
         }
     }
 
+    // MARK: - Bet type mix (3B-2, new surface)
+
+    /// What you bet, from the typed charts.betTypeMix array. Full v3
+    /// reports only; there is no legacy equivalent to fall back to.
+    @ViewBuilder
+    private var betTypeMixSection: some View {
+        let mix = report.analysis.charts?.betTypeMix ?? []
+        if !isSnapshot, BetTypeMixChart.qualifies(mix) {
+            BetTypeMixChart(mix: mix)
+                .padding(.top, 32)
+        }
+    }
+
     // MARK: - Sport-specific findings
 
     @ViewBuilder
@@ -244,6 +270,18 @@ struct SectionSports: View {
                 .lineSpacing(3)
                 .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
+
+            // 3B-2 evidence layer: sub_splits comparison rows (decode since
+            // 3A). Collapsed by default; snapshot suppresses the dollar
+            // segment. Absent on pre-#74 reports.
+            if let splits = f.subSplits, !splits.isEmpty {
+                EvidenceBlock(
+                    splits: splits,
+                    confidence: f.confidence,
+                    isSnapshot: isSnapshot
+                )
+                .padding(.top, 12)
+            }
 
             if f.recommendationVisibility != "hidden",
                !f.recommendation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

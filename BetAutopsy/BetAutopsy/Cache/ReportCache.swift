@@ -108,7 +108,13 @@ enum ReportCacheCodec {
     /// drops them on upgrade so existing users self-heal on first launch: the
     /// empty cache forces a hydrate, and slim reports lazy-fetch their full
     /// body on open instead of rendering as a shell.
-    static let currentVersion = 3
+    ///
+    /// v4 (report-trust wire, web PR #74): AutopsyAnalysis gained recovery +
+    /// charts (and finding confidence/subSplits). v3 blobs were decoded by a
+    /// build without those fields, so they would pin charts == nil forever
+    /// and the hero session chart would never appear for already-cached
+    /// reports. Bumping forces a refetch + re-decode on first launch.
+    static let currentVersion = 4
 
     private static let encoder: JSONEncoder = {
         let e = JSONEncoder()

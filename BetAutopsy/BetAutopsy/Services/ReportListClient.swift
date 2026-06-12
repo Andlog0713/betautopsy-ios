@@ -112,7 +112,11 @@ final class ReportListClient {
             dateRangeStart: row.dateRangeStart,
             dateRangeEnd: row.dateRangeEnd,
             createdAt: row.createdAt,
-            analysis: row.reportJson
+            analysis: row.reportJson,
+            // List endpoint returns a SLIM card payload (body fields omitted).
+            // Mark slim so the reader lazy-fetches the full body on open and
+            // hydrate never treats this as a full report.
+            isFullBody: false
         )
     }
 }

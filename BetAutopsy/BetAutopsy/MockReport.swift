@@ -19,7 +19,8 @@ enum MockReport {
             dateRangeStart: "2025-11-14",
             dateRangeEnd: "2026-05-10",
             createdAt: "2026-05-10T22:00:00Z",
-            analysis: analysis
+            analysis: analysis,
+            isFullBody: true
         )
     }
 

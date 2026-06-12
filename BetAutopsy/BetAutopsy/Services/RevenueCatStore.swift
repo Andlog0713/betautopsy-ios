@@ -396,7 +396,9 @@ extension RevenueCatStore {
             analysis: row.reportJson,
             // Prefer the wire value; fall back to the snapshot id we polled
             // for (this row IS the upgrade of that snapshot). Drives D14.
-            upgradedFromSnapshotId: row.upgradedFromSnapshotId ?? polledSnapshotId
+            upgradedFromSnapshotId: row.upgradedFromSnapshotId ?? polledSnapshotId,
+            // ?upgraded_from= returns the full report_json (complete body).
+            isFullBody: true
         )
     }
 }

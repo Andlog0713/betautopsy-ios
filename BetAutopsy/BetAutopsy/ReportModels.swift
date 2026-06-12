@@ -1437,6 +1437,20 @@ struct AutopsyReport: Codable, Identifiable {
     /// sites) still decodes the field on direct-decode paths.
     let upgradedFromSnapshotId: String?
 
+    /// True when this report carries the COMPLETE analysis body (from the
+    /// analyze stream, GET /api/reports/:id, GET ?upgraded_from=, or a mock).
+    /// False for the SLIM card payload from the list endpoint
+    /// (GET /api/reports), which whitelists ~12 card keys and omits
+    /// session_detection, behavioral_patterns, biases_detected, timing,
+    /// recommendations, etc. The reader (ReportScrollViewModel) uses this to
+    /// decide whether it must lazy-fetch the full body before rendering the
+    /// body sections, and ReportStore.hydrate uses it to avoid clobbering a
+    /// held full body with a slim list row. NOT a wire field: every
+    /// construction site sets it explicitly. Part of the cache Codable so it
+    /// survives relaunch (cache currentVersion bumped to 3 to drop pre-flag
+    /// blobs).
+    let isFullBody: Bool
+
     init(
         id: String,
         caseNumber: String,
@@ -1446,7 +1460,8 @@ struct AutopsyReport: Codable, Identifiable {
         dateRangeEnd: String?,
         createdAt: String,
         analysis: AutopsyAnalysis,
-        upgradedFromSnapshotId: String? = nil
+        upgradedFromSnapshotId: String? = nil,
+        isFullBody: Bool = false
     ) {
         self.id = id
         self.caseNumber = caseNumber
@@ -1457,6 +1472,7 @@ struct AutopsyReport: Codable, Identifiable {
         self.createdAt = createdAt
         self.analysis = analysis
         self.upgradedFromSnapshotId = upgradedFromSnapshotId
+        self.isFullBody = isFullBody
     }
 }
 

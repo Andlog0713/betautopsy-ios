@@ -116,6 +116,20 @@ struct SectionHeatedDiscipline: View {
         return report.analysis.executiveDiagnosisInsight(snapshot: isSnapshot).firstSentences(2)
     }
 
+    /// True when the full-mode TiltSignalBreakdownCard renders and carries
+    /// the worst-trigger line inside it. The InsightCallout below must then
+    /// be skipped: mindInsightBody is that same trigger string, and it was
+    /// rendering twice (italic inside the card, then again in a bordered
+    /// callout immediately below).
+    private var triggerShownInBreakdownCard: Bool {
+        guard !isSnapshot,
+              let tilt = report.analysis.enhancedTilt,
+              hasAnySignal(tilt.signals) else { return false }
+        return !tilt.worstTrigger
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+    }
+
     // MARK: - Discipline
 
     private var disciplineTotal: Int { report.analysis.disciplineScore?.total ?? 0 }
@@ -239,7 +253,10 @@ struct SectionHeatedDiscipline: View {
             .padding(.horizontal, 16)
         }
 
-        if !mindInsightBody.isEmpty {
+        // Dedup: when the breakdown card above already shows the worst
+        // trigger, the full-mode callout would repeat the same sentence
+        // verbatim. The insight renders once.
+        if !mindInsightBody.isEmpty, !triggerShownInBreakdownCard {
             Spacer().frame(height: 24)
             if isSnapshot {
                 InsightCallout(

@@ -123,6 +123,14 @@ final class BetAutopsyAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
     /// after auth completes. (report_ready additionally completes a
     /// pending unlock inside DeepLinkRouter.consume.)
     private func parseAndStashReportId(userInfo: [AnyHashable: Any]) {
+        // The +30 cool-off is a re-open, not a report fetch: it carries no
+        // report_id. Route it to the re-engage router so TodayView can
+        // re-present the check-in, then return before the report-id path.
+        if let kind = userInfo["betautopsy.kind"] as? String, kind == "prebet_cooloff" {
+            PreBetReengageRouter.shared.requestReopen()
+            return
+        }
+
         guard let kind = userInfo["betautopsy.kind"] as? String,
               kind == "heated_session" || kind == "report_ready",
               let reportId = userInfo["betautopsy.report_id"] as? String

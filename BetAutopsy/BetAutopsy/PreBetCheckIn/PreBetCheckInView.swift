@@ -21,6 +21,10 @@ struct PreBetCheckInView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var stakeFocused: Bool
 
+    // Deep-link to the report section that proves a grounded flag.
+    @State private var showingReport = false
+    @State private var deepLinkSection: String?
+
     #if DEBUG
     @State private var showDebugMenu = false
     #endif
@@ -41,21 +45,21 @@ struct PreBetCheckInView: View {
             VStack(spacing: 0) {
                 headerBar
 
-                if let err = coordinator.lastError {
-                    errorBanner(err)
-                }
-
                 Group {
                     switch coordinator.phase {
                     case .input:
                         inputForm
-                    case .scoring:
-                        scoringState
-                    case .result(let response):
-                        resultView(response)
+                    case .read(let read, let enriched):
+                        readView(read, enriched: enriched)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .fullScreenCover(isPresented: $showingReport) {
+            if let report = ReportStore.shared.reports.first {
+                ReportScrollContainer(report: report, initialSectionId: deepLinkSection)
+                    .preferredColorScheme(.dark)
             }
         }
         // The decimal pad has no return key, and ToolbarItem(.keyboard)
@@ -242,7 +246,9 @@ struct PreBetCheckInView: View {
                     "bet_type":     coordinator.betType.rawValue
                 ]
             )
-            Task { await coordinator.submit() }
+            // Instant: computes the on-device read and swaps the phase
+            // synchronously; the server enrichment fires behind it.
+            coordinator.submit()
         } label: {
             Text("Check before I bet")
                 .font(.system(size: 16, weight: .semibold))
@@ -255,79 +261,40 @@ struct PreBetCheckInView: View {
         .disabled(!canSubmit)
     }
 
-    // MARK: - Error banner
+    // MARK: - Read (instant hero + grounded flags + neutral CTAs)
 
     @ViewBuilder
-    private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(DS.Color.V3.Severity.red)
-            Text(message)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(DS.Color.V3.textPrimary)
-                .multilineTextAlignment(.leading)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(DS.Color.V3.Severity.red.opacity(0.12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(DS.Color.V3.Severity.red.opacity(0.45), lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-    }
-
-    // MARK: - Scoring
-
-    private var scoringState: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .tint(DS.Color.V3.ctaText)
-                .scaleEffect(1.2)
-            Text("Reading your patterns…")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(DS.Color.V3.textSecondary)
-        }
-    }
-
-    // MARK: - Result
-
-    @ViewBuilder
-    private func resultView(_ response: PreBetCheckInResponse) -> some View {
-        let scoreColor = DS.Color.V3.Severity.zoneColor(
-            forScore: response.betQualityScore,
-            higherIsWorse: false
-        )
-
+    private func readView(_ read: LocalBehavioralRead, enriched: PreBetCheckInResponse?) -> some View {
         ScrollView {
             VStack(spacing: 24) {
-                scoreHero(response: response, color: scoreColor)
+                readHero(read)
 
-                Text(response.summary)
-                    .font(.custom("Georgia-Italic", size: 16))
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                // Server prose enriches the read once it lands. The local
+                // read is the product; this is additive and may never arrive.
+                if let summary = enriched?.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.custom("Georgia-Italic", size: 16))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
 
-                if !response.flags.isEmpty {
+                if !read.flags.isEmpty {
                     VStack(spacing: 10) {
-                        ForEach(response.flags) { flag in
-                            FlagRow(flag: flag)
+                        ForEach(read.flags) { flag in
+                            GroundedFlagRow(flag: flag) { tapped in
+                                guard let section = tapped.sectionId else { return }
+                                deepLinkSection = section
+                                showingReport = true
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
                 }
 
-                VStack(spacing: 10) {
-                    primaryCTA(response.recommendation)
-                    secondaryCTA
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                ctaStack(read)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
 
                 Spacer(minLength: 24)
             }
@@ -335,75 +302,86 @@ struct PreBetCheckInView: View {
         }
     }
 
-    private func scoreHero(response: PreBetCheckInResponse, color: Color) -> some View {
-        VStack(spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(response.betQualityScore)")
-                    .font(.system(size: 72, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(color)
-                Text("/100")
-                    .font(.system(size: 22, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(DS.Color.V3.textTertiary)
-            }
-            Text("BET QUALITY")
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1.6)
-                .foregroundStyle(DS.Color.V3.textTertiary)
-        }
-    }
-
-    private func primaryCTA(_ recommendation: PreBetRecommendation) -> some View {
-        let (title, tint, signal, outcome): (String, Color, String, CheckInOutcome)
-        switch recommendation {
-        case .waitThirty:
-            title   = "Wait 30 min"
-            tint    = DS.Color.V3.Severity.yellow
-            signal  = "prebet.waited"
-            outcome = .waited
-        case .placeBet:
-            title   = "Go place it"
-            tint    = DS.Color.V3.Severity.green
-            signal  = "prebet.placed_bet"
-            outcome = .placedBet
-        case .placeAnyway:
-            title   = "Place anyway"
-            tint    = DS.Color.V3.textSecondary
-            signal  = "prebet.placed_anyway"
-            outcome = .placedAnyway
-        }
-
-        return Button {
-            Analytics.signal(signal)
-            coordinator.submitOutcome(outcome)
-            dismiss()
-        } label: {
-            Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(DS.Color.V3.canvasGradientEnd)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(tint)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-    }
-
-    private var secondaryCTA: some View {
-        Button {
-            Analytics.signal("prebet.placed_anyway")
-            coordinator.submitOutcome(.placedAnyway)
-            dismiss()
-        } label: {
-            Text("Place anyway")
-                .font(.system(size: 15, weight: .medium))
+    private func readHero(_ read: LocalBehavioralRead) -> some View {
+        let color = Self.toneColor(read.tone)
+        return VStack(spacing: 10) {
+            Text(Self.toneLabel(read.tone))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(color)
+            Text(read.headline)
+                .font(.system(size: 25, weight: .bold))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(read.subtext)
+                .font(.system(size: 15, weight: .regular))
                 .foregroundStyle(DS.Color.V3.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
-                )
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - CTAs (neutral, record-only positive)
+
+    @ViewBuilder
+    private func ctaStack(_ read: LocalBehavioralRead) -> some View {
+        VStack(spacing: 10) {
+            if read.leadsWithPause {
+                ctaButton("Wait 30 minutes", style: .primary, outcome: .waited)
+                ctaButton("Log this bet", style: .secondary, outcome: .placedBet)
+            } else {
+                ctaButton("Log this bet", style: .primary, outcome: .placedBet)
+                ctaButton("Wait 30 minutes", style: .secondary, outcome: .waited)
+            }
+        }
+    }
+
+    private enum CTAStyle { case primary, secondary }
+
+    @ViewBuilder
+    private func ctaButton(_ title: String, style: CTAStyle, outcome: CheckInOutcome) -> some View {
+        Button {
+            Analytics.signal(outcome == .waited ? "prebet.waited" : "prebet.placed_bet")
+            coordinator.decide(outcome)
+            dismiss()
+        } label: {
+            switch style {
+            case .primary:
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.canvasGradientEnd)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(DS.Color.Brand.yellow)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            case .secondary:
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(DS.Color.V3.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+                    )
+            }
+        }
+    }
+
+    private static func toneLabel(_ tone: ReadTone) -> String {
+        switch tone {
+        case .heated:   return "Heated"
+        case .elevated: return "Elevated"
+        case .normal:   return "Normal"
+        case .calm:     return "Calm"
+        }
+    }
+
+    private static func toneColor(_ tone: ReadTone) -> Color {
+        switch tone {
+        case .heated:   return DS.Color.V3.Severity.red
+        case .elevated: return DS.Color.V3.Severity.orange
+        case .normal:   return DS.Color.V3.textSecondary
+        case .calm:     return DS.Color.V3.Severity.green
         }
     }
 }
@@ -448,7 +426,11 @@ private struct StakeField: View {
                     .monospacedDigit()
                     .foregroundStyle(DS.Color.V3.textPrimary)
                     .onChange(of: text) { _, new in
-                        if let d = Decimal(string: new), d >= 0 {
+                        // Locale-aware: a `.decimalPad` emits the user's
+                        // locale separator (comma in much of the world);
+                        // Decimal(string:) is US-only and would silently
+                        // zero a "12,50" stake. See DecimalStakeParsing.
+                        if let d = Decimal.parsingStake(new), d >= 0 {
                             stake = d
                         } else if new.isEmpty {
                             stake = 0
@@ -515,37 +497,58 @@ private struct OddsField: View {
     }
 }
 
-// MARK: - FlagRow
+// MARK: - GroundedFlagRow
 
-private struct FlagRow: View {
-    let flag: PreBetCheckInFlag
+/// A grounded read flag. When `flag.sectionId` is present the row is
+/// tappable and deep-links to the report section that proves it (a
+/// chevron signals the affordance); otherwise it renders inert.
+private struct GroundedFlagRow: View {
+    let flag: GroundedFlag
+    let onTap: (GroundedFlag) -> Void
+
+    private var isLinked: Bool { flag.sectionId != nil }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(severityColor)
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
+        Button {
+            onTap(flag)
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Circle()
+                    .fill(severityColor)
+                    .frame(width: 8, height: 8)
+                    .padding(.top, 6)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(flag.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(DS.Color.V3.textPrimary)
-                Text(flag.detail)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(DS.Color.V3.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(flag.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .multilineTextAlignment(.leading)
+                    Text(flag.detail)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                if isLinked {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(DS.Color.V3.textTertiary)
+                        .padding(.top, 4)
+                }
             }
-
-            Spacer(minLength: 0)
+            .padding(14)
+            .background(DS.Color.V3.surfaceCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
-        .padding(14)
-        .background(DS.Color.V3.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .buttonStyle(.plain)
+        .disabled(!isLinked)
     }
 
     private var severityColor: Color {

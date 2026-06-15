@@ -20,6 +20,8 @@ struct TodayView: View {
     @AppStorage("userArchetypeColorHex") private var userArchetypeColorHex: String = ""
 
     @State private var reportStore = ReportStore.shared
+    @State private var checkInHistory = PreBetCheckInHistory.shared
+    @State private var reengage = PreBetReengageRouter.shared
     @State private var showingCheckIn = false
     @State private var showingSettings = false
 
@@ -94,6 +96,11 @@ struct TodayView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
 
+                    if checkInHistory.hasHistory {
+                        calmDecisionsCard
+                            .padding(.horizontal, 16)
+                    }
+
                     if rangeCardHasContent {
                         rangeCard
                             .padding(.horizontal, 16)
@@ -119,6 +126,20 @@ struct TodayView: View {
         .sheet(isPresented: $showingCheckIn) {
             PreBetCheckInView()
                 .preferredColorScheme(.dark)
+        }
+        // A cool-off notification tap re-opens the check-in so the user
+        // lands back where the decision lives, not on a cold Today screen.
+        .onChange(of: reengage.pendingReopen) { _, reopen in
+            if reopen {
+                showingCheckIn = true
+                reengage.consume()
+            }
+        }
+        .task {
+            if reengage.pendingReopen {
+                showingCheckIn = true
+                reengage.consume()
+            }
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
@@ -161,6 +182,42 @@ struct TodayView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Calm-decisions counter
+
+    /// Closes the local loop: the user watches their own pauses add up.
+    /// Sourced entirely from on-device PreBetCheckInHistory, shown only
+    /// once at least one check-in exists.
+    private var calmDecisionsCard: some View {
+        HStack(spacing: 14) {
+            Text("\(checkInHistory.totalCheckIns)")
+                .font(.system(size: 28, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(DS.Color.Brand.yellow)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Bets checked before placing")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textPrimary)
+
+                if checkInHistory.steppedBackCount > 0 {
+                    Text("You stepped back \(checkInHistory.steppedBackCount) \(checkInHistory.steppedBackCount == 1 ? "time" : "times").")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(DS.Color.V3.textSecondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Color.V3.surfaceCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Case header

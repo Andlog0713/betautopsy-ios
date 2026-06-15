@@ -22,8 +22,13 @@ struct ReportScrollContainer: View {
     @State private var topVisibleSectionId: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(report: AutopsyReport) {
+    /// When set (e.g. from a pre-bet grounded-flag deep link), the reader
+    /// scrolls to this section anchor once the full body is present.
+    private let initialSectionId: String?
+
+    init(report: AutopsyReport, initialSectionId: String? = nil) {
         _viewModel = StateObject(wrappedValue: ReportScrollViewModel(initial: report))
+        self.initialSectionId = initialSectionId
     }
 
     private var isSnapshot: Bool { viewModel.report.reportType == "snapshot" }
@@ -87,6 +92,15 @@ struct ReportScrollContainer: View {
                 // snapshot->full swap (new id, already full -> no-op).
                 .task(id: viewModel.report.id) {
                     await viewModel.ensureFullBody()
+                    // Best-effort deep-link scroll: once the body is present,
+                    // jump to the requested section. A no-op if the anchor is
+                    // not rendered (snapshot/slim) - the report still opens.
+                    if let target = initialSectionId {
+                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo(target, anchor: .top)
+                        }
+                    }
                 }
             }
 

@@ -3,8 +3,17 @@
 //  BetAutopsy
 //
 //  @Observable state machine for the pre-bet check-in flow. Owned as
-//  @State inside PreBetCheckInView (lifetime = sheet lifetime), so
-//  each open of the sheet starts fresh in .input.
+//  @State inside PreBetCheckInView (lifetime = sheet lifetime), so each
+//  open of the sheet starts fresh in .input.
+//
+//  In-the-moment rework: submit() no longer awaits the network behind a
+//  spinner. It computes an instant on-device read from the cached report
+//  (PreBetLocalReadEngine) and shows it in 0ms, then enriches with the
+//  server response behind the read. A server failure is silent - the
+//  local read is the product, the server is an enhancement. Every CTA
+//  decision writes a LOCAL history record (PreBetCheckInHistory)
+//  regardless of the network, and the step-back decision schedules the
+//  +30 cool-off notification.
 //
 
 import SwiftUI
@@ -15,16 +24,19 @@ import Observation
 final class PreBetCheckInCoordinator {
     enum Phase: Equatable {
         case input
-        case scoring
-        case result(PreBetCheckInResponse)
+        /// Instant local read is the hero. `enriched` is nil until the
+        /// server responds (and stays nil if it fails); when present it
+        /// adds the server's prose summary behind the read.
+        case read(LocalBehavioralRead, enriched: PreBetCheckInResponse?)
 
         static func == (lhs: Phase, rhs: Phase) -> Bool {
             switch (lhs, rhs) {
-            case (.input, .input), (.scoring, .scoring):
+            case (.input, .input):
                 return true
-            case let (.result(a), .result(b)):
-                return a.betQualityScore == b.betQualityScore
-                    && a.flags.map(\.id) == b.flags.map(\.id)
+            case let (.read(a, ea), .read(b, eb)):
+                return a.tone == b.tone
+                    && a.headline == b.headline
+                    && ea?.checkInId == eb?.checkInId
             default:
                 return false
             }
@@ -37,70 +49,61 @@ final class PreBetCheckInCoordinator {
     var odds: Int = -110
     var betType: BetType = .moneyline
 
-    /// Set on a failed `score` call, displayed as a banner above the
-    /// input form. Cleared at the start of every `submit`.
-    var lastError: String?
-
     #if DEBUG
-    /// DEBUG-only override for time-dependent flag testing. Surfaced
-    /// via the hidden 4-tap affordance on the input screen.
+    /// DEBUG-only override for time-dependent read testing. Surfaced via
+    /// the hidden 4-tap affordance on the input screen.
     var debugNowOverride: Date? = nil
     #endif
 
-    func submit() async {
-        lastError = nil
-        phase = .scoring
+    // MARK: - Submit (instant read, enrich behind)
 
+    /// Synchronous from the call site. Computes the instant read and swaps
+    /// the phase immediately, then fires the server enrichment in a Task.
+    func submit() {
         let placedAt = Date()
-        let request: PreBetCheckInRequest = {
-            #if DEBUG
-            if let override = debugNowOverride {
-                // 6-param memberwise init: real placedAt on the wire
-                // (so backend recency calculations stay honest) plus
-                // an explicit localHour from the override (so the
-                // late-night flag fires for testing regardless of
-                // wall-clock time).
-                return PreBetCheckInRequest(
-                    sport: sport,
-                    stake: stake,
-                    odds: odds,
-                    betType: betType,
-                    placedAt: placedAt,
-                    localHour: Calendar.current.component(.hour, from: override)
-                )
-            }
-            #endif
-            // Production path: 5-param convenience init derives
-            // localHour from placedAt.
-            return PreBetCheckInRequest(
-                sport: sport,
-                stake: stake,
-                odds: odds,
-                betType: betType,
-                placedAt: placedAt
-            )
-        }()
+        let localHour = resolvedLocalHour(placedAt: placedAt)
 
+        let read = PreBetLocalReadEngine.read(
+            report: ReportStore.shared.reports.first,
+            sport: sport,
+            stake: stake,
+            odds: odds,
+            betType: betType,
+            localHour: localHour
+        )
+        phase = .read(read, enriched: nil)
+
+        let request = PreBetCheckInRequest(
+            sport: sport,
+            stake: stake,
+            odds: odds,
+            betType: betType,
+            placedAt: placedAt,
+            localHour: localHour
+        )
+
+        Task { await enrich(request) }
+    }
+
+    private func enrich(_ request: PreBetCheckInRequest) async {
         do {
             let response = try await PreBetCheckInClient.shared.score(request)
-            self.phase = .result(response)
+            // Only fold the enrichment in if the user is still on the read
+            // (they may have decided and dismissed). Keep the same read.
+            if case .read(let read, _) = phase {
+                phase = .read(read, enriched: response)
+            }
         } catch is CancellationError {
-            // User dismissed the modal mid-request. Silent return.
             return
         } catch let urlError as URLError where urlError.code == .cancelled {
-            // URLSession's cancellation flavor; same silent path.
             return
         } catch let error as PreBetCheckInError {
-            self.lastError = error.errorDescription
-                             ?? "Something went wrong. Try again."
-            self.phase = .input
+            // Silent at the UI level: the local read stands on its own.
             Analytics.signal(
                 "prebet.api_failed",
                 parameters: ["error_kind": String(describing: error)]
             )
         } catch {
-            self.lastError = "Something went wrong. Try again."
-            self.phase = .input
             Analytics.signal(
                 "prebet.api_failed",
                 parameters: ["error_kind": "unknown"]
@@ -108,28 +111,44 @@ final class PreBetCheckInCoordinator {
         }
     }
 
-    func reset() {
-        phase = .input
-        stake = 0
-        odds = -110
-        lastError = nil
+    // MARK: - Decision (CTA)
+
+    /// Records the user's in-the-moment decision. Writes the LOCAL history
+    /// mirror unconditionally (the loop must not depend on the network),
+    /// schedules or cancels the +30 cool-off, and posts the outcome to the
+    /// server only when enrichment supplied a checkInId.
+    func decide(_ outcome: CheckInOutcome) {
+        guard case .read(let read, let enriched) = phase else { return }
+
+        let now = Date()
+        PreBetCheckInHistory.shared.record(
+            id: UUID().uuidString,
+            date: now,
+            sport: sport,
+            stake: stake,
+            tone: read.tone,
+            outcome: outcome
+        )
+
+        if outcome == .waited {
+            PreBetCoolOffScheduler.schedule(stake: stake, sport: sport, betType: betType)
+        } else {
+            // Logged the bet (or came back via the cool-off and logged it):
+            // clear any pending cool-off so it does not fire afterward.
+            PreBetCoolOffScheduler.cancel()
+        }
+
+        guard let checkInId = enriched?.checkInId else { return }
+        postOutcome(checkInId: checkInId, outcome: outcome)
     }
 
-    /// Fires the user's CTA decision against /api/check-in/outcome.
-    /// Synchronous from the call site (no await), the network round-
-    /// trip happens inside a detached Task. Failures are silent at
-    /// the UI level and surface only via telemetry — outcome posting
-    /// is a behavioral-data capture, not a UX-critical request.
-    ///
-    /// Captures `checkInId` locally before the Task closure because
-    /// dismiss() runs synchronously after this method on the CTA
-    /// path; the sheet starts tearing down and the coordinator's
-    /// `phase` is no longer guaranteed reachable from inside the
-    /// Task. Local capture pins the value.
-    func submitOutcome(_ outcome: CheckInOutcome) {
-        guard case .result(let response) = phase else { return }
-        let checkInId = response.checkInId
-
+    /// Fires the server outcome post against an existing check-in. Failures
+    /// are silent at the UI level and surface only via telemetry - outcome
+    /// posting is behavioral-data capture, not a UX-critical request.
+    /// `checkInId` is captured locally because dismiss() runs synchronously
+    /// after this on the CTA path and the coordinator's `phase` is no longer
+    /// guaranteed reachable from inside the Task.
+    private func postOutcome(checkInId: String, outcome: CheckInOutcome) {
         Task {
             do {
                 try await PreBetCheckInClient.shared.submitOutcome(
@@ -162,5 +181,22 @@ final class PreBetCheckInCoordinator {
                 )
             }
         }
+    }
+
+    func reset() {
+        phase = .input
+        stake = 0
+        odds = -110
+    }
+
+    // MARK: - Helpers
+
+    private func resolvedLocalHour(placedAt: Date) -> Int {
+        #if DEBUG
+        if let override = debugNowOverride {
+            return Calendar.current.component(.hour, from: override)
+        }
+        #endif
+        return Calendar.current.component(.hour, from: placedAt)
     }
 }

@@ -68,13 +68,13 @@ struct SectionAction: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Snapshot terminal stack (Phase 1): repeated terminal CTA above
-            // the rich snapshotPaywallCard (distinct canonical copy).
+            // Snapshot conversion moment: the rich snapshotPaywallCard only.
+            // The terminal RepeatedCTABlock that used to sit directly above
+            // it was a redundant second full-report CTA (two solid-yellow
+            // buttons 24pt apart), part of the snapshot CTA pile-up above the
+            // warning-signs checklist. Removed; the paywall card is the
+            // canonical end-of-report CTA and keeps the same analytics source.
             if report.reportType == "snapshot" {
-                RepeatedCTABlock(variant: .terminal, onTap: { onPaywallTap("section_action_main_cta") })
-                    .padding(.horizontal, 16)
-
-                Spacer().frame(height: 24)
                 snapshotPaywallCard
                     .padding(.horizontal, 16)
             }

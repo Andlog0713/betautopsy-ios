@@ -342,6 +342,20 @@ struct PaywallView: View {
                 .foregroundStyle(DS.Color.V3.textTertiary)
                 .multilineTextAlignment(.center)
 
+            // Surface the leave-and-return guarantee from the moment payment
+            // is confirmed, so "Close" reads as safe, not as quitting. This
+            // is the truthful, resume-backed reassurance: the report
+            // materializes server-side and the resume path lands it in the
+            // Reports tab. NOT a push promise (no report_ready push is live
+            // on the backend yet).
+            Text("You can close this and keep using the app. It will be in your Reports tab when it's ready.")
+                .font(.system(size: 13))
+                .foregroundStyle(DS.Color.V3.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+
             Button("Close") { dismiss() }
                 .font(.system(size: 14))
                 .foregroundStyle(DS.Color.V3.textTertiary)

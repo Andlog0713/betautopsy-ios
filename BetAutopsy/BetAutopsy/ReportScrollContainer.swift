@@ -8,10 +8,20 @@
 //  onPaywallTap with an analytics source string), the xmark dismiss, and
 //  the D14 in-place snapshot->full swap via ReportScrollViewModel.
 //
-//  Scroll position preservation (the D14 risk surface): each section
-//  reports its top offset in the scroll coordinate space; the container
-//  tracks the topmost-visible section and, after a swap grows section
-//  heights, re-anchors to it so the user stays where they were reading.
+//  PROMPT 4 / STAGE A: formalized as a three-layer shell -
+//    1. pinned background  (canvas gradient, ignoresSafeArea)
+//    2. scrolling content  (ScrollView + LazyVStack)
+//    3. pinned chrome      (StatusBarScrim, ChapterRail, dismiss xmark)
+//  all ZStack siblings, so the chrome never scrolls with the body.
+//
+//  Scroll-position source migrated from the per-section
+//  SectionTopPreferenceKey machinery to the native scrollPosition(id:)
+//  API (scrollTargetLayout marks the candidate children). currentSectionId
+//  feeds the ChapterRail highlight. The D14 swap RE-ANCHOR is unchanged in
+//  ACTION: it still fires proxy.scrollTo to the top section on lastSwapAt
+//  (now sourced from currentSectionId instead of the preference key), so
+//  the load-bearing "stay where you were reading across the snapshot->full
+//  height growth" behavior is preserved verbatim - only its input changed.
 //
 
 import SwiftUI
@@ -19,29 +29,61 @@ import SwiftUI
 struct ReportScrollContainer: View {
     @StateObject private var viewModel: ReportScrollViewModel
     @State private var showingPaywall = false
-    @State private var topVisibleSectionId: String?
+    /// Top-of-viewport section id from scrollPosition(id:). Drives the
+    /// ChapterRail highlight and the lastSwapAt re-anchor.
+    @State private var currentSectionId: String?
+    @State private var railVisible = true
+    /// Monotonic token so a newer scroll cancels an older pending hide
+    /// without juggling Task handles.
+    @State private var railHideToken = 0
     @Environment(\.dismiss) private var dismiss
 
     /// When set (e.g. from a pre-bet grounded-flag deep link), the reader
     /// scrolls to this section anchor once the full body is present.
     private let initialSectionId: String?
 
-    init(report: AutopsyReport, initialSectionId: String? = nil) {
+    /// DEBUG-only: keep the ChapterRail pinned visible so the harness can
+    /// screenshot it deterministically (auto-hide would race the capture -
+    /// the #40 no-op lesson). Never set in production call sites.
+    private let debugKeepRailVisible: Bool
+
+    init(
+        report: AutopsyReport,
+        initialSectionId: String? = nil,
+        debugKeepRailVisible: Bool = false
+    ) {
         _viewModel = StateObject(wrappedValue: ReportScrollViewModel(initial: report))
         self.initialSectionId = initialSectionId
+        self.debugKeepRailVisible = debugKeepRailVisible
     }
 
     private var isSnapshot: Bool { viewModel.report.reportType == "snapshot" }
 
+    /// Section ids actually in the scroll content right now, top to
+    /// bottom. Just the verdict while the body lazy-fetches; all seven
+    /// once full. The ChapterRail only offers dots for these.
+    private var presentSectionIds: [String] {
+        var ids = ["section_verdict"]
+        if viewModel.bodyState == .full {
+            ids += [
+                "section_findings", "section_heated_discipline",
+                "section_patterns_timing", "section_sports",
+                "section_protocol", "section_action"
+            ]
+        }
+        return ids
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
+            // Layer 1: pinned background.
             DS.Color.V3.canvasGradient.ignoresSafeArea()
 
+            // Layer 2: scrolling content.
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 32) {
                         SectionVerdict(report: viewModel.report, onPaywallTap: handlePaywallTap)
-                            .trackSectionTop("section_verdict")
                             .id("section_verdict")
 
                         if isSnapshot {
@@ -69,17 +111,26 @@ struct ReportScrollContainer: View {
                                 .id("body_retry")
                         }
                     }
+                    .scrollTargetLayout()
                     .padding(.vertical, 32)
                 }
-                .coordinateSpace(name: Self.scrollSpace)
-                .onPreferenceChange(SectionTopPreferenceKey.self) { tops in
-                    topVisibleSectionId = Self.topmostVisible(tops)
+                .scrollPosition(id: $currentSectionId, anchor: .top)
+                .onScrollPhaseChange { _, phase in
+                    if phase == .idle {
+                        scheduleRailHide()
+                    } else {
+                        showRail()
+                    }
                 }
                 .onChange(of: viewModel.lastSwapAt) { _, _ in
                     // After the swap, section heights grow (locked dollars
                     // reveal, hidden cards appear). Re-anchor to whatever
                     // section was topmost-visible so the reader stays put.
-                    guard let anchor = topVisibleSectionId else { return }
+                    // Unchanged from the preference-key era except the anchor
+                    // source (currentSectionId). scrollPosition(id:) also
+                    // maintains the pinned id across content growth, so this
+                    // is belt-and-suspenders, not the sole mechanism.
+                    guard let anchor = currentSectionId else { return }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             proxy.scrollTo(anchor, anchor: .top)
@@ -102,18 +153,56 @@ struct ReportScrollContainer: View {
                         }
                     }
                 }
+                // Layer 3: pinned chrome (inside ScrollViewReader so the rail
+                // jump can use the same proxy; positioned by the ZStack, not
+                // the scroll content).
+                .overlay {
+                    ZStack(alignment: .topTrailing) {
+                        ChapterRail(
+                            sectionIds: presentSectionIds,
+                            currentId: currentSectionId,
+                            isVisible: railVisible || debugKeepRailVisible,
+                            onJump: { id in
+                                showRail()
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(id, anchor: .top)
+                                }
+                            }
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+
+                        StatusBarScrim()
+                        dismissButton
+                    }
+                    .allowsHitTesting(true)
+                }
             }
-
-            // Scrim under the floating xmark: scrolled report content fades
-            // out beneath the status bar instead of colliding with the clock
-            // (TESTFLIGHT-MIN safe-area audit). Sits below dismissButton in
-            // the ZStack so the button stays fully legible.
-            StatusBarScrim()
-
-            dismissButton
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView(snapshotReportId: viewModel.report.id)
+        }
+        .onAppear {
+            // Rail shows on open, then hides after the idle window unless
+            // the user scrolls (which re-arms it).
+            scheduleRailHide()
+        }
+    }
+
+    // MARK: - ChapterRail visibility
+
+    private func showRail() {
+        railVisible = true
+        railHideToken &+= 1
+    }
+
+    private func scheduleRailHide() {
+        guard !debugKeepRailVisible else { return }
+        railVisible = true
+        railHideToken &+= 1
+        let token = railHideToken
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            if token == railHideToken { railVisible = false }
         }
     }
 
@@ -140,7 +229,6 @@ struct ReportScrollContainer: View {
     @ViewBuilder
     private var fullBodySections: some View {
         SectionFindings(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_findings")
             .id("section_findings")
 
         if isSnapshot {
@@ -150,23 +238,18 @@ struct ReportScrollContainer: View {
         }
 
         SectionHeatedDiscipline(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_heated_discipline")
             .id("section_heated_discipline")
 
         SectionPatternsTiming(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_patterns_timing")
             .id("section_patterns_timing")
 
         SectionSports(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_sports")
             .id("section_sports")
 
         SectionProtocol(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_protocol")
             .id("section_protocol")
 
         SectionAction(report: viewModel.report, onPaywallTap: handlePaywallTap)
-            .trackSectionTop("section_action")
             .id("section_action")
         // Terminal RepeatedCTABlock lives INSIDE SectionAction (Phase 1).
     }
@@ -213,56 +296,6 @@ struct ReportScrollContainer: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 16)
-    }
-
-    // MARK: - Scroll position tracking
-
-    static let scrollSpace = "reportScroll"
-
-    /// The section whose top sits at or just above the viewport top, i.e.
-    /// the one currently filling the top of the screen. Falls back to the
-    /// topmost section when scrolled to the very start (all tops > 0).
-    private static func topmostVisible(_ tops: [String: CGFloat]) -> String? {
-        guard !tops.isEmpty else { return nil }
-        // Tops are minY in the scroll coordinate space: <= 0 means scrolled
-        // past that section's top. Pick the greatest minY among those <=
-        // a small threshold (closest to the top line from above).
-        let threshold: CGFloat = 1
-        let aboveLine = tops.filter { $0.value <= threshold }
-        if let anchor = aboveLine.max(by: { $0.value < $1.value }) {
-            return anchor.key
-        }
-        // Nothing scrolled past yet: anchor to the topmost (smallest minY).
-        return tops.min(by: { $0.value < $1.value })?.key
-    }
-}
-
-// MARK: - Section top tracking plumbing
-
-private struct SectionTopPreferenceKey: PreferenceKey {
-    static let defaultValue: [String: CGFloat] = [:]
-    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
-        value.merge(nextValue()) { _, new in new }
-    }
-}
-
-private struct SectionTopTracker: ViewModifier {
-    let id: String
-    func body(content: Content) -> some View {
-        content.background(
-            GeometryReader { geo in
-                Color.clear.preference(
-                    key: SectionTopPreferenceKey.self,
-                    value: [id: geo.frame(in: .named(ReportScrollContainer.scrollSpace)).minY]
-                )
-            }
-        )
-    }
-}
-
-private extension View {
-    func trackSectionTop(_ id: String) -> some View {
-        modifier(SectionTopTracker(id: id))
     }
 }
 

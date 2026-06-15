@@ -34,6 +34,7 @@ enum DebugVisualHarness {
         case scrim = "-ScrimHarness"
         case reader = "-ReaderHarness"
         case checkIn = "-CheckInHarness"
+        case chapterRail = "-ChapterRailHarness"
     }
 
     static var active: Kind? {
@@ -55,6 +56,14 @@ struct DebugVisualHarnessRoot: View {
             ReportScrollContainer(report: MockReport.heatedBettor)
         case .checkIn:
             checkInHarness
+        case .chapterRail:
+            // Full reader with the rail pinned visible so the screenshot
+            // captures it deterministically (auto-hide would race the
+            // capture). debugKeepRailVisible is DEBUG-only.
+            ReportScrollContainer(
+                report: MockReport.heatedBettor,
+                debugKeepRailVisible: true
+            )
         }
     }
 

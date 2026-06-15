@@ -24,6 +24,23 @@ enum MockReport {
         )
     }
 
+    /// Snapshot twin of heatedBettor for cover/shell harnesses. Reuses the
+    /// same analysis; reportType "snapshot" drives the snapshot render paths
+    /// (cover blurs the net, hides grade/percentile; sections lock).
+    static var heatedBettorSnapshot: AutopsyReport {
+        AutopsyReport(
+            id: "00000000-0000-4000-8000-000000000002",
+            caseNumber: "0247",
+            reportType: "snapshot",
+            betCountAnalyzed: 247,
+            dateRangeStart: "2025-11-14",
+            dateRangeEnd: "2026-05-10",
+            createdAt: "2026-05-10T22:00:00Z",
+            analysis: analysis,
+            isFullBody: true
+        )
+    }
+
     private static let analysis = AutopsyAnalysis(
         schemaVersion: 1,
         summary: AutopsySummary(

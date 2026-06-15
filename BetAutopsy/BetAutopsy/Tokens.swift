@@ -93,6 +93,12 @@ extension DS.Color {
         static let textTertiary  = SwiftUI.Color.white.opacity(0.5)
         static let textWatermark = SwiftUI.Color.white.opacity(0.32)
 
+        // Cover bone (Prompt 4 Stage B): the off-white the report cover
+        // sets the archetype spine + net dollar in. Deliberately not pure
+        // white (the brand forbids #FFFFFF text); this is the spec's
+        // #EDEDF3 editorial off-white for the highest-impact screen.
+        static let bone = SwiftUI.Color(hex: "#EDEDF3")
+
         // Icon stroke (chevrons, info glyph)
         static let iconStroke = SwiftUI.Color(hex: "#C0C5CE")
 

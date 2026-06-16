@@ -24,7 +24,12 @@ struct UploadProgressView: View {
                     .font(.system(size: 10, weight: .regular).monospacedDigit())
                     .tracking(10 * 0.15)
                     .foregroundStyle(DS.Color.V3.textTertiary)
-                    .padding(.top, 60)
+                    // Stage D (#40 deferred): was a fixed .padding(.top, 60)
+                    // magic offset stacked on the safe area. The VStack
+                    // already respects the top safe area (only the gradient
+                    // ignores it), so this is now an intentional token gap
+                    // below the inset.
+                    .padding(.top, DS.Spacing.lg)
 
                 Spacer()
 

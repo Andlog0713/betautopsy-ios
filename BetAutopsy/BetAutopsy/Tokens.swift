@@ -90,7 +90,15 @@ extension DS.Color {
         // Text (V3 uses white-with-opacity ladder, NOT V2's off-white)
         static let textPrimary   = SwiftUI.Color.white
         static let textSecondary = SwiftUI.Color.white.opacity(0.7)
-        static let textTertiary  = SwiftUI.Color.white.opacity(0.5)
+        // Stage D contrast pass: 0.5 -> 0.6. At 0.5, tertiary on the
+        // lightest raised surface measured ~4.4:1, just under WCAG AA
+        // (4.5:1 for the small caps labels it carries). 0.6 clears ~5-6:1
+        // on every surface (darkest canvas through surfaceRaised) while
+        // staying clearly below secondary (0.7), so the hierarchy and the
+        // calm dark aesthetic hold.
+        static let textTertiary  = SwiftUI.Color.white.opacity(0.6)
+        // Watermark stays faint: decorative only (the BETAUTOPSY ring
+        // watermark, placeholders, disabled), exempt from AA text minimums.
         static let textWatermark = SwiftUI.Color.white.opacity(0.32)
 
         // Cover bone (Prompt 4 Stage B): the off-white the report cover
@@ -144,26 +152,32 @@ extension DS.Color {
 extension DS {
     enum Font {
         enum V3 {
-            // Hero
+            // Stage D Dynamic Type: tokens are built on semantic text
+            // styles (.system(.style).weight()) so they SCALE with the
+            // user's text-size setting while keeping their default point
+            // sizes within ~1pt. heroNumber is the deliberate exception -
+            // it stays a fixed 86pt display number (the BetIQ ring is a
+            // fixed-geometry circle; a scaling hero number would break it),
+            // capped at the call site's container.
             static let heroNumber        = SwiftUI.Font.system(size: 86, weight: .bold).monospacedDigit()
-            static let heroMetricLabel   = SwiftUI.Font.system(size: 12, weight: .bold)
-            static let heroBrandWordmark = SwiftUI.Font.system(size: 13, weight: .bold)
+            static let heroMetricLabel   = SwiftUI.Font.system(.caption).weight(.bold)
+            static let heroBrandWordmark = SwiftUI.Font.system(.footnote).weight(.bold)
 
-            // Chapter navigator
-            static let navigatorLabel    = SwiftUI.Font.system(size: 13, weight: .bold)
-            static let navigatorSubtitle = SwiftUI.Font.system(size: 10, weight: .semibold)
+            // Chapter navigator (legacy token names; still used by section subheads)
+            static let navigatorLabel    = SwiftUI.Font.system(.footnote).weight(.bold)
+            static let navigatorSubtitle = SwiftUI.Font.system(.caption2).weight(.semibold)
 
             // Section header
-            static let sectionTitle    = SwiftUI.Font.system(size: 22, weight: .bold)
-            static let sectionSubtitle = SwiftUI.Font.system(size: 11, weight: .regular)
+            static let sectionTitle    = SwiftUI.Font.system(.title2).weight(.bold)
+            static let sectionSubtitle = SwiftUI.Font.system(.caption2)
 
             // Contributor row
-            static let rowCapsLabel = SwiftUI.Font.system(size: 11, weight: .bold)
-            static let rowValue     = SwiftUI.Font.system(size: 17, weight: .bold).monospacedDigit()
+            static let rowCapsLabel = SwiftUI.Font.system(.caption2).weight(.bold)
+            static let rowValue     = SwiftUI.Font.system(.body).weight(.bold).monospacedDigit()
 
             // Insight callout
-            static let insightBody = SwiftUI.Font.system(size: 12.5, weight: .regular)
-            static let ctaText     = SwiftUI.Font.system(size: 11, weight: .bold)
+            static let insightBody = SwiftUI.Font.system(.footnote)
+            static let ctaText     = SwiftUI.Font.system(.caption2).weight(.bold)
         }
     }
 }
@@ -184,10 +198,11 @@ extension DS.Color.V3 {
 }
 
 extension DS.Font.V3 {
-    static let bodyLarge    = SwiftUI.Font.system(size: 17, weight: .regular)
-    static let bodyRegular  = SwiftUI.Font.system(size: 15, weight: .regular)
-    static let buttonLabel  = SwiftUI.Font.system(size: 16, weight: .semibold)
-    static let captionLabel = SwiftUI.Font.system(size: 13, weight: .regular)
+    // Scalable (Stage D): semantic styles, default sizes preserved ~1pt.
+    static let bodyLarge    = SwiftUI.Font.system(.body)
+    static let bodyRegular  = SwiftUI.Font.system(.subheadline)
+    static let buttonLabel  = SwiftUI.Font.system(.callout).weight(.semibold)
+    static let captionLabel = SwiftUI.Font.system(.footnote)
 }
 
 // ─────────────────────────────────────────────────────────────

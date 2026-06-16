@@ -28,6 +28,26 @@ struct SessionTimelineChart: View {
     let timeline: [SessionTimelinePoint]
     let hero: HeroSession
 
+    /// Stage C: when set (the report id) and the hero draw-on hasn't been
+    /// seen for this report, the chart draws on once the first time it
+    /// scrolls into view - the quieter secondary beat (no haptic). nil or
+    /// already-seen renders static. Independent per-report flag from the
+    /// cover money shot.
+    var revealKey: String? = nil
+
+    /// 0 = undrawn, 1 = full. Initialized to 1 (static) unless this is the
+    /// first draw-on for revealKey, so a re-open shows the full chart with
+    /// no empty-frame flash.
+    @State private var drawProgress: CGFloat
+
+    init(timeline: [SessionTimelinePoint], hero: HeroSession, revealKey: String? = nil) {
+        self.timeline = timeline
+        self.hero = hero
+        self.revealKey = revealKey
+        let willDraw = revealKey.map { !RevealFlags.heroSeen($0) } ?? false
+        _drawProgress = State(initialValue: willDraw ? 0 : 1)
+    }
+
     /// Index-keyed wrapper: tOffsetMin is not guaranteed unique.
     private struct Bet: Identifiable {
         let id: Int
@@ -117,6 +137,14 @@ struct SessionTimelineChart: View {
                     .padding(.top, 2)
 
                 chart
+                    // Draw-on: a left-to-right mask reveals the line/area/
+                    // points as drawProgress animates 0->1. Static (=1) shows
+                    // the full plot, no clipping.
+                    .mask(alignment: .leading) {
+                        GeometryReader { geo in
+                            Rectangle().frame(width: geo.size.width * drawProgress)
+                        }
+                    }
                     .padding(.top, 16)
 
                 if !caption.isEmpty {
@@ -126,6 +154,7 @@ struct SessionTimelineChart: View {
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 12)
+                        .opacity(drawProgress)
                 }
             }
             .padding(DS.Spacing.md)
@@ -138,7 +167,27 @@ struct SessionTimelineChart: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilitySummary)
+            // Fires once when the hero first scrolls into view (LazyVStack
+            // realizes it). Guarded by the per-report hero flag so later
+            // opens render static. No haptic - the money shot owns that.
+            .onAppear {
+                guard let key = revealKey,
+                      !RevealFlags.heroSeen(key),
+                      drawProgress < 1 else { return }
+                withAnimation(.easeOut(duration: 0.7 * Self.revealScale)) {
+                    drawProgress = 1
+                }
+                RevealFlags.markHeroSeen(key)
+            }
         }
+    }
+
+    private static var revealScale: Double {
+        #if DEBUG
+        return DebugReveal.scale
+        #else
+        return 1
+        #endif
     }
 
     private var chart: some View {

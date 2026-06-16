@@ -25,11 +25,39 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct ReportCoverView: View {
     let report: AutopsyReport
 
+    /// false = blurred net (snapshot hook, or the pre-resolve hold of a
+    /// playing reveal); true = resolved sharp number. Initialized to the
+    /// resolved state for a full report whose money shot was already seen,
+    /// so a re-open renders instantly with no blur flash.
+    @State private var didResolve: Bool
+
+    init(report: AutopsyReport) {
+        self.report = report
+        let alreadyResolved = report.reportType != "snapshot"
+            && RevealFlags.moneyShotSeen(report.id)
+        _didResolve = State(initialValue: alreadyResolved)
+    }
+
     private var isSnapshot: Bool { report.reportType == "snapshot" }
+
+    /// The net beat shows blurred while snapshot, or while a full report's
+    /// reveal is still in its pre-resolve hold.
+    private var beatBlurred: Bool { isSnapshot || !didResolve }
+
+    private var revealScale: Double {
+        #if DEBUG
+        return DebugReveal.scale
+        #else
+        return 1
+        #endif
+    }
 
     private var archetypeName: String {
         report.analysis.bettingArchetype?.name
@@ -97,6 +125,57 @@ struct ReportCoverView: View {
         .padding(.top, 16)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
+        // The reveal money shot. Keyed on report.id so it re-fires on the
+        // D14 snapshot->full swap (new full-child id) and on a fresh open
+        // from the Reports tab - both are "first appearance of the full
+        // report." Snapshot and already-seen reports return without playing.
+        .task(id: report.id) {
+            await runReveal()
+        }
+    }
+
+    // MARK: - Reveal (Stage C)
+
+    @MainActor
+    private func runReveal() async {
+        // Snapshot never resolves - the blurred net is the permanent hook.
+        guard !isSnapshot else { return }
+
+        // Already seen: render resolved statically (init already set
+        // didResolve = true, so this is a no-op confirm - no animation,
+        // no haptic).
+        guard !RevealFlags.moneyShotSeen(report.id) else {
+            didResolve = true
+            return
+        }
+
+        // Play once. Ensure the blurred hold (covers the snapshot->full
+        // swap, where didResolve carried over false from the snapshot).
+        didResolve = false
+        let scale = revealScale
+
+        #if canImport(UIKit)
+        let haptic = UIImpactFeedbackGenerator(style: .medium)
+        haptic.prepare()
+        #endif
+
+        // Hold blurred so the eye lands on it.
+        try? await Task.sleep(for: .seconds(0.4 * scale))
+        guard !Task.isCancelled else { return }
+
+        // Resolve: blur dissolves to 0 and the digits settle to the real
+        // number (numericText content transition) in one motion.
+        withAnimation(.easeOut(duration: 0.3 * scale)) {
+            didResolve = true
+        }
+
+        // ONE haptic, at the instant it resolves to sharp (resolve done).
+        try? await Task.sleep(for: .seconds(0.3 * scale))
+        guard !Task.isCancelled else { return }
+        #if canImport(UIKit)
+        haptic.impactOccurred()
+        #endif
+        RevealFlags.markMoneyShotSeen(report.id)
     }
 
     // MARK: - Spine (archetype name)
@@ -131,13 +210,14 @@ struct ReportCoverView: View {
                 .tracking(2)
                 .foregroundStyle(DS.Color.V3.textTertiary)
 
-            Text(netRedacted ? redactedPlaceholder : BAFormat.currency(netDollar, signed: true))
+            Text(beatBlurred ? redactedPlaceholder : BAFormat.currency(netDollar, signed: true))
                 .font(.custom("JetBrainsMono-Bold", size: 56))
                 .foregroundStyle(DS.Color.V3.bone)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-                .blur(radius: netRedacted ? 16 : 0)
-                .accessibilityHidden(netRedacted)
+                .contentTransition(.numericText())
+                .blur(radius: beatBlurred ? 16 : 0)
+                .accessibilityHidden(beatBlurred)
         }
     }
 

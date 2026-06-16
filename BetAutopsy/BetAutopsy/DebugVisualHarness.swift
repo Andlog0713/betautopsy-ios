@@ -37,6 +37,7 @@ enum DebugVisualHarness {
         case chapterRail = "-ChapterRailHarness"
         case coverFull = "-CoverHarness"
         case coverSnapshot = "-CoverSnapshotHarness"
+        case reveal = "-RevealHarness"
     }
 
     static var active: Kind? {
@@ -49,6 +50,17 @@ extension DebugVisualHarness.Kind: CaseIterable {}
 
 struct DebugVisualHarnessRoot: View {
     let kind: DebugVisualHarness.Kind
+
+    init(kind: DebugVisualHarness.Kind) {
+        self.kind = kind
+        // For the reveal harness: clear the per-report flags and turn on
+        // slow motion BEFORE the cover/chart init read them, so the reveal
+        // replays on launch slowly enough to capture a frame sequence.
+        if kind == .reveal {
+            DebugReveal.slowMotion = true
+            RevealFlags.clear(MockReport.heatedBettor.id)
+        }
+    }
 
     var body: some View {
         switch kind {
@@ -73,6 +85,11 @@ struct DebugVisualHarnessRoot: View {
         case .coverSnapshot:
             // Cover in situ (snapshot): blurred net hook, no grade/percentile.
             ReportScrollContainer(report: MockReport.heatedBettorSnapshot)
+        case .reveal:
+            // Full report with flags cleared (init) + slow motion: the cover
+            // net-dollar money shot plays on launch. Capturable frame
+            // sequence (blurred-hold -> mid-resolve -> resolved).
+            ReportScrollContainer(report: MockReport.heatedBettor)
         }
     }
 

@@ -195,7 +195,8 @@ struct SectionVerdict: View {
                 Spacer().frame(height: 24)
                 SessionTimelineChart(
                     timeline: charts.sessionTimeline,
-                    hero: heroSession
+                    hero: heroSession,
+                    revealKey: report.id
                 )
                 .padding(.horizontal, 16)
             }

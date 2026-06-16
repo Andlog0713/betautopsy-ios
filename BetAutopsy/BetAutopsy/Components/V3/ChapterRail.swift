@@ -48,12 +48,16 @@ struct ChapterRail: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        // Floats in from the right margin with breathing room: a real
+        // trailing inset clears the corner radius and the bezel, and the
+        // looser dot spacing reads as a calm, evenly-spaced column rather
+        // than a strip stuck to the edge (Stage B polish).
+        VStack(spacing: 18) {
             ForEach(sectionIds, id: \.self) { id in
                 dot(isActive: id == activeSection, id: id)
             }
         }
-        .padding(.trailing, 6)
+        .padding(.trailing, 18)
         .frame(maxHeight: .infinity, alignment: .center)
         .opacity(isVisible ? 1 : 0)
         .animation(.easeInOut(duration: 0.25), value: isVisible)

@@ -83,6 +83,17 @@ struct ReportScrollContainer: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 32) {
+                        // Prompt 4 Stage B: the cover is the opening movement
+                        // at the very top of the scroll, in both modes. It
+                        // carries its own scrollPosition id but is NOT a
+                        // ChapterRail dot - the rail's first dot (verdict)
+                        // covers it (the cover is the verdict's opening), so
+                        // at the top the rail falls back to highlighting
+                        // verdict. Slim-safe: uses summary/archetype/betiq,
+                        // all present in the slim payload.
+                        ReportCoverView(report: viewModel.report)
+                            .id("report_cover")
+
                         SectionVerdict(report: viewModel.report, onPaywallTap: handlePaywallTap)
                             .id("section_verdict")
 

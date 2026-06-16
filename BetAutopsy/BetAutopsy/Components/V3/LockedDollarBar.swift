@@ -3,8 +3,17 @@
 //  BetAutopsy
 //
 //  Forensic-redaction bar that stands in for a paywalled dollar value.
-//  Yellow capsule with a $ glyph on the left and a lock icon on the
-//  right, sized to slot anywhere a dollar Text would have rendered.
+//  A MUTED translucent capsule (tertiary-grey $ + lock glyphs on a
+//  raised-surface fill with a hairline border), sized to slot anywhere
+//  a dollar Text would have rendered. It reads as quietly inaccessible,
+//  not as a bright CTA.
+//
+//  Prompt 4 Stage B polish: was a solid brand-yellow pill. Brand yellow
+//  is reserved for the one accent (the cover archetype word + the
+//  Y-mark) and CTAs; a row of bright yellow lock pills diluted that and
+//  pulled the eye off the blurred-net hook on the snapshot cover. Muted
+//  globally (every snapshot locked cell), which is consistent with the
+//  one-accent rule everywhere it appears.
 //
 //  Used at five snapshot surfaces:
 //    Ch 2  HeatedSessionPreviewCard session profit
@@ -41,20 +50,20 @@ struct LockedDollarBar: View {
         HStack(spacing: 6) {
             Text("$")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(DS.Color.Brand.canvasDark)
+                .foregroundStyle(DS.Color.V3.textTertiary)
             Spacer(minLength: 0)
             Image(systemName: "lock.fill")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(DS.Color.Brand.canvasDark)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(DS.Color.V3.textTertiary)
         }
         .padding(.horizontal, 12)
         .frame(width: width, height: 32)
         .background(
             Capsule()
-                .fill(DS.Color.Brand.yellow.opacity(0.95))
+                .fill(DS.Color.V3.surfaceRaised)
                 .overlay(
                     Capsule()
-                        .stroke(DS.Color.Brand.yellow, lineWidth: 1)
+                        .stroke(DS.Color.V3.borderSubtle, lineWidth: DS.Stroke.hairline)
                 )
         )
         .contentShape(Capsule())

@@ -35,6 +35,8 @@ enum DebugVisualHarness {
         case reader = "-ReaderHarness"
         case checkIn = "-CheckInHarness"
         case chapterRail = "-ChapterRailHarness"
+        case coverFull = "-CoverHarness"
+        case coverSnapshot = "-CoverSnapshotHarness"
     }
 
     static var active: Kind? {
@@ -64,6 +66,13 @@ struct DebugVisualHarnessRoot: View {
                 report: MockReport.heatedBettor,
                 debugKeepRailVisible: true
             )
+        case .coverFull:
+            // Cover in situ at the top of the real shell (full report):
+            // resolved net, grade, percentile.
+            ReportScrollContainer(report: MockReport.heatedBettor)
+        case .coverSnapshot:
+            // Cover in situ (snapshot): blurred net hook, no grade/percentile.
+            ReportScrollContainer(report: MockReport.heatedBettorSnapshot)
         }
     }
 

@@ -123,6 +123,11 @@ struct ReportCoverView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.top, 16)
+        // Cap (Stage D): the cover is a tightly composed display surface.
+        // Its caps labels scale, but only to xLarge so the composition
+        // holds; the net dollar (56pt), the spine (52pt), and the grade
+        // letter (22pt) are fixed display sizes that do not scale.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
         // The reveal money shot. Keyed on report.id so it re-fires on the
@@ -206,7 +211,7 @@ struct ReportCoverView: View {
     private var netDollarBeat: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("NET")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(.caption2).weight(.semibold))
                 .tracking(2)
                 .foregroundStyle(DS.Color.V3.textTertiary)
 
@@ -243,7 +248,7 @@ struct ReportCoverView: View {
     private func clusterStat(_ label: String, _ value: Text) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(.caption2).weight(.semibold))
                 .tracking(1.5)
                 .foregroundStyle(DS.Color.V3.textTertiary)
             value

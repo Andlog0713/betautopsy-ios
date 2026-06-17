@@ -62,6 +62,43 @@ struct StatusBarScrim: View {
     }
 }
 
+/// Mirror of StatusBarScrim at the bottom edge (Stage D, #40 deferred):
+/// scrolling content fades out into the canvas at the bottom instead of
+/// hard-cutting under the home indicator. Fades to canvasGradientEnd (the
+/// bottom of the canvas gradient), covers the bottom safe-area inset solid.
+struct BottomEdgeScrim: View {
+    private var bottomInset: CGFloat {
+        #if canImport(UIKit)
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.safeAreaInsets.bottom ?? 0
+        #else
+        0
+        #endif
+    }
+
+    var body: some View {
+        let inset = bottomInset
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    DS.Color.V3.canvasGradientEnd.opacity(0),
+                    DS.Color.V3.canvasGradientEnd
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 28)
+            DS.Color.V3.canvasGradientEnd
+                .frame(height: inset)
+        }
+        .frame(maxWidth: .infinity)
+        .offset(y: inset)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 extension View {
     /// Pins a StatusBarScrim over this view's top edge. Apply to the
     /// root container of bar-less full-bleed scroll screens.

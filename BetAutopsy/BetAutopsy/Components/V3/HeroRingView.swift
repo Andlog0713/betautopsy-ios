@@ -69,6 +69,11 @@ struct HeroRingView: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        // Cap (Stage D): the ring is a fixed-geometry circle. The wordmark
+        // and metric label scale, but only up to xLarge so they never
+        // overflow the 230pt circle; the 86pt hero number is fixed-size
+        // already. Body sections elsewhere scale fully to AX5.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(metricLabel) score \(clampedScore) out of 100")
     }

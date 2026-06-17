@@ -182,6 +182,12 @@ struct ReportScrollContainer: View {
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
 
+                        // Bottom-edge fade (Stage D): content dissolves into
+                        // the canvas at the bottom, mirroring StatusBarScrim
+                        // at the top.
+                        BottomEdgeScrim()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+
                         StatusBarScrim()
                         dismissButton
                     }

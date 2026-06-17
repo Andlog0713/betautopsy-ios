@@ -38,6 +38,8 @@ enum DebugVisualHarness {
         case coverFull = "-CoverHarness"
         case coverSnapshot = "-CoverSnapshotHarness"
         case reveal = "-RevealHarness"
+        case dynTypeFindings = "-DynTypeFindingsHarness"
+        case upload = "-UploadHarness"
     }
 
     static var active: Kind? {
@@ -90,7 +92,23 @@ struct DebugVisualHarnessRoot: View {
             // net-dollar money shot plays on launch. Capturable frame
             // sequence (blurred-hold -> mid-resolve -> resolved).
             ReportScrollContainer(report: MockReport.heatedBettor)
+        case .dynTypeFindings:
+            // Reader deep-linked to the findings section, so a body section
+            // can be screenshot at a large content size (set via
+            // `simctl ui content_size`) to prove no clipping/overlap.
+            ReportScrollContainer(
+                report: MockReport.heatedBettor,
+                initialSectionId: "section_findings"
+            )
+        case .upload:
+            uploadHarness
         }
+    }
+
+    private var uploadHarness: some View {
+        let coordinator = UploadFlowCoordinator()
+        coordinator.state = .uploading
+        return UploadProgressView(coordinator: coordinator, onCancel: {}, onRetry: {})
     }
 
     /// Stub rows pre-scrolled to the bottom: the top rows sit in the

@@ -47,7 +47,11 @@ struct EvidenceBlock: View {
         self.isSnapshot = isSnapshot
         self.initiallyExpanded = initiallyExpanded
         self.onExpand = onExpand
-        self._expanded = State(initialValue: initiallyExpanded)
+        var startExpanded = initiallyExpanded
+        #if DEBUG
+        startExpanded = startExpanded || DebugReveal.forceExpandEvidence
+        #endif
+        self._expanded = State(initialValue: startExpanded)
     }
 
     private var trimmedProse: String? {

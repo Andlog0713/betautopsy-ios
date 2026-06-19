@@ -321,7 +321,35 @@ enum MockReport {
             name: "The Tilter",
             description: "Your reads aren't bad, but your emotions turn winners into losing weeks. The bets after losses are where your bankroll goes to die."
         ),
-        quizArchetype: "The Tilter"
+        quizArchetype: "The Tilter",
+        // schema_version 3 wire (web PR #74). recovery drives the
+        // DollarImpactCard's method form; charts carries the typed
+        // sessionTimeline (the hero SessionTimelineChart + its Stage C
+        // reveal) and betTypeMix (no legacy fallback exists for it). The
+        // other typed arrays are left empty so the legacy timing/odds/
+        // streak fallbacks keep rendering (they have valid mock data).
+        recovery: ReportRecovery(
+            biggestSingleLeakUSD: 1840,
+            method: "exit_worst_category",
+            overlapsExist: true,
+            rangeLow: 1400,
+            rangeHigh: 2300,
+            netUSD: -2848
+        ),
+        charts: ReportCharts(
+            sessionTimeline: [
+                SessionTimelinePoint(tOffsetMin: 0,  stakeUSD: 100,  outcome: "loss", isChaseMarker: false),
+                SessionTimelinePoint(tOffsetMin: 30, stakeUSD: 250,  outcome: "loss", isChaseMarker: true),
+                SessionTimelinePoint(tOffsetMin: 60, stakeUSD: 500,  outcome: "loss", isChaseMarker: true),
+                SessionTimelinePoint(tOffsetMin: 90, stakeUSD: 1000, outcome: "loss", isChaseMarker: true)
+            ],
+            heroSession: HeroSession(sessionId: "SESSION-304", date: "May 22, 2026", framing: "loss", bets: 4),
+            betTypeMix: [
+                BetTypeMixEntry(betClass: "straight", count: 1576, pct: 77.6),
+                BetTypeMixEntry(betClass: "parlay",   count: 312,  pct: 15.4),
+                BetTypeMixEntry(betClass: "prop",     count: 142,  pct: 7.0)
+            ]
+        )
     )
 
     // MARK: - Helpers

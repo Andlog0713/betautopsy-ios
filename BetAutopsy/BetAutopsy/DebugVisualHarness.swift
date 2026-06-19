@@ -62,11 +62,28 @@ enum DebugVisualHarness {
         case stateSettings = "-StateSettings"
         case stateGlossary = "-StateGlossary"
         case statePushPrimer = "-StatePushPrimer"
+
+        // Deep-scroll captures: drive the section via a `-section <id>` arg
+        // (one harness, every section), so the audit shows the whole report
+        // body top to bottom.
+        case stateFullReportSection = "-StateFullReportSection"
+        case stateSnapshotSection = "-StateSnapshotSection"
     }
 
     static var active: Kind? {
         let args = ProcessInfo.processInfo.arguments
         return Kind.allCases.first { args.contains($0.rawValue) }
+    }
+
+    /// Value following a launch flag, e.g. argValue("-section") -> "section_findings".
+    static func argValue(_ flag: String) -> String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
+        return args[i + 1]
+    }
+
+    static func hasArg(_ flag: String) -> Bool {
+        ProcessInfo.processInfo.arguments.contains(flag)
     }
 }
 
@@ -83,6 +100,13 @@ struct DebugVisualHarnessRoot: View {
 
     init(kind: DebugVisualHarness.Kind) {
         self.kind = kind
+        // SectionAction auto-presents the push primer on appear (once per
+        // install, gated by this flag). Mark it asked so report captures show
+        // the real action content; the dedicated -StatePushPrimer renders the
+        // primer directly and is unaffected.
+        if kind != .statePushPrimer {
+            UserDefaults.standard.set(true, forKey: "betautopsy.push_permission_asked")
+        }
         // Seed entry data BEFORE the views init/read it.
         switch kind {
         case .reveal:
@@ -99,11 +123,16 @@ struct DebugVisualHarnessRoot: View {
             ReportStore.shared.clear()
         case .stateReportsPopulated, .stateSessions:
             seedReports()
-        case .stateFullReport, .stateFullReportFindings:
+        case .stateFullReport, .stateFullReportFindings, .stateFullReportSection:
             // Clean resolved cover for the audit (no reveal animation): mark
             // the reveal already seen so it renders the resolved state.
             RevealFlags.markMoneyShotSeen(MockReport.heatedBettor.id)
             RevealFlags.markHeroSeen(MockReport.heatedBettor.id)
+            // The findings deep-scroll shot passes -expandEvidence so the
+            // tap-expand evidence layer is visible without a live tap.
+            if DebugVisualHarness.hasArg("-expandEvidence") {
+                DebugReveal.forceExpandEvidence = true
+            }
         default:
             break
         }
@@ -193,6 +222,20 @@ struct DebugVisualHarnessRoot: View {
             NavigationStack { GlossaryView() }
         case .statePushPrimer:
             PushPermissionView()
+        case .stateFullReportSection:
+            ReportScrollContainer(
+                report: MockReport.heatedBettor,
+                initialSectionId: DebugVisualHarness.argValue("-section") ?? "section_verdict",
+                debugAnchorBottom: DebugVisualHarness.hasArg("-anchorBottom"),
+                debugAnchorCenter: DebugVisualHarness.hasArg("-anchorCenter")
+            )
+        case .stateSnapshotSection:
+            ReportScrollContainer(
+                report: MockReport.heatedBettorSnapshot,
+                initialSectionId: DebugVisualHarness.argValue("-section") ?? "section_findings",
+                debugAnchorBottom: DebugVisualHarness.hasArg("-anchorBottom"),
+                debugAnchorCenter: DebugVisualHarness.hasArg("-anchorCenter")
+            )
         }
     }
 

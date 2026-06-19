@@ -47,14 +47,29 @@ struct ReportScrollContainer: View {
     /// the #40 no-op lesson). Never set in production call sites.
     private let debugKeepRailVisible: Bool
 
+    /// Harness-only (defaults false, inert in production): land the
+    /// initialSectionId deep-link at the viewport BOTTOM instead of the top,
+    /// so the app-state audit can capture the footer/helpline at the end of
+    /// the last section.
+    private let debugAnchorBottom: Bool
+    private let debugAnchorCenter: Bool
+
     init(
         report: AutopsyReport,
         initialSectionId: String? = nil,
-        debugKeepRailVisible: Bool = false
+        debugKeepRailVisible: Bool = false,
+        debugAnchorBottom: Bool = false,
+        debugAnchorCenter: Bool = false
     ) {
         _viewModel = StateObject(wrappedValue: ReportScrollViewModel(initial: report))
         self.initialSectionId = initialSectionId
         self.debugKeepRailVisible = debugKeepRailVisible
+        self.debugAnchorBottom = debugAnchorBottom
+        self.debugAnchorCenter = debugAnchorCenter
+    }
+
+    private var debugDeepLinkAnchor: UnitPoint {
+        debugAnchorCenter ? .center : (debugAnchorBottom ? .bottom : .top)
     }
 
     private var isSnapshot: Bool { viewModel.report.reportType == "snapshot" }
@@ -160,7 +175,7 @@ struct ReportScrollContainer: View {
                     if let target = initialSectionId {
                         try? await Task.sleep(nanoseconds: 350_000_000)
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            proxy.scrollTo(target, anchor: .top)
+                            proxy.scrollTo(target, anchor: debugDeepLinkAnchor)
                         }
                     }
                 }

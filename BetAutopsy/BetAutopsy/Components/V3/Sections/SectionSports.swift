@@ -359,16 +359,24 @@ private struct SnapshotCountsModule: View {
             .lineSpacing(2)
             .padding(.top, 16)
 
-            Button(action: onTap) {
-                Text("Read the full report (\(RevenueCatStore.shared.priceString)).")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Brand.canvasDark)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(DS.Color.V3.ctaText)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            // Quiet tappable affordance, not a loud solid-yellow button.
+            // The single "Read the full report" primary CTA now lives only
+            // on SectionAction's terminal card, so the snapshot no longer
+            // stacks three near-identical buy buttons at the end. The whole
+            // card taps through to the same paywall source.
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+                Text("See the full breakdown (\(RevenueCatStore.shared.priceString)).")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(DS.Color.Brand.yellow)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
-            .padding(.top, 24)
+            .padding(.top, 20)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -378,8 +386,11 @@ private struct SnapshotCountsModule: View {
                 .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Full report contents: \(counts.sessions) sessions, \(counts.totalBiases) biases, \(counts.patterns) behavioral patterns, \(counts.leaks) leak patterns, \(counts.sportFindings) sport findings. Read the full report for nineteen dollars and ninety-nine cents.")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("Full report contents: \(counts.sessions) sessions, \(counts.totalBiases) biases, \(counts.patterns) behavioral patterns, \(counts.leaks) leak patterns, \(counts.sportFindings) sport findings. See the full breakdown for nineteen dollars and ninety-nine cents.")
     }
 }
 

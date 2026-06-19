@@ -322,6 +322,17 @@ enum MockReport {
             description: "Your reads aren't bad, but your emotions turn winners into losing weeks. The bets after losses are where your bankroll goes to die."
         ),
         quizArchetype: "The Tilter",
+        // Snapshot-only volume anchor (engine ships _snapshotCounts on real
+        // snapshots). Seeded here so the snapshot harness renders the
+        // SnapshotCountsModule ("IN YOUR FULL REPORT" card); inert in the
+        // full report, which never reads it.
+        snapshotCounts: SnapshotCounts(
+            totalBiases: 5,
+            leaks: 29,
+            patterns: 5,
+            sessions: 304,
+            sportFindings: 1
+        ),
         // schema_version 3 wire (web PR #74). recovery drives the
         // DollarImpactCard's method form; charts carries the typed
         // sessionTimeline (the hero SessionTimelineChart + its Stage C

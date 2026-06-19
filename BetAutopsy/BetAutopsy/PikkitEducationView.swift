@@ -33,7 +33,7 @@ struct PikkitEducationView: View {
                         .foregroundStyle(DS.Color.V3.textPrimary)
                         .multilineTextAlignment(.center)
 
-                    Text("BetAutopsy reads your bet history from Pikkit, which imports from every major sportsbook and DFS platform. Pikkit's 7-day free trial includes CSV export: that's all you need to upload your bets here. We never touch your sportsbook accounts.")
+                    Text("BetAutopsy reads your bet history from Pikkit, which imports from every major sportsbook and DFS platform. Pikkit's trial includes CSV export, which is all you need to upload your bets here. We never touch your sportsbook accounts.")
                         .font(DS.Font.V3.bodyRegular)
                         .foregroundStyle(DS.Color.V3.textSecondary)
                         .multilineTextAlignment(.center)

@@ -54,5 +54,10 @@ enum DebugReveal {
     /// Multiplier on the reveal timings when slowMotion is on. Wide so a
     /// frame sequence is capturable despite cold-launch timing jitter.
     @MainActor static var scale: Double { slowMotion ? 8 : 1 }
+
+    /// App-state audit: force every EvidenceBlock to render expanded so the
+    /// tap-expand evidence layer shows in a deep-scroll screenshot without a
+    /// live tap. Set by the section harness; never touched in Release.
+    @MainActor static var forceExpandEvidence = false
 }
 #endif

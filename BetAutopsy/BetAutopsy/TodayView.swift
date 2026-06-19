@@ -24,6 +24,7 @@ struct TodayView: View {
     @State private var reengage = PreBetReengageRouter.shared
     @State private var showingCheckIn = false
     @State private var showingSettings = false
+    @State private var showingPushPrompt = false
 
     // MARK: - Report-derived state
 
@@ -145,6 +146,23 @@ struct TodayView: View {
             SettingsView()
                 .preferredColorScheme(.dark)
         }
+        // Push primer (moved off SectionAction.onAppear, which presented
+        // it OVER the action plan - the report's key CTA). Per CLAUDE.md it
+        // belongs after the first report is viewed, so it fires here on the
+        // calm Today tab once a report exists, never covering a CTA.
+        .fullScreenCover(isPresented: $showingPushPrompt) {
+            PushPermissionView()
+        }
+        .onAppear { maybePromptForPush() }
+    }
+
+    /// Present the push primer once per install, only after a report
+    /// exists (the user has been through the core flow). PushPermissionView
+    /// sets the asked flag on response, so this never re-prompts.
+    private func maybePromptForPush() {
+        guard latest != nil,
+              !UserDefaults.standard.bool(forKey: "betautopsy.push_permission_asked") else { return }
+        showingPushPrompt = true
     }
 
     // MARK: - About to bet CTA

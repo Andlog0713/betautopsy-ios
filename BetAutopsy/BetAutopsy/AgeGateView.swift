@@ -54,7 +54,7 @@ struct AgeGateView: View {
                 .padding(.top, DS.Spacing.lg)
                 .padding(.horizontal, DS.Spacing.lg)
 
-            Text("Sports betting age varies by state. 21+ where required by law.")
+            Text("BetAutopsy is an analytics tool, not a sportsbook. You're responsible for following the legal betting age in your state.")
                 .font(.system(size: 12))
                 .foregroundStyle(DS.Color.V3.textTertiary)
                 .multilineTextAlignment(.center)

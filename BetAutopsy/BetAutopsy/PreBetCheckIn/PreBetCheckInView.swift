@@ -34,8 +34,28 @@ struct PreBetCheckInView: View {
     /// without simulated taps. No-op in production call sites.
     private let autoFocusStakeForHarness: Bool
 
-    init(autoFocusStakeForHarness: Bool = false) {
+    /// DEBUG visual-harness hook: drives the coordinator straight to the
+    /// .read result on appear, so the instant-read RESULT state can be
+    /// screenshot-captured. No-op in production call sites.
+    private let autoSubmitForHarness: Bool
+
+    /// Seeds the coordinator's stake at construction (before StakeField
+    /// inits, so the field displays it). Lets a harness show the filled
+    /// input + enabled button, or give the local read a stake to read.
+    /// Production passes nil, so the coordinator starts at stake 0 exactly
+    /// as before - no behavior change.
+    init(
+        autoFocusStakeForHarness: Bool = false,
+        autoSubmitForHarness: Bool = false,
+        harnessStake: Decimal? = nil
+    ) {
         self.autoFocusStakeForHarness = autoFocusStakeForHarness
+        self.autoSubmitForHarness = autoSubmitForHarness
+        if let harnessStake {
+            let c = PreBetCheckInCoordinator()
+            c.stake = harnessStake
+            _coordinator = State(initialValue: c)
+        }
     }
 
     var body: some View {
@@ -88,6 +108,11 @@ struct PreBetCheckInView: View {
             if autoFocusStakeForHarness {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                     stakeFocused = true
+                }
+            }
+            if autoSubmitForHarness {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    coordinator.submit()
                 }
             }
         }
@@ -408,7 +433,16 @@ private struct FieldRow<Content: View>: View {
 private struct StakeField: View {
     @Binding var stake: Decimal
     var focus: FocusState<Bool>.Binding
-    @State private var text: String = ""
+    @State private var text: String
+
+    init(stake: Binding<Decimal>, focus: FocusState<Bool>.Binding) {
+        self._stake = stake
+        self.focus = focus
+        // Seed the displayed text from the initial stake. Production always
+        // starts at 0 -> "" (identical to before); a harness-preset stake
+        // shows in the field.
+        self._text = State(initialValue: stake.wrappedValue > 0 ? "\(stake.wrappedValue)" : "")
+    }
 
     var body: some View {
         FieldRow(label: "Stake") {

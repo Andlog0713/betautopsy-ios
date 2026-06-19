@@ -68,6 +68,11 @@ enum DebugVisualHarness {
         // body top to bottom.
         case stateFullReportSection = "-StateFullReportSection"
         case stateSnapshotSection = "-StateSnapshotSection"
+
+        // The pre-bet check-in payoff: the instant local read RESULT, and
+        // the filled input with the enabled (brand-yellow) submit button.
+        case stateCheckInResult = "-StateCheckInResult"
+        case stateCheckInFilled = "-StateCheckInFilled"
     }
 
     static var active: Kind? {
@@ -121,7 +126,10 @@ struct DebugVisualHarnessRoot: View {
         case .stateTodayEmpty, .stateReportsEmpty:
             // New-user empty state: no reports.
             ReportStore.shared.clear()
-        case .stateReportsPopulated, .stateSessions:
+        case .stateReportsPopulated, .stateSessions,
+             .stateCheckInResult, .stateCheckInFilled:
+            // The local read computes from ReportStore.shared.reports.first;
+            // seed it so the read has time-of-day / loss-pattern data.
             seedReports()
         case .stateFullReport, .stateFullReportFindings, .stateFullReportSection:
             // Clean resolved cover for the audit (no reveal animation): mark
@@ -216,6 +224,17 @@ struct DebugVisualHarnessRoot: View {
             PaywallView(snapshotReportId: MockReport.heatedBettorSnapshot.id)
         case .stateCheckIn:
             checkInHarness
+        case .stateCheckInResult:
+            // Auto-submit drives the coordinator to the instant local-read
+            // RESULT (against the seeded report) on appear.
+            PreBetCheckInView(autoSubmitForHarness: true, harnessStake: 120)
+                .preferredColorScheme(.dark)
+        case .stateCheckInFilled:
+            // Filled input: a real stake is pre-set so the field shows it and
+            // the "Check before I bet" button is enabled (brand-yellow). No
+            // submit, no focus (keyboard down so the button is visible).
+            PreBetCheckInView(harnessStake: 120)
+                .preferredColorScheme(.dark)
         case .stateSettings:
             SettingsView()
         case .stateGlossary:

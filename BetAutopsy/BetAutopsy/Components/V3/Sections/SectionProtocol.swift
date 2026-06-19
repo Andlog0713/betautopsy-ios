@@ -100,16 +100,21 @@ struct SectionProtocol: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Button(action: { onPaywallTap("section_protocol_locked_card_tap") }) {
-                Text("Read the full report (\(RevenueCatStore.shared.priceString)).")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DS.Color.Brand.canvasDark)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(DS.Color.Brand.yellow)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            // Quiet tappable affordance (the lock icon already sits in the
+            // header row above). Replaces the second of three stacked
+            // solid-yellow "Read the full report" buttons; the single primary
+            // CTA now lives only on SectionAction's terminal card. The whole
+            // card taps through to the same paywall source.
+            HStack(spacing: 8) {
+                Text("See your three moves (\(RevenueCatStore.shared.priceString)).")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(DS.Color.Brand.yellow)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
             }
-            .padding(.top, 16)
+            .padding(.top, 14)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -119,6 +124,11 @@ struct SectionProtocol: View {
                 .stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(Rectangle())
+        .onTapGesture { onPaywallTap("section_protocol_locked_card_tap") }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("Your three moves: what to stop, start, and keep. See them in the full report for nineteen dollars and ninety-nine cents.")
     }
 }
 

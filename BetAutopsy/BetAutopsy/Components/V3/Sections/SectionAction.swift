@@ -20,7 +20,6 @@ struct SectionAction: View {
     let report: AutopsyReport
     let onPaywallTap: (String) -> Void
 
-    @State private var showingPushPrompt: Bool = false
     @State private var checkoffStore = ActionCheckoffStore.shared
 
     private struct RankedAction: Identifiable {
@@ -115,12 +114,10 @@ struct SectionAction: View {
             warningSignsSection
         }
         .frame(maxWidth: .infinity)
-        .fullScreenCover(isPresented: $showingPushPrompt) {
-            PushPermissionView()
-        }
-        .onAppear {
-            evaluatePushPrompt()
-        }
+        // The push primer used to auto-present here on appear, covering the
+        // action plan (the report's key CTA). It moved to TodayView (fires
+        // after a report exists, never over a CTA). SectionAction no longer
+        // presents it.
         .task(id: report.id) {
             await checkoffStore.load(reportId: report.id)
         }
@@ -222,13 +219,6 @@ struct SectionAction: View {
 
     private func handleLockedTap() {
         onPaywallTap("section_action_locked_dollar")
-    }
-
-    private func evaluatePushPrompt() {
-        let asked = UserDefaults.standard.bool(forKey: "betautopsy.push_permission_asked")
-        if !asked {
-            showingPushPrompt = true
-        }
     }
 
     private var warningSignsSection: some View {

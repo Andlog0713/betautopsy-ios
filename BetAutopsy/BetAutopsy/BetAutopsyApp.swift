@@ -5,11 +5,15 @@
 
 import SwiftUI
 
+import Supabase
+
 @main
 struct BetAutopsyApp: App {
     @UIApplicationDelegateAdaptor(BetAutopsyAppDelegate.self) private var appDelegate
     @State private var coordinator = OnboardingCoordinator()
     @AppStorage("onboardingComplete") private var onboardingComplete = false
+    /// Presented when a betautopsy://password-reset deep link is opened.
+    @State private var showingPasswordReset = false
 
     // Pre-warm runs at App static init - starts BEFORE any view's .task fires.
     // RootTabView.task(id:) awaits this same Task before calling hydrate(),
@@ -100,6 +104,21 @@ struct BetAutopsyApp: App {
                 .fullScreenCover(isPresented: onboardingPresented) {
                     OnboardingHost()
                         .environment(coordinator)
+                        .preferredColorScheme(.dark)
+                }
+                .onOpenURL { url in
+                    // Password-reset deep link: exchange the recovery link for a
+                    // session, then let the user set a new password. (Google OAuth
+                    // does NOT route here - ASWebAuthenticationSession captures its
+                    // callback internally.)
+                    guard url.scheme == "betautopsy", url.host == "password-reset" else { return }
+                    Task { @MainActor in
+                        _ = try? await SupabaseService.shared.auth.session(from: url)
+                        showingPasswordReset = true
+                    }
+                }
+                .sheet(isPresented: $showingPasswordReset) {
+                    SetNewPasswordView()
                         .preferredColorScheme(.dark)
                 }
     }

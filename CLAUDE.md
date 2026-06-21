@@ -254,7 +254,20 @@ trial value-show without giving away answers.
 
 ## Auth rules
 
-- Sign in with Apple is the ONLY auth method.
+- Three auth methods (PR-AUTH, Andrew override of the prior Apple-only
+  rule): Sign in with Apple, Continue with Google (Supabase
+  `signInWithOAuth(.google)` via `ASWebAuthenticationSession`, no Google
+  SDK), and email/password (Supabase email auth, instant access /
+  confirmation disabled, with a Sign in vs Create account toggle and
+  Forgot password). Apple MUST stay offered and prominent whenever Google
+  is present (App Store guideline 4.8). All providers land in the same
+  Supabase session and funnel through `AuthState.handleSignedIn`.
+- Identity key is the Supabase `auth.uid()` (`User.supabaseUID`, exposed
+  as `User.identityKey`), provider-agnostic. `appleUserID` is Apple-only
+  (kept for the credential-revocation check). The `betautopsy://` URL
+  scheme (Info.plist `CFBundleURLTypes`) backs the OAuth callback +
+  password-reset deep link; it must also be in Supabase's allowed
+  redirect URLs. Google/email require Supabase + Google Cloud config.
 - `ASAuthorizationAppleIDCredential` gives `fullName` ONCE on first
   auth. Capture from `credential.fullName.givenName` and
   `credential.fullName.familyName`, persist via

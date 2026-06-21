@@ -61,8 +61,8 @@ struct RootTabView: View {
         // this view; the id-gated form fires only on the identity change we
         // want. No longer awaits sessionPrewarm: network is off the critical
         // path of first paint now that cached reports render synchronously.
-        .task(id: AuthState.shared.user?.appleUserID) {
-            if let userId = AuthState.shared.user?.appleUserID {
+        .task(id: AuthState.shared.user?.identityKey) {
+            if let userId = AuthState.shared.user?.identityKey {
                 // Synchronous: swaps in this user's cached reports BEFORE any
                 // await fires, so the UI re-renders with cached state instantly.
                 reportStore.updateUser(userId)

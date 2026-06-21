@@ -105,7 +105,9 @@ struct SessionsTabView: View {
                 }
             }
 
-            Text("\(s.startTime) to \(s.endTime) · \(s.durationMinutes) min")
+            Text(s.hasRealStartTime
+                 ? "\(s.startTime) to \(s.endTime) · \(s.durationMinutes) min"
+                 : "\(s.durationMinutes) min")
                 .font(.system(size: 13))
                 .foregroundStyle(DS.Color.V3.textSecondary)
                 .padding(.top, 4)

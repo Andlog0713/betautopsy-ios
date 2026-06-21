@@ -265,11 +265,13 @@ struct SectionFindings: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
 
-                // #5 footer: web's benchmark provenance line (AutopsyReport
-                // .tsx 1611), rendered verbatim. The population percentage
-                // itself already lives inside each item.detail sentence, so
-                // no separate percent chip is added (it would duplicate it).
-                Text("Population benchmarks based on aggregate betting behavior research.")
+                // #5 footer: provenance line. v1 cannot produce a cross-user
+                // cohort comparison, so the prior "population benchmarks /
+                // aggregate research" framing was cut (App Store + trust risk:
+                // it implied a percentile the engine never computes). This
+                // section is derived entirely from the user's own bet history;
+                // the line now says exactly that. No cohort language anywhere.
+                Text("Based on patterns in your own bet history.")
                     .font(.system(size: 11, weight: .regular))
                     .italic()
                     .foregroundStyle(DS.Color.V3.textTertiary)

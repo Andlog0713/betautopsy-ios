@@ -683,6 +683,13 @@ struct DetectedSession: Codable, Identifiable {
     // heated sessions only: "loss" | "win-but-risky".
     let framing: String?
 
+    // Per-session time-of-day provenance. Populated by a forthcoming engine
+    // PR: true when startTime came from a real intraday timestamp, false when
+    // the source row was a date-only / 00:00:00 UTC parse (no real clock
+    // time). nil on every report shipped before that engine change. Consumed
+    // only through hasRealStartTime, which degrades safely when it is nil.
+    let timeKnown: Bool?
+
     init(
         id: String,
         date: String,
@@ -707,7 +714,8 @@ struct DetectedSession: Codable, Identifiable {
         isHeated: Bool,
         heatSignals: [String],
         triggerEvent: TriggerEvent? = nil,
-        framing: String? = nil
+        framing: String? = nil,
+        timeKnown: Bool? = nil
     ) {
         self.id = id
         self.date = date
@@ -733,6 +741,7 @@ struct DetectedSession: Codable, Identifiable {
         self.heatSignals = heatSignals
         self.triggerEvent = triggerEvent
         self.framing = framing
+        self.timeKnown = timeKnown
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -741,7 +750,19 @@ struct DetectedSession: Codable, Identifiable {
         case staked, profit, roi, avgStake, stakeEscalation
         case betsPerHour, chaseCount, lateNight, grade
         case gradeReasons, isHeated, heatSignals
-        case triggerEvent, framing
+        case triggerEvent, framing, timeKnown
+    }
+
+    /// Single source of truth for whether this session has a real intraday
+    /// clock time worth showing. Prefers the engine's explicit timeKnown flag
+    /// once present; until then, treats an empty or midnight-UTC startTime
+    /// (the shape a date-only parse takes) as not-known and suppresses it.
+    /// Every timestamp-display site routes through this so no path can print
+    /// a fabricated "12:00 AM" from a date-only row.
+    var hasRealStartTime: Bool {
+        if let timeKnown { return timeKnown }
+        let t = startTime.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !(t.isEmpty || t == "12:00 AM" || t == "00:00")
     }
 
     /// Tolerant decoder. Every field uses try? with a neutral default so
@@ -776,6 +797,7 @@ struct DetectedSession: Codable, Identifiable {
         self.heatSignals     = (try? c.decode([String].self, forKey: .heatSignals))     ?? []
         self.triggerEvent    = try? c.decode(TriggerEvent.self, forKey: .triggerEvent)
         self.framing         = try? c.decode(String.self, forKey: .framing)
+        self.timeKnown       = try? c.decode(Bool.self, forKey: .timeKnown)
     }
 }
 

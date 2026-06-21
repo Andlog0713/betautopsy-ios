@@ -83,6 +83,16 @@ struct PaywallView: View {
         "Writing your verdict."
     ]
 
+    /// What unlocking the full report buys, as a scannable checklist between
+    /// the subhead and the restore link. Fragments (no terminal periods),
+    /// matching the canonical paywall design.
+    private let featureItems = [
+        "Every bias with its exact dollar cost",
+        "Every session graded A to F",
+        "Where your leaks concentrate",
+        "A personalized recovery protocol"
+    ]
+
     private let privacyURL = URL(string: "https://betautopsy.com/privacy")!
     private let termsURL   = URL(string: "https://betautopsy.com/terms")!
 
@@ -110,6 +120,9 @@ struct PaywallView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         header
                             .padding(.top, 8)
+
+                        featureBullets
+                            .padding(.top, 28)
 
                         restoreButton
                             .padding(.top, 32)
@@ -201,6 +214,27 @@ struct PaywallView: View {
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: - Feature checklist
+
+    private var featureBullets: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(featureItems, id: \.self) { item in
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\u{2713}")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DS.Color.Brand.yellow)
+                    Text(item)
+                        .font(.system(size: 16))
+                        .foregroundStyle(DS.Color.V3.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Included: " + featureItems.joined(separator: ", "))
     }
 
     // MARK: - Restore

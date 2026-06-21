@@ -76,7 +76,7 @@ struct SectionHeatedDiscipline: View {
                 }
                 return TiltSessionCard.Session(
                     dateLabel: shortDateLabel(session.date),
-                    timeRangeLabel: usableTimeRange(start: session.startTime, end: session.endTime),
+                    timeRangeLabel: usableTimeRange(start: session.startTime, end: session.endTime, timeKnown: session.hasRealStartTime),
                     pnl: Int(session.profit.rounded()),
                     betCount: session.bets,
                     triggerLabel: trigger,
@@ -92,7 +92,7 @@ struct SectionHeatedDiscipline: View {
         guard let s = source else { return nil }
         return HeatedSessionPreviewCard.Session(
             grade: s.grade,
-            dateLabel: previewDateLabel(date: s.date, dayOfWeek: s.dayOfWeek, startTime: s.startTime),
+            dateLabel: previewDateLabel(date: s.date, dayOfWeek: s.dayOfWeek, startTime: s.startTime, timeKnown: s.hasRealStartTime),
             betCount: s.bets,
             heatSignals: Array(s.heatSignals.prefix(3)),
             triggerEvent: s.triggerEvent
@@ -378,12 +378,10 @@ struct SectionHeatedDiscipline: View {
         }
     }
 
-    private func usableTimeRange(start: String, end: String) -> String {
-        let s = start.trimmingCharacters(in: .whitespacesAndNewlines)
-        let e = end.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s == "12:00 AM" && e == "12:00 AM" {
-            return ""
-        }
+    private func usableTimeRange(start: String, end: String, timeKnown: Bool) -> String {
+        // No real intraday timestamp (date-only / 00:00 UTC parse): show no
+        // clock range rather than a fabricated "12:00 AM - 12:00 AM".
+        guard timeKnown else { return "" }
         return "\(start) - \(end)"
     }
 
@@ -391,7 +389,7 @@ struct SectionHeatedDiscipline: View {
         BAFormat.date(parsing: raw).uppercased()
     }
 
-    private func previewDateLabel(date: String, dayOfWeek: String, startTime: String) -> String {
+    private func previewDateLabel(date: String, dayOfWeek: String, startTime: String, timeKnown: Bool) -> String {
         let dow = dayOfWeek.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         let dateShort = shortDateLabel(date)
         let time = startTime.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -403,9 +401,9 @@ struct SectionHeatedDiscipline: View {
         } else {
             leftSide = "\(dow) \(dateShort)"
         }
-        if time.isEmpty || time == "12:00 AM" {
-            return leftSide
-        }
+        // Append the clock time only when it is a real intraday timestamp;
+        // a date-only / 00:00 UTC parse shows the date alone.
+        guard timeKnown, !time.isEmpty else { return leftSide }
         return "\(leftSide) \u{00B7} \(time)"
     }
 

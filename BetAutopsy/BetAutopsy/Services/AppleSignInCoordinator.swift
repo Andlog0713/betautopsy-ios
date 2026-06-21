@@ -100,7 +100,10 @@ final class AppleSignInCoordinator {
     /// the user out if Apple no longer recognizes the credential.
     @MainActor
     static func checkCredentialState() async {
-        guard let appleUserID = AuthState.shared.user?.appleUserID else { return }
+        // Apple-only: only Apple sessions have a credential state to revoke.
+        // Google / email users have no appleUserID and are skipped.
+        guard AuthState.shared.user?.provider == .apple,
+              let appleUserID = AuthState.shared.user?.appleUserID else { return }
         let provider = ASAuthorizationAppleIDProvider()
         do {
             let credState = try await provider.credentialState(forUserID: appleUserID)
@@ -145,27 +148,23 @@ final class AppleSignInCoordinator {
             let email = credential.email
             let now = Date()
 
+            // The Supabase auth.uid() is the cross-provider identity key
+            // (and what the IAP webhook joins on). Fetch it from the session
+            // just established by signInWithIdToken.
+            let supabaseUID = await SupabaseService.currentUserId()
+
             let user = User(
+                provider: .apple,
                 appleUserID: appleUserID,
+                supabaseUID: supabaseUID,
                 displayName: assembledName,
                 email: email,
                 timezone: TimeZone.current.identifier,
                 firstSignedInAt: now,
                 lastSignedInAt: now
             )
-            AuthState.shared.setAuthenticated(user: user)
-            PushTokenStore.shared.flushIfPending()
-
-            // Fire-and-forget RC login. The Supabase session was just
-            // established by signInWithIdToken above, but we didn't
-            // keep the returned session in scope — and the local User
-            // struct carries appleUserID, not the Supabase auth.uid()
-            // that the webhook needs. Fetch the uid from the session
-            // accessor inside the Task.
-            Task {
-                guard let uid = await SupabaseService.currentUserId() else { return }
-                await RevenueCatStore.shared.login(userId: uid)
-            }
+            // Shared tail: persist + push flush + RC login (auth.uid()).
+            AuthState.shared.handleSignedIn(user: user)
 
             Analytics.signal("auth.apple.succeeded")
             state = .succeeded

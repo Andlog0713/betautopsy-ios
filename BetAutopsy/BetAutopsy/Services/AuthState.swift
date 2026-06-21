@@ -33,6 +33,19 @@ final class AuthState {
         loadFromStorage()
     }
 
+    /// Shared post-session tail for EVERY provider (Apple / Google / email).
+    /// Persists the user, flushes a pending push token, and logs the Supabase
+    /// uid into RevenueCat (the IAP webhook joins on auth.uid(), not the
+    /// provider id). Call AFTER a Supabase session is established.
+    func handleSignedIn(user: User) {
+        setAuthenticated(user: user)
+        PushTokenStore.shared.flushIfPending()
+        Task {
+            guard let uid = await SupabaseService.currentUserId() else { return }
+            await RevenueCatStore.shared.login(userId: uid)
+        }
+    }
+
     /// Sets the authenticated user, merging any non-nil fields from the
     /// existing record (preserves displayName + email + firstSignedInAt
     /// on subsequent sign-ins, since Apple returns those only the first
@@ -40,11 +53,13 @@ final class AuthState {
     /// established and persisted to Keychain.
     func setAuthenticated(user: User) {
         var merged = user
-        if let existing = self.user, existing.appleUserID == user.appleUserID {
+        if let existing = self.user, Self.sameIdentity(existing, user) {
             if merged.displayName == nil { merged.displayName = existing.displayName }
             if merged.email == nil { merged.email = existing.email }
             merged = User(
-                appleUserID: merged.appleUserID,
+                provider: merged.provider,
+                appleUserID: merged.appleUserID ?? existing.appleUserID,
+                supabaseUID: merged.supabaseUID ?? existing.supabaseUID,
                 displayName: merged.displayName,
                 email: merged.email,
                 timezone: merged.timezone,
@@ -55,6 +70,14 @@ final class AuthState {
         self.user = merged
         self.isAuthenticated = true
         persistToStorage()
+    }
+
+    /// Same person across sign-ins. Prefer the cross-provider Supabase uid;
+    /// fall back to appleUserID for records that predate supabaseUID.
+    private static func sameIdentity(_ a: User, _ b: User) -> Bool {
+        if let au = a.supabaseUID, let bu = b.supabaseUID { return au == bu }
+        if let aa = a.appleUserID, let ba = b.appleUserID { return aa == ba }
+        return false
     }
 
     func signOut() async {

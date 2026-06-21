@@ -64,7 +64,7 @@ final class ReportStore {
         // load synchronously, before the first view paints. AuthState.shared is
         // populated from UserDefaults in its own init, which runs ahead of this
         // store's first reference (RootTabView @State / cross-cutting writers).
-        let userId = AuthState.shared.user?.appleUserID
+        let userId = AuthState.shared.user?.identityKey
         let cache = ReportCache(userId: userId)
         self.cache = cache
 

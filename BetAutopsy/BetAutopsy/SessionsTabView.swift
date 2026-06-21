@@ -70,10 +70,13 @@ struct SessionsTabView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xs) {
-            Text("SESSIONS")
-                .font(.system(size: 10, weight: .regular).monospacedDigit())
-                .tracking(10 * 0.15)
-                .foregroundStyle(DS.Color.V3.textTertiary)
+            HStack(spacing: DS.Spacing.sm) {
+                BABrandMark()
+                Text("SESSIONS")
+                    .font(.system(size: 10, weight: .regular).monospacedDigit())
+                    .tracking(10 * 0.15)
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+            }
 
             Text("Recent sessions.")
                 .font(.system(size: 24, weight: .semibold))
@@ -149,6 +152,7 @@ struct SessionsTabView: View {
 
     private var emptyState: some View {
         VStack(spacing: DS.Spacing.md) {
+            BABrandMark()
             Text("SESSIONS")
                 .font(.system(size: 10, weight: .regular).monospacedDigit())
                 .tracking(10 * 0.15)

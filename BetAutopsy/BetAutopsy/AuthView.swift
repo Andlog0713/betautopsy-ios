@@ -37,7 +37,7 @@ struct AuthView: View {
                 Image("betautopsy-lockup-horizontal-dark")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 160)
+                    .frame(width: 230)
                     .padding(.top, 48)
                     .padding(.bottom, 32)
                     .accessibilityLabel("BetAutopsy")

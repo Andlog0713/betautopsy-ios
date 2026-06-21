@@ -241,10 +241,13 @@ struct TodayView: View {
     // MARK: - Case header
 
     private var caseHeader: some View {
-        Text(latest.map { "CASE \($0.caseNumber)" } ?? "TODAY")
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(1.65)
-            .foregroundStyle(DS.Color.V3.textTertiary)
+        HStack(spacing: DS.Spacing.sm) {
+            BABrandMark()
+            Text(latest.map { "CASE \($0.caseNumber)" } ?? "TODAY")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.65)
+                .foregroundStyle(DS.Color.V3.textTertiary)
+        }
     }
 
     // MARK: - Hero ring

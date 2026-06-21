@@ -114,7 +114,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var aboutSection: some View {
-        Section("About") {
+        Section {
             HStack {
                 Text("Version")
                 Spacer()
@@ -131,6 +131,17 @@ struct SettingsView: View {
             .font(.system(size: 12))
             .foregroundStyle(DS.Color.V3.textTertiary)
             .padding(.vertical, DS.Spacing.xs)
+        } header: {
+            Text("About")
+        } footer: {
+            VStack(spacing: DS.Spacing.xs) {
+                BABrandMark(size: 28)
+                Text("BetAutopsy")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(DS.Color.V3.textTertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, DS.Spacing.lg)
         }
     }
 

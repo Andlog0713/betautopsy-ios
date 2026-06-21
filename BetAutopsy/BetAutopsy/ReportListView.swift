@@ -172,7 +172,8 @@ struct ReportListView: View {
     // MARK: - Header
 
     private var headerRow: some View {
-        HStack {
+        HStack(spacing: DS.Spacing.sm) {
+            BABrandMark()
             Text("AUTOPSY REPORTS")
                 .font(.system(size: 10, weight: .regular).monospacedDigit())
                 .tracking(10 * 0.15)

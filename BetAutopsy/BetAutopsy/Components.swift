@@ -93,6 +93,28 @@ struct BAChromeLabel: View {
     }
 }
 
+// MARK: - BABrandMark
+
+/// The BetAutopsy y-mark used as a quiet brand signature in logged-in chrome
+/// (tab headers, settings footer). Mirrors the cover/paywall/age-gate idiom:
+/// the transparent, vector `y-mark-yellow` asset, brand yellow baked in.
+/// Decorative - the surrounding labels carry the accessible names.
+struct BABrandMark: View {
+    var size: CGFloat = 22
+
+    init(size: CGFloat = 22) {
+        self.size = size
+    }
+
+    var body: some View {
+        Image("y-mark-yellow")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Components") {

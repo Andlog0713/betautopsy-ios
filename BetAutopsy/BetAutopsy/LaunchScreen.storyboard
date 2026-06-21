@@ -14,18 +14,19 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="BetAutopsy" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LSC-lb-001">
-                                <rect key="frame" x="0.0" y="0.0" width="220" height="38"/>
-                                <fontDescription key="fontDescription" name="Inter-SemiBold" family="Inter" pointSize="32"/>
-                                <color key="textColor" red="0.92549019607843142" green="0.92941176470588238" blue="0.94509803921568625" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <imageView opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="betautopsy-lockup-horizontal-onyellow" translatesAutoresizingMaskIntoConstraints="NO" id="LSC-iv-001">
+                                <rect key="frame" x="26.5" y="383.5" width="340" height="85"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="340" id="LSC-cw-001"/>
+                                    <constraint firstAttribute="height" constant="85" id="LSC-ch-001"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="LSC-sa-001"/>
-                        <color key="backgroundColor" red="0.03921568627450980" green="0.05490196078431372" blue="0.07058823529411764" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.98039215686274510" green="0.80000000000000004" blue="0.08235294117647059" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="LSC-lb-001" firstAttribute="centerX" secondItem="LSC-vw-001" secondAttribute="centerX" id="LSC-cn-001"/>
-                            <constraint firstItem="LSC-lb-001" firstAttribute="centerY" secondItem="LSC-vw-001" secondAttribute="centerY" id="LSC-cn-002"/>
+                            <constraint firstItem="LSC-iv-001" firstAttribute="centerX" secondItem="LSC-vw-001" secondAttribute="centerX" id="LSC-cn-001"/>
+                            <constraint firstItem="LSC-iv-001" firstAttribute="centerY" secondItem="LSC-vw-001" secondAttribute="centerY" id="LSC-cn-002"/>
                         </constraints>
                     </view>
                 </viewController>

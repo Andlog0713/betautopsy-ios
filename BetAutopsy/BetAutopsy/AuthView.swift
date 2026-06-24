@@ -2,14 +2,12 @@
 //  AuthView.swift
 //  BetAutopsy
 //
-//  Multi-provider sign-in (PR-AUTH): Continue with Apple, Continue with
-//  Google, and an email/password form with a Sign in | Create account
-//  toggle + Forgot password. All three land in the same Supabase session
-//  and call onboardingCoordinator.advance() on success.
-//
-//  Apple stays prominent (App Store guideline 4.8). Google uses Supabase
-//  OAuth (ASWebAuthenticationSession, no SDK); email/password uses Supabase
-//  email auth with instant access (confirmation disabled server-side).
+//  Multi-provider sign-in (PR-AUTH, polish pass): Continue with Apple,
+//  Continue with Google (official G mark), and email/password collapsed
+//  behind "Continue with email" so the landing screen stays clean —
+//  social-first, email-on-tap (Linear / Robinhood / Cash App pattern).
+//  Apple stays first + prominent (App Store guideline 4.8). All providers
+//  land in the same Supabase session and call onboardingCoordinator.advance().
 //
 //  The reviewer-bypass 5-tap gesture on the lockup is preserved.
 //
@@ -24,6 +22,7 @@ struct AuthView: View {
     @State private var google = GoogleSignInCoordinator()
     @State private var email = EmailAuthCoordinator()
 
+    @State private var emailExpanded = false
     @State private var errorMessage: String? = nil
     @State private var showingError: Bool = false
 
@@ -47,14 +46,9 @@ struct AuthView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     header
-                    providerButtons
+                    authStack
                         .padding(.horizontal, DS.Spacing.lg)
-                        .padding(.top, DS.Spacing.lg)
-                    orDivider
-                        .padding(.horizontal, DS.Spacing.lg)
-                        .padding(.vertical, DS.Spacing.lg)
-                    emailForm
-                        .padding(.horizontal, DS.Spacing.lg)
+                        .padding(.top, DS.Spacing.xl)
                     footerLinks
                         .padding(.top, DS.Spacing.xl)
                         .padding(.bottom, DS.Spacing.xxl)
@@ -91,18 +85,18 @@ struct AuthView: View {
             Image("betautopsy-lockup-horizontal-dark")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 230)
-                .padding(.top, DS.Spacing.xxl)
+                .frame(width: 210)
+                .padding(.top, DS.Spacing.xl)
                 .padding(.bottom, DS.Spacing.lg)
                 .accessibilityLabel("BetAutopsy")
                 .onTapGesture { registerReviewerTap() }
 
-            VStack(alignment: .leading, spacing: DS.Spacing.md) {
+            VStack(alignment: .leading, spacing: DS.Spacing.sm) {
                 BAChromeLabel("CASE FILE ACCESS")
-                Text("Behavioral analysis for sports bettors. Upload your history. See what's costing you.")
-                    .font(DS.Font.V3.bodyRegular)
+                Text("Behavioral analysis for sports bettors. See what's costing you.")
+                    .font(.system(size: 17))
                     .foregroundStyle(DS.Color.V3.textSecondary)
-                    .lineSpacing(4)
+                    .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -110,69 +104,93 @@ struct AuthView: View {
         }
     }
 
-    // MARK: - Provider buttons
+    // MARK: - Auth stack (providers + collapsed email)
 
-    private var providerButtons: some View {
+    private var authStack: some View {
         VStack(spacing: DS.Spacing.sm) {
-            if apple.state == .signingIn {
-                providerSpinner
-            } else {
-                SignInWithAppleButton(
-                    onRequest: { request in
-                        request.requestedScopes = [.fullName, .email]
-                        apple.prepareNonce(on: request)
-                    },
-                    onCompletion: { result in
-                        Task { await apple.handleAuthorizationResult(result) }
-                    }
-                )
-                .signInWithAppleButtonStyle(.white)
-                .frame(maxWidth: 375, maxHeight: 52)
-                .cornerRadius(DS.Radius.chip)
-            }
-
+            appleButton
             googleButton
+
+            if emailExpanded {
+                emailForm
+                    .padding(.top, DS.Spacing.sm)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                emailExpandButton
+            }
         }
+        .frame(maxWidth: 380)
+        .frame(maxWidth: .infinity)
         .disabled(anyProviderBusy)
+    }
+
+    @ViewBuilder
+    private var appleButton: some View {
+        if apple.state == .signingIn {
+            providerSpinner
+        } else {
+            SignInWithAppleButton(.continue,
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email]
+                    apple.prepareNonce(on: request)
+                },
+                onCompletion: { result in
+                    Task { await apple.handleAuthorizationResult(result) }
+                }
+            )
+            .signInWithAppleButtonStyle(.white)
+            .frame(height: 52)
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.chip))
+        }
     }
 
     private var googleButton: some View {
         Button {
             Task { await google.signIn() }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 if google.state == .signingIn {
                     ProgressView().tint(DS.Color.Brand.canvasDark)
                 } else {
+                    Image("google-g")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 18, height: 18)
                     Text("Continue with Google")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(DS.Color.Brand.canvasDark)
+                        .foregroundStyle(Color(red: 0.12, green: 0.12, blue: 0.12))
                 }
             }
-            .frame(maxWidth: 375)
-            .frame(height: 52)
             .frame(maxWidth: .infinity)
+            .frame(height: 52)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.chip))
         }
-        .frame(maxWidth: 375)
+        .accessibilityLabel("Continue with Google")
+    }
+
+    private var emailExpandButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) { emailExpanded = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { focusedField = .email }
+        } label: {
+            Text("Continue with email")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(DS.Color.V3.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.chip)
+                        .stroke(DS.Color.V3.borderSubtle, lineWidth: 1)
+                )
+        }
     }
 
     private var providerSpinner: some View {
         ProgressView()
             .progressViewStyle(.circular)
             .tint(DS.Color.V3.textPrimary)
-            .frame(maxWidth: 375, maxHeight: 52)
-    }
-
-    private var orDivider: some View {
-        HStack(spacing: DS.Spacing.md) {
-            Rectangle().fill(DS.Color.V3.borderSubtle).frame(height: 0.5)
-            Text("or")
-                .font(DS.Font.V3.captionLabel)
-                .foregroundStyle(DS.Color.V3.textTertiary)
-            Rectangle().fill(DS.Color.V3.borderSubtle).frame(height: 0.5)
-        }
+            .frame(maxWidth: .infinity, minHeight: 52)
     }
 
     // MARK: - Email/password form
@@ -183,8 +201,10 @@ struct AuthView: View {
         VStack(alignment: .leading, spacing: DS.Spacing.md) {
             modeToggle
 
-            authField(label: "Email", text: $email.email, isSecure: false, field: .email)
-            authField(label: "Password", text: $email.password, isSecure: true, field: .password)
+            authField(label: "Email", placeholder: "you@example.com",
+                      text: $email.email, isSecure: false, field: .email)
+            authField(label: "Password", placeholder: "At least 8 characters",
+                      text: $email.password, isSecure: true, field: .password)
 
             if case .failed(let message) = email.state {
                 Text(message)
@@ -212,8 +232,7 @@ struct AuthView: View {
     }
 
     private var modeToggle: some View {
-        @Bindable var email = email
-        return HStack(spacing: DS.Spacing.lg) {
+        HStack(spacing: DS.Spacing.lg) {
             modeTab("Sign in", mode: .signIn)
             modeTab("Create account", mode: .createAccount)
             Spacer()
@@ -237,7 +256,7 @@ struct AuthView: View {
         }
     }
 
-    private func authField(label: String, text: Binding<String>, isSecure: Bool, field: Field) -> some View {
+    private func authField(label: String, placeholder: String, text: Binding<String>, isSecure: Bool, field: Field) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label.uppercased())
                 .font(.system(size: 11, weight: .bold))
@@ -245,9 +264,9 @@ struct AuthView: View {
                 .foregroundStyle(DS.Color.V3.textTertiary)
             Group {
                 if isSecure {
-                    SecureField("", text: text)
+                    SecureField(placeholder, text: text)
                 } else {
-                    TextField("", text: text)
+                    TextField(placeholder, text: text)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -257,7 +276,7 @@ struct AuthView: View {
             .font(.system(size: 16))
             .foregroundStyle(DS.Color.V3.textPrimary)
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.vertical, 13)
             .background(DS.Color.V3.surfaceCard)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(DS.Color.V3.borderSubtle, lineWidth: 0.5))
             .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -281,7 +300,7 @@ struct AuthView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(email.canSubmit ? DS.Color.Brand.yellow : DS.Color.V3.surfaceRaised)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.chip))
         }
         .disabled(!email.canSubmit || anyProviderBusy)
     }
@@ -314,7 +333,7 @@ struct AuthView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Handlers
 
     private func handleApple(_ s: AppleSignInCoordinator.State) {
         switch s {
@@ -339,7 +358,6 @@ struct AuthView: View {
     }
 
     /// 5-taps-in-3-seconds on the lockup presents ReviewerBypassSheet.
-    /// Local-only; no analytics so the bypass leaves no fingerprint.
     private func registerReviewerTap() {
         let now = Date()
         if now.timeIntervalSince(lastTapTime) > 3.0 { tapCount = 1 } else { tapCount += 1 }

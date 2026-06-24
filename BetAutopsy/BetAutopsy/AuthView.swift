@@ -43,18 +43,25 @@ struct AuthView: View {
         ZStack {
             DS.Color.V3.canvasGradient.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    header
-                    authStack
-                        .padding(.horizontal, DS.Spacing.lg)
-                        .padding(.top, DS.Spacing.xl)
-                    footerLinks
-                        .padding(.top, DS.Spacing.xl)
-                        .padding(.bottom, DS.Spacing.xxl)
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        header
+                        authStack
+                            .padding(.horizontal, DS.Spacing.lg)
+                            .padding(.top, DS.Spacing.xl)
+                        // Push the helpline footer toward the bottom so the
+                        // collapsed landing reads balanced, not top-stacked.
+                        // minHeight ties the content to the viewport so the
+                        // Spacer expands; it still scrolls when email expands.
+                        Spacer(minLength: DS.Spacing.xxl)
+                        footerLinks
+                            .padding(.bottom, DS.Spacing.xl)
+                    }
+                    .frame(minHeight: geo.size.height)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
         }
         .onAppear { Analytics.signal("auth.viewed") }
         .onChange(of: apple.state) { _, s in handleApple(s) }
